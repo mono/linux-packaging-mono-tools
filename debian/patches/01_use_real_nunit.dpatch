@@ -5,9 +5,9 @@
 ## DP: No description.
 
 @DPATCH@
-diff -urNad --exclude=CVS --exclude=.svn ./configure /tmp/dpep-work.wVtBWN/mono-tools-1.0/configure
---- ./configure	2005-08-21 21:07:27.000000000 +0200
-+++ /tmp/dpep-work.wVtBWN/mono-tools-1.0/configure	2005-08-21 21:13:42.000000000 +0200
+diff -urNad mono-tools-1.1.9~/configure mono-tools-1.1.9/configure
+--- mono-tools-1.1.9~/configure	2005-09-09 04:13:34.000000000 +0200
++++ mono-tools-1.1.9/configure	2005-09-25 21:53:30.000000000 +0200
 @@ -2164,23 +2164,23 @@
    else
       PKG_CONFIG_MIN_VERSION=0.9.0
@@ -33,7 +33,7 @@ diff -urNad --exclude=CVS --exclude=.svn ./configure /tmp/dpep-work.wVtBWN/mono-
              echo "$as_me:$LINENO: checking NUNIT_LIBS" >&5
  echo $ECHO_N "checking NUNIT_LIBS... $ECHO_C" >&6
 -            NUNIT_LIBS=`$PKG_CONFIG --libs "mono-nunit"`
-+            NUNIT_LIBS="`$PKG_CONFIG --libs "nunit-core"` -r /usr/lib/nunit/bin/nunit.util.dll"
++            NUNIT_LIBS="`$PKG_CONFIG --libs "nunit-core"` -r /usr/lib/nunit/nunit.util.dll"
              echo "$as_me:$LINENO: result: $NUNIT_LIBS" >&5
  echo "${ECHO_T}$NUNIT_LIBS" >&6
          else
