@@ -1,6 +1,6 @@
 This package was debianized by Mirco Bauer <meebey@meebey.net>
 
-It was downloaded from <http://www.go-mono.org/>
+It was downloaded from http://go-mono.com/sources/
 
 Authors:
 Jonathan Pryor <jonpryor@vt.edu>
@@ -25,4 +25,3 @@ Copyright:
 
 On Debian systems, the complete text of the GNU General
 Public License can be found in `/usr/share/common-licenses/GPL'.
-

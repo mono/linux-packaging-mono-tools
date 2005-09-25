@@ -23,3 +23,8 @@ Architecture: all
 Depends:  ${cli:Depends}
 Description: frontend for running NUnit 2 test suites
  gnunit (formerly known as nunit-gtk) is a frontend for NUnit.
+ .
+ NUnit is a unit testing framework for all .NET languages. It serves the
+ same purpose as JUnit does in the Java world. It supports test
+ categories, testing for exceptions and writing test results in plain
+ text or XML.
