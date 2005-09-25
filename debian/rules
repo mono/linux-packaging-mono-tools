@@ -1,0 +1,53 @@
+#!/usr/bin/make -f
+
+#export DH_VERBOSE=1
+export MONO_SHARED_DIR=$(CURDIR)
+include /usr/share/dpatch/dpatch.make
+
+build: build-stamp
+build-stamp: patch
+	dh_testdir
+	#perl -pe 's/mono-nunit/nunit-core/' -i configure
+	./configure --prefix=/usr
+	$(MAKE)
+	touch build-stamp
+
+clean: unpatch
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp
+	-$(MAKE) clean
+	rm -rf $$MONO_SHARED_DIR/.wapi
+	dh_clean 
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_installdirs
+	$(MAKE) install DESTDIR=$(CURDIR)/debian/tmp
+	cd debian && find -type f -name "*.dll" -or -name "*.mdb" -or -name "*.cs" | xargs chmod -x
+	cd debian && find -type f -name "*.exe" | xargs chmod +x
+
+binary-indep: build install
+	dh_testdir
+	dh_testroot
+	dh_movefiles
+	dh_link
+	dh_install
+	dh_installchangelogs ChangeLog
+	dh_installdocs
+	dh_installmenu
+	dh_installman
+	dh_strip
+	dh_compress
+	dh_fixperms
+	dh_installdeb
+	dh_installxsp
+	dh_clideps
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+binary: binary-indep
+.PHONY: build clean binary-indep binary install

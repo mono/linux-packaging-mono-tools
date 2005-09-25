@@ -1,0 +1,6 @@
+debian/tmp/usr/bin/gnunit
+debian/tmp/usr/bin/gnunit2
+debian/tmp/usr/bin/gasnview
+debian/tmp/usr/lib/mono/1.0/gasnview.exe
+debian/tmp/usr/lib/mono/1.0/gnunit.exe
+debian/tmp/usr/lib/mono/2.0/gnunit2.exe

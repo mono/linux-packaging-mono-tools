@@ -1,0 +1,25 @@
+Source: mono-tools
+Section: devel
+Priority: optional
+Maintainer: Debian Mono Group <pkg-mono-group@lists.alioth.debian.org>
+Uploaders: Mirco Bauer <meebey@meebey.net>
+Build-Depends: debhelper (>= 4.0.0), cli-common (>= 0.2.0), pkg-config, libmono-dev (>= 1.0), mono-gac (>= 1.0), libnunit-cil (>= 2.2.0), libgtk-cil (>= 1.0), libgnome-cil (>= 1.0), libgconf-cil (>= 1.0), libglade-cil (>= 1.0), libgecko-cil (>= 0.6), monodoc-base (>= 1.0.7)
+Standards-Version: 3.6.2.1
+
+Package: monodoc-browser
+Provides: monodoc-viewer
+Architecture: all
+Recommends: lynx
+Depends: ${cli:Depends}, monodoc-manual
+Description: MonoDoc GTK+ based viewer
+ The MonoDoc Project is the documentation framework of the Mono project which
+ provides detailed API documentation for all Mono components and the Mono CLI
+ implementation.
+ .
+ This package contains the GTK+ based viewer of the Mono documentation.
+
+Package: gnunit
+Architecture: all
+Depends:  ${cli:Depends}
+Description: frontend for running NUnit 2 test suites
+ gnunit (formerly known as nunit-gtk) is a frontend for NUnit.
