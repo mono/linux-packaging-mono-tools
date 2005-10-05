@@ -7,18 +7,18 @@
 @DPATCH@
 diff -urNad mono-tools-1.1.9~/configure mono-tools-1.1.9/configure
 --- mono-tools-1.1.9~/configure	2005-09-09 04:13:34.000000000 +0200
-+++ mono-tools-1.1.9/configure	2005-09-25 21:53:30.000000000 +0200
++++ mono-tools-1.1.9/configure	2005-10-05 10:24:21.000000000 +0200
 @@ -2164,23 +2164,23 @@
    else
       PKG_CONFIG_MIN_VERSION=0.9.0
       if $PKG_CONFIG --atleast-pkgconfig-version $PKG_CONFIG_MIN_VERSION; then
 -        echo "$as_me:$LINENO: checking for mono-nunit" >&5
 -echo $ECHO_N "checking for mono-nunit... $ECHO_C" >&6
-+        echo "$as_me:$LINENO: checking for nunit-core" >&5
-+echo $ECHO_N "checking for nunit-core... $ECHO_C" >&6
++        echo "$as_me:$LINENO: checking for nunit" >&5
++echo $ECHO_N "checking for nunit... $ECHO_C" >&6
  
 -        if $PKG_CONFIG --exists "mono-nunit" ; then
-+        if $PKG_CONFIG --exists "nunit-core" ; then
++        if $PKG_CONFIG --exists "nunit" ; then
              echo "$as_me:$LINENO: result: yes" >&5
  echo "${ECHO_T}yes" >&6
              succeeded=yes
@@ -26,14 +26,14 @@ diff -urNad mono-tools-1.1.9~/configure mono-tools-1.1.9/configure
              echo "$as_me:$LINENO: checking NUNIT_CFLAGS" >&5
  echo $ECHO_N "checking NUNIT_CFLAGS... $ECHO_C" >&6
 -            NUNIT_CFLAGS=`$PKG_CONFIG --cflags "mono-nunit"`
-+            NUNIT_CFLAGS=`$PKG_CONFIG --cflags "nunit-core"`
++            NUNIT_CFLAGS=`$PKG_CONFIG --cflags "nunit"`
              echo "$as_me:$LINENO: result: $NUNIT_CFLAGS" >&5
  echo "${ECHO_T}$NUNIT_CFLAGS" >&6
  
              echo "$as_me:$LINENO: checking NUNIT_LIBS" >&5
  echo $ECHO_N "checking NUNIT_LIBS... $ECHO_C" >&6
 -            NUNIT_LIBS=`$PKG_CONFIG --libs "mono-nunit"`
-+            NUNIT_LIBS="`$PKG_CONFIG --libs "nunit-core"` -r /usr/lib/nunit/nunit.util.dll"
++            NUNIT_LIBS=`$PKG_CONFIG --libs "nunit"`
              echo "$as_me:$LINENO: result: $NUNIT_LIBS" >&5
  echo "${ECHO_T}$NUNIT_LIBS" >&6
          else
@@ -42,7 +42,7 @@ diff -urNad mono-tools-1.1.9~/configure mono-tools-1.1.9/configure
              ## If we have a custom action on failure, don't print errors, but
              ## do set a variable so people can do so.
 -            NUNIT_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "mono-nunit"`
-+            NUNIT_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "nunit-core"`
++            NUNIT_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "nunit"`
              echo $NUNIT_PKG_ERRORS
          fi
  
@@ -52,8 +52,8 @@ diff -urNad mono-tools-1.1.9~/configure mono-tools-1.1.9/configure
    else
 -     { { echo "$as_me:$LINENO: error: Library requirements (mono-nunit) not met; consider adjusting the PKG_CONFIG_PATH environment variable if your libraries are in a nonstandard prefix so pkg-config can find them." >&5
 -echo "$as_me: error: Library requirements (mono-nunit) not met; consider adjusting the PKG_CONFIG_PATH environment variable if your libraries are in a nonstandard prefix so pkg-config can find them." >&2;}
-+     { { echo "$as_me:$LINENO: error: Library requirements (nunit-core) not met; consider adjusting the PKG_CONFIG_PATH environment variable if your libraries are in a nonstandard prefix so pkg-config can find them." >&5
-+echo "$as_me: error: Library requirements (nunit-core) not met; consider adjusting the PKG_CONFIG_PATH environment variable if your libraries are in a nonstandard prefix so pkg-config can find them." >&2;}
++     { { echo "$as_me:$LINENO: error: Library requirements (nunit) not met; consider adjusting the PKG_CONFIG_PATH environment variable if your libraries are in a nonstandard prefix so pkg-config can find them." >&5
++echo "$as_me: error: Library requirements (nunit) not met; consider adjusting the PKG_CONFIG_PATH environment variable if your libraries are in a nonstandard prefix so pkg-config can find them." >&2;}
     { (exit 1); exit 1; }; }
    fi
  

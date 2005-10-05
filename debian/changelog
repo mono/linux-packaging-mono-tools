@@ -1,3 +1,13 @@
+mono-tools (1.1.9-2) unstable; urgency=low
+
+  * Mirco 'meebey' Bauer
+    + debian/control:
+      - Added dpatch to build-depends.
+    + debian/patches/01_use_real_nunit.dpatch:
+      - Updated to use nunit.pc instead of nunit-core.pc
+
+ -- Debian Mono Group <pkg-mono-group@lists.alioth.debian.org>  Wed, 5 Oct 2005 10:25:47 +0200
+
 mono-tools (1.1.9-1) unstable; urgency=low
 
   * Mirco 'meebey' Bauer
