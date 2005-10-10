@@ -1,3 +1,13 @@
+mono-tools (1.1.9-3) unstable; urgency=low
+
+  * Mirco 'meebey' Bauer
+    + debian/control:
+      - Added mono-mcs and mono-gmcs to build-depends.
+    + debian/rules:
+      - Clean target tries to be more clean now, "make clean" isn't.
+
+ -- Debian Mono Group <pkg-mono-group@lists.alioth.debian.org>  Mon, 10 Oct 2005 10:04:27 +0200
+
 mono-tools (1.1.9-2) unstable; urgency=low
 
   * Mirco 'meebey' Bauer

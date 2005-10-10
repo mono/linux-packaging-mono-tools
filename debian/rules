@@ -7,7 +7,6 @@ include /usr/share/dpatch/dpatch.make
 build: build-stamp
 build-stamp: patch
 	dh_testdir
-	#perl -pe 's/mono-nunit/nunit-core/' -i configure
 	./configure --prefix=/usr
 	$(MAKE)
 	touch build-stamp
@@ -17,6 +16,8 @@ clean: unpatch
 	dh_testroot
 	rm -f build-stamp
 	-$(MAKE) clean
+	# make clean is everything but clean
+	find -name "*.exe*" -or -name "*.dll*" | xargs rm -f
 	rm -rf $$MONO_SHARED_DIR/.wapi
 	dh_clean 
 
@@ -43,7 +44,6 @@ binary-indep: build install
 	dh_compress
 	dh_fixperms
 	dh_installdeb
-	dh_installxsp
 	dh_clideps
 	dh_gencontrol
 	dh_md5sums
