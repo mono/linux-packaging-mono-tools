@@ -11,15 +11,17 @@ build-stamp: patch
 	$(MAKE)
 	touch build-stamp
 
-clean: unpatch
+clean: clean-patched unpatch
+clean-patched:
 	dh_testdir
 	dh_testroot
 	rm -f build-stamp
-	-$(MAKE) clean
+	-$(MAKE) distclean
 	# make clean is everything but clean
-	find -name "*.exe*" -or -name "*.dll*" | xargs rm -f
+	#find -name "*.exe*" -or -name "*.dll*" | xargs rm -f
+	# using 02_fix_buildsystem.dpatch now for this task
 	rm -rf $$MONO_SHARED_DIR/.wapi
-	dh_clean 
+	dh_clean
 
 install: build
 	dh_testdir

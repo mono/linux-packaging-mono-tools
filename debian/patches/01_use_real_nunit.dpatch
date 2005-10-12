@@ -5,9 +5,22 @@
 ## DP: No description.
 
 @DPATCH@
+diff -urNad mono-tools-1.1.9~/configure.in mono-tools-1.1.9/configure.in
+--- mono-tools-1.1.9~/configure.in	2005-09-08 21:30:49.000000000 +0200
++++ mono-tools-1.1.9/configure.in	2005-10-12 11:20:14.000000000 +0200
+@@ -30,7 +30,7 @@
+ AC_SUBST(RUNTIME)
+ AC_SUBST(RESGEN)
+ 
+-PKG_CHECK_MODULES(NUNIT, mono-nunit)
++PKG_CHECK_MODULES(NUNIT, nunit)
+ AC_SUBST(NUNIT_LIBS)
+ 
+ #PKG_CHECK_MODULES(GTK_SHARP, glade-sharp-2.0 gnome-sharp-2.0 gconf-sharp-2.0 gtkhtml-sharp-2.0, enable_gtks=yes, enable_gtks=no)
+
 diff -urNad mono-tools-1.1.9~/configure mono-tools-1.1.9/configure
 --- mono-tools-1.1.9~/configure	2005-09-09 04:13:34.000000000 +0200
-+++ mono-tools-1.1.9/configure	2005-10-05 10:24:21.000000000 +0200
++++ mono-tools-1.1.9/configure	2005-10-12 11:19:35.000000000 +0200
 @@ -2164,23 +2164,23 @@
    else
       PKG_CONFIG_MIN_VERSION=0.9.0
@@ -56,4 +69,5 @@ diff -urNad mono-tools-1.1.9~/configure mono-tools-1.1.9/configure
 +echo "$as_me: error: Library requirements (nunit) not met; consider adjusting the PKG_CONFIG_PATH environment variable if your libraries are in a nonstandard prefix so pkg-config can find them." >&2;}
     { (exit 1); exit 1; }; }
    fi
+ 
  
