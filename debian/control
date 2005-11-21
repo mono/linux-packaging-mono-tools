@@ -8,6 +8,7 @@ Standards-Version: 3.6.2.1
 
 Package: monodoc-browser
 Provides: monodoc-viewer
+Replaces: monodoc-base (<< 1.1.9)
 Architecture: all
 Recommends: lynx
 Depends: ${cli:Depends}, monodoc-manual

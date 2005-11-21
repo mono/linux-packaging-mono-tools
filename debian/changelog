@@ -1,3 +1,17 @@
+mono-tools (1.1.10-1) unstable; urgency=low
+
+  * New upstream release
+  * Mirco 'meebey' Bauer
+    + debian/control:
+      - Added "Replaces: monodoc-base (<< 1.1.9)" to monodoc-browser for smooth
+        upgrades from 1.0.x versions.
+    + debian/monodoc-browser.install:
+      - Added GtkHtmlHtmlRender.dll, new renderer for MonoDoc Browser.
+      - Removed GeckoHtmlRender.dll, it's less stable than GtkHTML.
+    + Removed 02_fix_buildsystem.dpatch, already applied upstream.
+
+ -- Debian Mono Group <pkg-mono-group@lists.alioth.debian.org>  Tue, 15 Nov 2005 15:54:49 +0200
+
 mono-tools (1.1.9-3) unstable; urgency=low
 
   * Mirco 'meebey' Bauer

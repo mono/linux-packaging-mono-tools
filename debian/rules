@@ -16,7 +16,7 @@ clean-patched:
 	dh_testdir
 	dh_testroot
 	rm -f build-stamp
-	-$(MAKE) distclean
+	-$(MAKE) clean
 	# make clean is everything but clean
 	#find -name "*.exe*" -or -name "*.dll*" | xargs rm -f
 	# using 02_fix_buildsystem.dpatch now for this task
