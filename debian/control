@@ -21,9 +21,22 @@ Description: MonoDoc GTK+ based viewer
 
 Package: gnunit
 Architecture: all
-Depends:  ${cli:Depends}
+Depends: ${cli:Depends}
 Description: frontend for running NUnit 2 test suites
- gnunit (formerly known as nunit-gtk) is a frontend for NUnit.
+ gnunit (formerly known as nunit-gtk) is a frontend for NUnit which uses
+ the Mono class library version 1.0.
+ .
+ NUnit is a unit testing framework for all .NET languages. It serves the
+ same purpose as JUnit does in the Java world. It supports test
+ categories, testing for exceptions and writing test results in plain
+ text or XML.
+
+Package: gnunit2
+Architecture: all
+Depends: ${cli:Depends}
+Description: frontend for running NUnit 2 test suites
+ gnunit2 (formerly known as nunit-gtk) is a frontend for NUnit which uses
+ the Mono class library version 2.0.
  .
  NUnit is a unit testing framework for all .NET languages. It serves the
  same purpose as JUnit does in the Java world. It supports test
