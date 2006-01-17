@@ -5,6 +5,10 @@ mono-tools (1.1.11-1) unstable; urgency=low
   * Mirco 'meebey' Bauer
     + Split gnunit2 into own package because of Mono class library 2.0
       dependency.
+    + debian/control:
+      - Bumped debhelper build-dep to >= 5.0.0
+    + debian/compat:
+      - Changed to 5.
 
  -- Debian Mono Group <pkg-mono-group@lists.alioth.debian.org>  Sun, 15 Jan 2006 14:28:43 +0100
 
