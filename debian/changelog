@@ -7,6 +7,7 @@ mono-tools (1.1.11-1) unstable; urgency=low
       dependency.
     + debian/control:
       - Bumped debhelper build-dep to >= 5.0.0
+      - Changed Build-Depends to Build-Depends-Indep
     + debian/compat:
       - Changed to 5.
 
