@@ -1,3 +1,14 @@
+mono-tools (1.1.11-2) unstable; urgency=low
+
+  * Mirco 'meebey' Bauer
+    + Rebuild against Mono 1.1.13.6-3
+    + debian/control:
+      - Updated build-deps for Mono 1.1.13.6-2 split. (Closes: #363651, #351651)
+    + debian/patches/01_use_real_nunit.dpatch:
+      - Updated to use nunit-2.2 instead of nunit.
+
+ -- Debian Mono Group <pkg-mono-group@lists.alioth.debian.org>  Sun, 23 Apr 2006 13:21:01 +0200
+
 mono-tools (1.1.11-1) unstable; urgency=low
 
   * New upstream release
