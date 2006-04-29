@@ -3,7 +3,8 @@ Section: devel
 Priority: optional
 Maintainer: Debian Mono Group <pkg-mono-group@lists.alioth.debian.org>
 Uploaders: Mirco Bauer <meebey@meebey.net>
-Build-Depends-Indep: debhelper (>= 5.0.0), dpatch, cli-common-dev (>= 0.4.0), pkg-config, mono-mcs (>= 1.0), mono-gmcs (>= 1.0), libmono-dev (>= 1.0), mono-gac (>= 1.0), libnunit2.2-cil (>= 2.2.0), libgtk-cil (>= 1.0), libgnome-cil (>= 1.0), libgconf-cil (>= 1.0), libglade-cil (>= 1.0), libgecko-cil (>= 0.6), monodoc-base (>= 1.1.9)
+Build-Depends: debhelper (>= 5.0.0)
+Build-Depends-Indep: dpatch, cli-common-dev (>= 0.4.0), pkg-config, mono-mcs (>= 1.0), mono-gmcs (>= 1.0), libmono-dev (>= 1.0), mono-gac (>= 1.0), libnunit2.2-cil (>= 2.2.0), libgtk-cil (>= 1.0), libgnome-cil (>= 1.0), libgconf-cil (>= 1.0), libglade-cil (>= 1.0), libgecko-cil (>= 0.6), monodoc-base (>= 1.1.9)
 Standards-Version: 3.6.2.1
 
 Package: monodoc-browser
