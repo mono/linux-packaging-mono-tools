@@ -5,6 +5,7 @@ mono-tools (1.1.11-3) unstable; urgency=low
     + Updated cli-common build-dep to cli-common-dev >= 0.4.0
     + Moved debhelper build-dep-indep to build-dep.
     + Updated FSF's snail-mail address in debian/copyright.
+    + Added binary-arch target to debian/rules.
 
  -- Debian Mono Group <pkg-mono-group@lists.alioth.debian.org>  Sun, 30 Apr 2006 00:58:32 +0200
 
