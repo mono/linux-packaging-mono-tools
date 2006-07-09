@@ -1,7 +1,7 @@
 mono-tools (1.1.11-4) unstable; urgency=low
 
   * Sebastian 'slomo' Dröge
-    + Acknowledgee NMU (Closes: #363586)
+    + Acknowledge NMU (Closes: #363586)
     + debian/control:
       - Add myself to Uploaders
       - Build-Depend on the Gtk#2 variants of everything
@@ -13,7 +13,7 @@ mono-tools (1.1.11-4) unstable; urgency=low
     + debian/patches/03_gtk-sharp2.dpatch:
       - build everything against Gtk#2
 
- -- Sebastian Dröge <slomo@ubuntu.com>  Sun,  9 Jul 2006 02:56:21 +0200
+ -- Debian Mono Group <pkg-mono-group@lists.alioth.debian.org>  Sun,  9 Jul 2006 02:56:21 +0200
 
 mono-tools (1.1.11-3.1) unstable; urgency=low
 
