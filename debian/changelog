@@ -1,3 +1,29 @@
+mono-tools (1.1.11-4) unstable; urgency=low
+
+  * Sebastian 'slomo' Dröge
+    + Acknowledgee NMU (Closes: #363586)
+    + debian/control:
+      - Add myself to Uploaders
+      - Build-Depend on the Gtk#2 variants of everything
+      - remove the versioned Depends of monodoc-browser on libgnome-cil as
+        this is not necessary anymore with libgnome2.0-cil
+      - bump Standards-Version to 3.7.2
+    + debian/patches/02_fix_buildsystem.dpatch:
+      - dropped as it wasn't used anymore since ages
+    + debian/patches/03_gtk-sharp2.dpatch:
+      - build everything against Gtk#2
+
+ -- Sebastian Dröge <slomo@ubuntu.com>  Sun,  9 Jul 2006 02:56:21 +0200
+
+mono-tools (1.1.11-3.1) unstable; urgency=low
+
+  * Non-maintainer upload.
+  * Let monodoc-browser depend on libgnome-cil (>= 1:1.0.10-5), so we are
+    sure we get a version that pulls in a non-segfaulting libgtkhtml3.8-15.
+    (Closes: #363586)
+
+ -- Steinar H. Gunderson <sesse@debian.org>  Sun, 11 Jun 2006 13:46:25 +0200
+
 mono-tools (1.1.11-3) unstable; urgency=low
 
   * Mirco 'meebey' Bauer

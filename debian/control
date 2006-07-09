@@ -2,10 +2,10 @@ Source: mono-tools
 Section: devel
 Priority: optional
 Maintainer: Debian Mono Group <pkg-mono-group@lists.alioth.debian.org>
-Uploaders: Mirco Bauer <meebey@meebey.net>
+Uploaders: Mirco Bauer <meebey@meebey.net>, Sebastian Dröge <slomo@ubuntu.com>
 Build-Depends: debhelper (>= 5.0.0)
-Build-Depends-Indep: dpatch, cli-common-dev (>= 0.4.0), pkg-config, mono-mcs (>= 1.0), mono-gmcs (>= 1.0), libmono-dev (>= 1.0), mono-gac (>= 1.0), libnunit2.2-cil (>= 2.2.0), libgtk-cil (>= 1.0), libgnome-cil (>= 1.0), libgconf-cil (>= 1.0), libglade-cil (>= 1.0), libgecko-cil (>= 0.6), monodoc-base (>= 1.1.9)
-Standards-Version: 3.6.2.1
+Build-Depends-Indep: dpatch, cli-common-dev (>= 0.4.0), pkg-config, mono-mcs (>= 1.0), mono-gmcs (>= 1.0), libmono-dev (>= 1.0), mono-gac (>= 1.0), libnunit2.2-cil (>= 2.2.0), libgtk2.0-cil (>= 2.0), libgnome2.0-cil (>= 2.0), libgconf2.0-cil (>= 2.0), libglade2.0-cil (>= 2.0), libgecko2.0-cil (>= 0.10), monodoc-base (>= 1.1.9)
+Standards-Version: 3.7.2
 
 Package: monodoc-browser
 Provides: monodoc-viewer
