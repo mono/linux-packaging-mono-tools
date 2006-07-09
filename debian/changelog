@@ -8,6 +8,7 @@ mono-tools (1.1.11-4) unstable; urgency=low
       - remove the versioned Depends of monodoc-browser on libgnome-cil as
         this is not necessary anymore with libgnome2.0-cil
       - bump Standards-Version to 3.7.2
+      - move dpatch from Build-Depends-Indep to Build-Depends
     + debian/patches/02_fix_buildsystem.dpatch:
       - dropped as it wasn't used anymore since ages
     + debian/patches/03_gtk-sharp2.dpatch:
