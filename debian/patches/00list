@@ -1,3 +1,5 @@
 01_use_real_nunit
 02_startup_mono_path
 03_gtk-sharp2
+04_glade-callbacks.dpatch
+05_empty-search.dpatch

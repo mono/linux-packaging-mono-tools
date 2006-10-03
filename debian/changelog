@@ -1,3 +1,16 @@
+mono-tools (1.1.11-5) unstable; urgency=low
+
+  * Sebastian 'slomo' Dröge:
+    + debian/patches/04_glade-callbacks.dpatch:
+      - Fix the signatures of the glade callback handlers.
+        Fixes various crashes in monodoc-browser.
+        Patch from upstream SVN (r63562)
+    + debian/patches/05_empty-search.dpatch:
+      - Don't crash when searching with an empty string.
+        Patch from upstream SVN (r61357)
+
+ -- Debian Mono Group <pkg-mono-group@lists.alioth.debian.org>  Tue,  3 Oct 2006 13:00:10 +0200
+
 mono-tools (1.1.11-4) unstable; urgency=low
 
   * Sebastian 'slomo' Dröge
