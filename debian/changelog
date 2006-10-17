@@ -8,6 +8,8 @@ mono-tools (1.1.17-1) unstable; urgency=low
       - Dropped, merged upstream
     + debian/patches/03_glade-callbacks-sig.dpatch:
       - Fix signatures for the Glade callbacks (Closes: #391044)
+    + debian/watch:
+      - Updated location
 
  -- Debian Mono Group <pkg-mono-group@lists.alioth.debian.org>  Tue, 17 Oct 2006 08:21:50 +0200
 

@@ -1,2 +1,2 @@
 version=2
-http://go-mono.com/sources/ .+/mono-tools-([\d+\.]+)\.tar\.gz
+http://go-mono.com/sources-stable/ .+/mono-tools-([\d+\.]+)\.tar\.gz
