@@ -12,6 +12,7 @@ Provides: monodoc-viewer
 Replaces: monodoc-base (<< 1.1.9)
 Architecture: all
 Recommends: lynx
+#Recommends: lynx, mono-tools-locales
 Depends: ${cli:Depends}, monodoc-manual
 Description: MonoDoc GTK+ based viewer
  The MonoDoc Project is the documentation framework of the Mono project which
@@ -23,6 +24,7 @@ Description: MonoDoc GTK+ based viewer
 Package: gnunit
 Architecture: all
 Depends: ${cli:Depends}
+Recommends: mono-tools-locales
 Description: frontend for running NUnit 2 test suites
  gnunit (formerly known as nunit-gtk) is a frontend for NUnit which uses
  the Mono class library version 1.0.
@@ -35,6 +37,7 @@ Description: frontend for running NUnit 2 test suites
 Package: gnunit2
 Architecture: all
 Depends: ${cli:Depends}
+#Recommends: mono-tools-locales
 Description: frontend for running NUnit 2 test suites
  gnunit2 (formerly known as nunit-gtk) is a frontend for NUnit which uses
  the Mono class library version 2.0.
@@ -43,3 +46,45 @@ Description: frontend for running NUnit 2 test suites
  same purpose as JUnit does in the Java world. It supports test
  categories, testing for exceptions and writing test results in plain
  text or XML.
+
+#Package: gasnview
+#Architecture: all
+#Depends: ${cli:Depends}
+#Replaces: gnunit (<< 1.2.1)
+#Description: ASN.1 Viewer for Gnome
+# gasnview is a Gnome application for viewing and editing ASN.1 encoded data.
+# .
+# ASN.1 is a standard for describing data structures in a implementation and
+# language independent way.
+
+#Package: create-native-map
+#Architecture: all
+#Depends: ${cli:Depends}
+#Description: C/C# Mapping Creator
+# create-native-map is a program for a specific scenario: keeping code which
+# is tightly coupled between C and C# in sync with each other, based upon
+# the C# types.
+# .
+# Platform Invoke is only useful if the managed code knows the exact types
+# and layout of all unmanaged structures it uses. This is usually the case
+# on Windows, but it is not the case on Unix. For example, struct stat makes
+# use of types with sizes that will vary from platform to platform (or even
+# based on the compiler macros defined!). For example, off_t is usually a
+# signed 32-bit integer on ILP32 platforms, but may be a signed 64-bit integer
+# on LP64 platforms, but may also be a 64-bit signed integer on ILP32 platforms
+# if the _FILE_OFFSET_BITS macro has the value 64. In short, everything is
+# flexible within Unix, and managed code can’t deal with such flexibility.
+# .
+# Thus, the niche for create-native-map: assume a fixed ABI that managed code 
+# can target, and generate code to "thunk" the managed representations to the
+# corresponding native representations. This needs to be done for everything
+# that can vary between platforms and compiler flags, from enumeration values
+# (SIGBUS has the value 10 on FreeBSD but 7 on Linux) to structure
+# members (how big is off_t?).
+
+#Package: mono-tools-locales
+#Architecture: all
+#Description: Translations for mono-tools
+#  This package contains the translations for various packages from
+#  mono-tools, namely gnunit, gnunit2 and monodoc-browser.
+
