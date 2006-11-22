@@ -12,7 +12,6 @@ Provides: monodoc-viewer
 Replaces: monodoc-base (<< 1.1.9)
 Architecture: all
 Recommends: lynx
-#Recommends: lynx, mono-tools-locales
 Depends: ${cli:Depends}, monodoc-manual
 Description: MonoDoc GTK+ based viewer
  The MonoDoc Project is the documentation framework of the Mono project which
@@ -24,7 +23,6 @@ Description: MonoDoc GTK+ based viewer
 Package: gnunit
 Architecture: all
 Depends: ${cli:Depends}
-Recommends: mono-tools-locales
 Description: frontend for running NUnit 2 test suites
  gnunit (formerly known as nunit-gtk) is a frontend for NUnit which uses
  the Mono class library version 1.0.
@@ -37,7 +35,6 @@ Description: frontend for running NUnit 2 test suites
 Package: gnunit2
 Architecture: all
 Depends: ${cli:Depends}
-#Recommends: mono-tools-locales
 Description: frontend for running NUnit 2 test suites
  gnunit2 (formerly known as nunit-gtk) is a frontend for NUnit which uses
  the Mono class library version 2.0.
@@ -81,10 +78,4 @@ Description: frontend for running NUnit 2 test suites
 # that can vary between platforms and compiler flags, from enumeration values
 # (SIGBUS has the value 10 on FreeBSD but 7 on Linux) to structure
 # members (how big is off_t?).
-
-#Package: mono-tools-locales
-#Architecture: all
-#Description: Translations for mono-tools
-#  This package contains the translations for various packages from
-#  mono-tools, namely gnunit, gnunit2 and monodoc-browser.
 
