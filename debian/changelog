@@ -3,9 +3,9 @@ mono-tools (1.2.1-1) unstable; urgency=low
   * Sebastian 'slomo' Dröge:
     + New upstream release
     + debian/control,
-      debian/gasnview.install,
-      debian/create-native-map.install:
-      - Add packages for gasnview and create-native-map but leave them
+      debian/mono-tools-gui.install,
+      debian/mono-tools-devel.install:
+      - Add packages for the random small mono-tools but leave them
         commented out
 
  -- Debian Mono Group <pkg-mono-group@lists.alioth.debian.org>  Wed, 22 Nov 2006 10:22:49 +0100
