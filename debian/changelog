@@ -1,4 +1,4 @@
-mono-tools (1.2.1-1) unstable; urgency=low
+mono-tools (1.2.1-1) experimental; urgency=low
 
   * Sebastian 'slomo' Dröge:
     + New upstream release
@@ -9,7 +9,7 @@ mono-tools (1.2.1-1) unstable; urgency=low
     + debian/control:
       - Update to use my debian.org mail address
 
- -- Sebastian Dröge <slomo@debian.org>  Mon,  8 Jan 2007 01:01:14 +0100
+ -- Sebastian Dröge <slomo@debian.org>  Wed, 31 Jan 2007 10:05:14 +0100
 
 mono-tools (1.1.17-1) unstable; urgency=low
 
