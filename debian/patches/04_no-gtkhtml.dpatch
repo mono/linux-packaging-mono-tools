@@ -79,3 +79,105 @@
  @ENABLE_GECKO_TRUE@GECKO_TARGET = GeckoHtmlRender.dll
  @ENABLE_GTKHTML_TRUE@GECKO_PRINTING_DEF = "-d:USE_GTKHTML_PRINT"
  @ENABLE_GTKHTML_TRUE@GTKHTML_TARGET = GtkHtmlHtmlRender.dll
+diff -Naur mono-tools-1.2.4.old/docbrowser/browser.cs mono-tools-1.2.4/docbrowser/browser.cs
+--- mono-tools-1.2.4.old/docbrowser/browser.cs	2007-04-20 06:42:46.000000000 +0200
++++ mono-tools-1.2.4/docbrowser/browser.cs	2007-05-17 13:02:19.000000000 +0200
+@@ -160,7 +160,6 @@
+ 	[Glade.Widget] MenuItem postcomment;
+ 	[Glade.Widget] public MenuItem cut1;
+ 	[Glade.Widget] public MenuItem paste1;
+-	[Glade.Widget] public MenuItem print;
+ 	public Notebook tabs_nb;
+ 	public Tab CurrentTab;
+ 	bool HoldCtrl;
+@@ -423,10 +422,8 @@
+ 		if (CurrentTab.Tab_mode == Mode.Viewer) {
+ 			CurrentTab.history.ActivateCurrent();
+ 			paste1.Sensitive = false;
+-			print.Sensitive = true;
+ 		} else {
+ 			paste1.Sensitive = true;
+-			print.Sensitive = false;
+ 		}
+ 		
+ 		if (tree_browser.SelectedNode != CurrentTab.CurrentNode)
+@@ -795,33 +792,6 @@
+ 	{
+ 		Application.Quit ();
+ 	}
+-	void on_print_activate (object sender, EventArgs e) 
+-	{
+-		 // desactivate css temporary
+-		 if (UseGecko)
+-		 	HelpSource.use_css = false;
+-		 
+-		string url = CurrentUrl;
+-		string html;
+-		Node cur = CurrentTab.CurrentNode;
+-		Node n; 
+-
+-		// deal with the two types of urls
+-		if (cur.tree.HelpSource != null) {
+-			html = cur.tree.HelpSource.GetText (url, out n);
+-			if (html == null)
+-				html = help_tree.RenderUrl (url, out n);
+-		} else {
+-			html = help_tree.RenderUrl (url, out n);
+-		}
+-
+-		// sending Html to be printed. 
+-		if (html != null)
+-			CurrentTab.html.Print (html);
+-
+-		if (UseGecko)
+-			HelpSource.use_css = true;
+-	}
+ 
+ 	void OnCommentsActivate (object o, EventArgs args)
+ 	{
+@@ -2417,13 +2387,11 @@
+ 			this.Page = 0;
+ 			browser.cut1.Sensitive = false;
+ 			browser.paste1.Sensitive = false;
+-			browser.print.Sensitive = true;
+ 			EditImg.Visible = false;
+ 		} else {
+ 			this.Page = 1;
+ 			browser.cut1.Sensitive = true;
+ 			browser.paste1.Sensitive = true;
+-			browser.print.Sensitive = false;
+ 			EditImg.Visible = true;
+ 		}
+ 
+diff -Naur mono-tools-1.2.4.old/docbrowser/browser.glade mono-tools-1.2.4/docbrowser/browser.glade
+--- mono-tools-1.2.4.old/docbrowser/browser.glade	2007-04-20 06:42:46.000000000 +0200
++++ mono-tools-1.2.4/docbrowser/browser.glade	2007-05-17 13:00:22.000000000 +0200
+@@ -83,28 +83,6 @@
+ 		  </child>
+ 
+ 		  <child>
+-		    <widget class="GtkImageMenuItem" id="print">
+-		      <property name="visible">True</property>
+-		      <property name="label" translatable="yes">_Print...</property>
+-		      <property name="use_underline">True</property>
+-		      <signal name="activate" handler="on_print_activate" last_modification_time="Tue, 30 Aug 2005 05:02:29 GMT"/>
+-		      <accelerator key="P" modifiers="GDK_CONTROL_MASK" signal="activate"/>
+-
+-		      <child internal-child="image">
+-			<widget class="GtkImage" id="image119">
+-			  <property name="visible">True</property>
+-			  <property name="stock">gtk-print</property>
+-			  <property name="icon_size">1</property>
+-			  <property name="xalign">0.5</property>
+-			  <property name="yalign">0.5</property>
+-			  <property name="xpad">0</property>
+-			  <property name="ypad">0</property>
+-			</widget>
+-		      </child>
+-		    </widget>
+-		  </child>
+-
+-		  <child>
+ 		    <widget class="GtkMenuItem" id="separator2">
+ 		      <property name="visible">True</property>
+ 		    </widget>
