@@ -7,11 +7,14 @@ mono-tools (1.2.4-1) unstable; urgency=low
     + debian/patches/01_use_real_nunit.dpatch:
       - Updated.
     + debian/patches/03_mozilla-home.dpatch,
-      debian/control:
+      debian/control,
+      debian/monodoc-browser.install:
       - Use xulrunner instead of Mozilla and GtkHTML.
     + debian/control,
       debian/mono-tools-gui.install:
       - Add new ilcontrast application.
+    + debian/mono-tools-gui.install:
+      - Update manpage path.
 
  -- Sebastian Dröge <slomo@debian.org>  Wed, 16 May 2007 23:50:22 +0200
 

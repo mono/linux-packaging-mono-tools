@@ -1,5 +1,5 @@
 debian/tmp/usr/bin/monodoc
 debian/tmp/usr/lib/monodoc/browser.exe
-debian/tmp/usr/lib/monodoc/GtkHtmlHtmlRender.dll
+debian/tmp/usr/lib/monodoc/GeckoHtmlRender.dll
 debian/tmp/usr/share/pixmaps/monodoc.png
 debian/tmp/usr/share/applications/monodoc.desktop
