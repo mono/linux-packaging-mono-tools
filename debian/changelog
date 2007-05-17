@@ -8,7 +8,8 @@ mono-tools (1.2.4-1) unstable; urgency=low
       - Updated.
     + debian/patches/03_mozilla-home.dpatch,
       debian/control,
-      debian/monodoc-browser.install:
+      debian/monodoc-browser.install,
+      debian/patches/04_no-gtkhtml.dpatch:
       - Use xulrunner instead of Mozilla and GtkHTML.
     + debian/control,
       debian/mono-tools-gui.install:
