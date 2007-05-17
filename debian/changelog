@@ -17,6 +17,11 @@ mono-tools (1.2.4-1) unstable; urgency=low
     + debian/mono-tools-gui.install:
       - Update manpage path.
 
+  * Mirco 'meebey' Bauer:
+    + debian/control:
+      - Updated cli-common-dev build-dep to >= 0.4.4
+      - Updated to use my Debian email address now.
+
  -- Sebastian Dröge <slomo@debian.org>  Wed, 16 May 2007 23:50:22 +0200
 
 mono-tools (1.2.3-2) unstable; urgency=low
