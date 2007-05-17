@@ -1,0 +1,26 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+
+@DPATCH@
+
+--- mono-tools-1.2.4/configure.in.old	2007-05-17 10:35:26.000000000 +0200
++++ mono-tools-1.2.4/configure.in	2007-05-17 10:35:50.000000000 +0200
+@@ -53,7 +53,7 @@
+ 
+ if test "x$enable_gecko" = "xyes"; then
+    # get the mozilla home directory
+-   MOZILLA_HOME="`$PKG_CONFIG --variable=libdir mozilla-gtkmozembed`"
++   MOZILLA_HOME="`$PKG_CONFIG --variable=libdir xulrunner-gtkmozembed`"
+    AC_SUBST(MOZILLA_HOME)
+ fi
+ 
+--- mono-tools-1.2.4/configure.old	2007-05-17 10:35:31.000000000 +0200
++++ mono-tools-1.2.4/configure	2007-05-17 10:36:47.000000000 +0200
+@@ -3292,7 +3292,7 @@
+ 
+ if test "x$enable_gecko" = "xyes"; then
+    # get the mozilla home directory
+-   MOZILLA_HOME="`$PKG_CONFIG --variable=libdir mozilla-gtkmozembed`"
++   MOZILLA_HOME="`$PKG_CONFIG --variable=libdir xulrunner-gtkmozembed`"
+ 
+ fi
+ 

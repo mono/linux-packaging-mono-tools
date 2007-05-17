@@ -2,6 +2,16 @@ mono-tools (1.2.4-1) unstable; urgency=low
 
   * Sebastian 'slomo' Dröge:
     + New upstream release
+    + debian/patches/03_glade-callbacks-sig.dpatch:
+      - Dropped, merged upstream.
+    + debian/patches/01_use_real_nunit.dpatch:
+      - Updated.
+    + debian/patches/03_mozilla-home.dpatch,
+      debian/control:
+      - Use xulrunner instead of Mozilla and GtkHTML.
+    + debian/control,
+      debian/mono-tools-gui.install:
+      - Add new ilcontrast application.
 
  -- Sebastian Dröge <slomo@debian.org>  Wed, 16 May 2007 23:50:22 +0200
 

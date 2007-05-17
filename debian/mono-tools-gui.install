@@ -1,2 +1,6 @@
 debian/tmp/usr/bin/gasnview
 debian/tmp/usr/lib/mono/1.0/gasnview.exe
+debian/tmp/usr/bin/ilcontrast
+debian/tmp/usr/lib/ilcontrast
+debian/tmp/usr/share/applications/ilcontrast.desktop
+debian/tmp/usr/share/pixmaps/ilcontrast.png
