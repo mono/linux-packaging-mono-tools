@@ -59,3 +59,23 @@
          fi
  	# Put the nasty error message in config.log where it belongs
  	echo "$GTKHTML_SHARP_PKG_ERRORS" >&5
+--- mono-tools-1.2.4/docbrowser/Makefile.am.old	2007-05-17 12:19:14.000000000 +0200
++++ mono-tools-1.2.4/docbrowser/Makefile.am	2007-05-17 12:21:30.000000000 +0200
+@@ -1,5 +1,5 @@
+ monodocdir=$(prefix)/lib/monodoc
+-noinst_DATA = admin.exe
++noinst_DATA = 
+ 
+ 
+ if ENABLE_GECKO
+--- mono-tools-1.2.4/docbrowser/Makefile.in.old	2007-05-17 12:19:18.000000000 +0200
++++ mono-tools-1.2.4/docbrowser/Makefile.in	2007-05-17 12:21:27.000000000 +0200
+@@ -194,7 +194,7 @@
+ target_os = @target_os@
+ target_vendor = @target_vendor@
+ monodocdir = $(prefix)/lib/monodoc
+-noinst_DATA = admin.exe
++noinst_DATA = 
+ @ENABLE_GECKO_TRUE@GECKO_TARGET = GeckoHtmlRender.dll
+ @ENABLE_GTKHTML_TRUE@GECKO_PRINTING_DEF = "-d:USE_GTKHTML_PRINT"
+ @ENABLE_GTKHTML_TRUE@GTKHTML_TARGET = GtkHtmlHtmlRender.dll
