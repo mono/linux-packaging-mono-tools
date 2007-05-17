@@ -24,3 +24,53 @@
  
  fi
  
+--- mono-tools-1.2.4/ilcontrast/ilcontrast.in.old	2007-05-17 12:38:14.000000000 +0200
++++ mono-tools-1.2.4/ilcontrast/ilcontrast.in	2007-05-17 12:39:02.000000000 +0200
+@@ -18,15 +18,18 @@
+ 	MOZILLA_HOME=$MOZILLA_FIVE_HOME
+ elif test x@MOZILLA_HOME@ != x; then
+     if [ -f @MOZILLA_HOME@/chrome/comm.jar ]; then
+-        MOZILLA_HOME=@MOZILLA_HOME@
++        MOZILLA_FIVE_HOME=@MOZILLA_HOME@
++	MOZILLA_HOME=$MOZILLA_FIVE_HOME
+     fi 
+ elif [ $(which xulrunner 2> /dev/null) ] > /dev/null ; then
+     MOZILLA_FIVE_HOME=`getdirectory xulrunner`
+     MOZILLA_HOME=$MOZILLA_FIVE_HOME
+ elif [ $(which mozilla 2> /dev/null) ] && grep MOZILLA_FIVE_HOME= "$(which mozilla)" > /dev/null ; then
+-	MOZILLA_HOME=$(grep MOZILLA_FIVE_HOME= $(which mozilla) | cut -d '"' -f 2)
++	MOZILLA_FIVE_HOME=$(grep MOZILLA_FIVE_HOME= $(which mozilla) | cut -d '"' -f 2)
++	MOZILLA_HOME=$MOZILLA_FIVE_HOME
+ elif [ $(which firefox 2> /dev/null) ] && grep MOZILLA_FIVE_HOME= "$(which firefox)" > /dev/null ; then
+-	MOZILLA_HOME=$(grep MOZILLA_FIVE_HOME= $(which firefox) | cut -d '"' -f 2)
++	MOZILLA_FIVE_HOME=$(grep MOZILLA_FIVE_HOME= $(which firefox) | cut -d '"' -f 2)
++	MOZILLA_HOME=$MOZILLA_FIVE_HOME
+ fi
+ 
+ if [ -n $LD_LIBRARY_PATH ]; then
+--- mono-tools-1.2.4/docbrowser/monodoc.in.old	2007-05-17 12:32:31.000000000 +0200
++++ mono-tools-1.2.4/docbrowser/monodoc.in	2007-05-17 12:38:06.000000000 +0200
+@@ -76,15 +76,18 @@
+ 	MOZILLA_HOME=$MOZILLA_FIVE_HOME
+ elif test x@MOZILLA_HOME@ != x; then
+     if [ -f @MOZILLA_HOME@/chrome/comm.jar ]; then
+-        MOZILLA_HOME=@MOZILLA_HOME@
++        MOZILLA_FIVE_HOME=@MOZILLA_HOME@
++    	MOZILLA_HOME=$MOZILLA_FIVE_HOME
+     fi 
+ elif [ $(which xulrunner 2> /dev/null) ] > /dev/null ; then
+-    MOZILLA_FIVE_HOME=`getdirectory xulrunner`
+-    MOZILLA_HOME=$MOZILLA_FIVE_HOME
++	MOZILLA_FIVE_HOME=`getdirectory xulrunner`
++	MOZILLA_HOME=$MOZILLA_FIVE_HOME
+ elif [ $(which mozilla 2> /dev/null) ] && grep MOZILLA_FIVE_HOME= "$(which mozilla)" > /dev/null ; then
+-	MOZILLA_HOME=$(grep MOZILLA_FIVE_HOME= $(which mozilla) | cut -d '"' -f 2)
++	MOZILLA_FIVE_HOME=$(grep MOZILLA_FIVE_HOME= $(which mozilla) | cut -d '"' -f 2)
++    	MOZILLA_HOME=$MOZILLA_FIVE_HOME
+ elif [ $(which firefox 2> /dev/null) ] && grep MOZILLA_FIVE_HOME= "$(which firefox)" > /dev/null ; then
+-	MOZILLA_HOME=$(grep MOZILLA_FIVE_HOME= $(which firefox) | cut -d '"' -f 2)
++	MOZILLA_FIVE_HOME=$(grep MOZILLA_FIVE_HOME= $(which firefox) | cut -d '"' -f 2)
++    	MOZILLA_HOME=$MOZILLA_FIVE_HOME
+ fi
+ 
+ if [ -n $LD_LIBRARY_PATH ]; then
