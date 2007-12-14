@@ -2,84 +2,6 @@
 
 @DPATCH@
 
---- mono-tools-1.2.4/configure.in.old	2007-05-17 12:15:21.000000000 +0200
-+++ mono-tools-1.2.4/configure.in	2007-05-17 12:15:56.000000000 +0200
-@@ -42,7 +42,7 @@
- AC_SUBST(GTK_SHARP_LIBS)
- 
- 
--PKG_CHECK_MODULES(GTKHTML_SHARP, gtkhtml-sharp-2.0, enable_gtkhtml=yes, enable_gtkhtml=no)
-+PKG_CHECK_MODULES(GTKHTML_SHARP, foobar, enable_gtkhtml=yes, enable_gtkhtml=no)
- AC_SUBST(GTKHTML_SHARP_LIBS)
- AM_CONDITIONAL(ENABLE_GTKHTML, test "x$enable_gtkhtml" = "xyes")
- 
---- mono-tools-1.2.4/configure.old	2007-05-17 12:15:23.000000000 +0200
-+++ mono-tools-1.2.4/configure	2007-05-17 12:16:14.000000000 +0200
-@@ -3137,12 +3137,12 @@
-         pkg_cv_GTKHTML_SHARP_CFLAGS="$GTKHTML_SHARP_CFLAGS"
-     else
-         if test -n "$PKG_CONFIG" && \
--    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"gtkhtml-sharp-2.0\"") >&5
--  ($PKG_CONFIG --exists --print-errors "gtkhtml-sharp-2.0") 2>&5
-+    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"foobar\"") >&5
-+  ($PKG_CONFIG --exists --print-errors "foobar") 2>&5
-   ac_status=$?
-   echo "$as_me:$LINENO: \$? = $ac_status" >&5
-   (exit $ac_status); }; then
--  pkg_cv_GTKHTML_SHARP_CFLAGS=`$PKG_CONFIG --cflags "gtkhtml-sharp-2.0" 2>/dev/null`
-+  pkg_cv_GTKHTML_SHARP_CFLAGS=`$PKG_CONFIG --cflags "foobar" 2>/dev/null`
- else
-   pkg_failed=yes
- fi
-@@ -3155,12 +3155,12 @@
-         pkg_cv_GTKHTML_SHARP_LIBS="$GTKHTML_SHARP_LIBS"
-     else
-         if test -n "$PKG_CONFIG" && \
--    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"gtkhtml-sharp-2.0\"") >&5
--  ($PKG_CONFIG --exists --print-errors "gtkhtml-sharp-2.0") 2>&5
-+    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"foobar\"") >&5
-+  ($PKG_CONFIG --exists --print-errors "foobar") 2>&5
-   ac_status=$?
-   echo "$as_me:$LINENO: \$? = $ac_status" >&5
-   (exit $ac_status); }; then
--  pkg_cv_GTKHTML_SHARP_LIBS=`$PKG_CONFIG --libs "gtkhtml-sharp-2.0" 2>/dev/null`
-+  pkg_cv_GTKHTML_SHARP_LIBS=`$PKG_CONFIG --libs "foobar" 2>/dev/null`
- else
-   pkg_failed=yes
- fi
-@@ -3179,9 +3179,9 @@
-         _pkg_short_errors_supported=no
- fi
-         if test $_pkg_short_errors_supported = yes; then
--	        GTKHTML_SHARP_PKG_ERRORS=`$PKG_CONFIG --short-errors --errors-to-stdout --print-errors "gtkhtml-sharp-2.0"`
-+	        GTKHTML_SHARP_PKG_ERRORS=`$PKG_CONFIG --short-errors --errors-to-stdout --print-errors "foobar"`
-         else
--	        GTKHTML_SHARP_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "gtkhtml-sharp-2.0"`
-+	        GTKHTML_SHARP_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "foobar"`
-         fi
- 	# Put the nasty error message in config.log where it belongs
- 	echo "$GTKHTML_SHARP_PKG_ERRORS" >&5
---- mono-tools-1.2.4/docbrowser/Makefile.am.old	2007-05-17 12:19:14.000000000 +0200
-+++ mono-tools-1.2.4/docbrowser/Makefile.am	2007-05-17 12:21:30.000000000 +0200
-@@ -1,5 +1,5 @@
- monodocdir=$(prefix)/lib/monodoc
--noinst_DATA = admin.exe
-+noinst_DATA = 
- 
- 
- if ENABLE_GECKO
---- mono-tools-1.2.4/docbrowser/Makefile.in.old	2007-05-17 12:19:18.000000000 +0200
-+++ mono-tools-1.2.4/docbrowser/Makefile.in	2007-05-17 12:21:27.000000000 +0200
-@@ -194,7 +194,7 @@
- target_os = @target_os@
- target_vendor = @target_vendor@
- monodocdir = $(prefix)/lib/monodoc
--noinst_DATA = admin.exe
-+noinst_DATA = 
- @ENABLE_GECKO_TRUE@GECKO_TARGET = GeckoHtmlRender.dll
- @ENABLE_GTKHTML_TRUE@GECKO_PRINTING_DEF = "-d:USE_GTKHTML_PRINT"
- @ENABLE_GTKHTML_TRUE@GTKHTML_TARGET = GtkHtmlHtmlRender.dll
-diff -Naur mono-tools-1.2.4.old/docbrowser/browser.cs mono-tools-1.2.4/docbrowser/browser.cs
 --- mono-tools-1.2.4.old/docbrowser/browser.cs	2007-04-20 06:42:46.000000000 +0200
 +++ mono-tools-1.2.4/docbrowser/browser.cs	2007-05-17 13:02:19.000000000 +0200
 @@ -160,7 +160,6 @@
@@ -87,9 +9,9 @@ diff -Naur mono-tools-1.2.4.old/docbrowser/browser.cs mono-tools-1.2.4/docbrowse
  	[Glade.Widget] public MenuItem cut1;
  	[Glade.Widget] public MenuItem paste1;
 -	[Glade.Widget] public MenuItem print;
+	[Glade.Widget] public MenuItem close_tab;
  	public Notebook tabs_nb;
  	public Tab CurrentTab;
- 	bool HoldCtrl;
 @@ -423,10 +422,8 @@
  		if (CurrentTab.Tab_mode == Mode.Viewer) {
  			CurrentTab.history.ActivateCurrent();
@@ -181,3 +103,188 @@ diff -Naur mono-tools-1.2.4.old/docbrowser/browser.glade mono-tools-1.2.4/docbro
  		    <widget class="GtkMenuItem" id="separator2">
  		      <property name="visible">True</property>
  		    </widget>
+--- mono-tools-1.2.6/configure.in	2007-12-13 14:05:39.000000000 +0100
++++ mono-tools-1.2.6/configure.in.old	2007-12-13 14:04:39.000000000 +0100
+@@ -42,12 +42,12 @@
+ AC_SUBST(GTK_SHARP_LIBS)
+ 
+ 
+-PKG_CHECK_MODULES(GTKHTML_SHARP, gtkhtml-sharp-3.14, enable_gtkhtml=yes, enable_gtkhtml=no)
++PKG_CHECK_MODULES(GTKHTML_SHARP, foobar, enable_gtkhtml=yes, enable_gtkhtml=no)
+ if test "x$enable_gtkhtml" = "xyes"; then
+ GTKHTMLDLLCOPY=`pkg-config --variable=Libraries gtkhtml-sharp-3.14`
+ CSHARP_FLAGS="-d:GTKHTML_SHARP_3_14"
+ else
+-PKG_CHECK_MODULES(GTKHTML_SHARP, gtkhtml-sharp-2.0, enable_gtkhtml=yes, enable_gtkhtml=no)
++PKG_CHECK_MODULES(GTKHTML_SHARP, foobar, enable_gtkhtml=yes, enable_gtkhtml=no)
+ CSHARP_FLAGS=
+ GTKHTMLDLLCOPY=
+ fi
+--- mono-tools-1.2.6/configure	2007-12-13 14:06:17.000000000 +0100
++++ mono-tools-1.2.6/configure.old	2007-12-13 14:05:43.000000000 +0100
+@@ -3177,12 +3177,12 @@
+         pkg_cv_GTKHTML_SHARP_CFLAGS="$GTKHTML_SHARP_CFLAGS"
+     else
+         if test -n "$PKG_CONFIG" && \
+-    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"gtkhtml-sharp-3.14\"") >&5
+-  ($PKG_CONFIG --exists --print-errors "gtkhtml-sharp-3.14") 2>&5
++    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"foobar\"") >&5
++  ($PKG_CONFIG --exists --print-errors "foobar") 2>&5
+   ac_status=$?
+   echo "$as_me:$LINENO: \$? = $ac_status" >&5
+   (exit $ac_status); }; then
+-  pkg_cv_GTKHTML_SHARP_CFLAGS=`$PKG_CONFIG --cflags "gtkhtml-sharp-3.14" 2>/dev/null`
++  pkg_cv_GTKHTML_SHARP_CFLAGS=`$PKG_CONFIG --cflags "foobar" 2>/dev/null`
+ else
+   pkg_failed=yes
+ fi
+@@ -3195,12 +3195,12 @@
+         pkg_cv_GTKHTML_SHARP_LIBS="$GTKHTML_SHARP_LIBS"
+     else
+         if test -n "$PKG_CONFIG" && \
+-    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"gtkhtml-sharp-3.14\"") >&5
+-  ($PKG_CONFIG --exists --print-errors "gtkhtml-sharp-3.14") 2>&5
++    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"foobar\"") >&5
++  ($PKG_CONFIG --exists --print-errors "foobar") 2>&5
+   ac_status=$?
+   echo "$as_me:$LINENO: \$? = $ac_status" >&5
+   (exit $ac_status); }; then
+-  pkg_cv_GTKHTML_SHARP_LIBS=`$PKG_CONFIG --libs "gtkhtml-sharp-3.14" 2>/dev/null`
++  pkg_cv_GTKHTML_SHARP_LIBS=`$PKG_CONFIG --libs "foobar" 2>/dev/null`
+ else
+   pkg_failed=yes
+ fi
+@@ -3219,9 +3219,9 @@
+         _pkg_short_errors_supported=no
+ fi
+         if test $_pkg_short_errors_supported = yes; then
+-	        GTKHTML_SHARP_PKG_ERRORS=`$PKG_CONFIG --short-errors --errors-to-stdout --print-errors "gtkhtml-sharp-3.14"`
++	        GTKHTML_SHARP_PKG_ERRORS=`$PKG_CONFIG --short-errors --errors-to-stdout --print-errors "foobar"`
+         else
+-	        GTKHTML_SHARP_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "gtkhtml-sharp-3.14"`
++	        GTKHTML_SHARP_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "foobar"`
+         fi
+ 	# Put the nasty error message in config.log where it belongs
+ 	echo "$GTKHTML_SHARP_PKG_ERRORS" >&5
+@@ -3239,7 +3239,7 @@
+ 	enable_gtkhtml=yes
+ fi
+ if test "x$enable_gtkhtml" = "xyes"; then
+-GTKHTMLDLLCOPY=`pkg-config --variable=Libraries gtkhtml-sharp-3.14`
++GTKHTMLDLLCOPY=`pkg-config --variable=Libraries foobar`
+ CSHARP_FLAGS="-d:GTKHTML_SHARP_3_14"
+ else
+ 
+@@ -3252,12 +3252,12 @@
+         pkg_cv_GTKHTML_SHARP_CFLAGS="$GTKHTML_SHARP_CFLAGS"
+     else
+         if test -n "$PKG_CONFIG" && \
+-    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"gtkhtml-sharp-2.0\"") >&5
+-  ($PKG_CONFIG --exists --print-errors "gtkhtml-sharp-2.0") 2>&5
++    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"foobar\"") >&5
++  ($PKG_CONFIG --exists --print-errors "foobar") 2>&5
+   ac_status=$?
+   echo "$as_me:$LINENO: \$? = $ac_status" >&5
+   (exit $ac_status); }; then
+-  pkg_cv_GTKHTML_SHARP_CFLAGS=`$PKG_CONFIG --cflags "gtkhtml-sharp-2.0" 2>/dev/null`
++  pkg_cv_GTKHTML_SHARP_CFLAGS=`$PKG_CONFIG --cflags "foobar" 2>/dev/null`
+ else
+   pkg_failed=yes
+ fi
+@@ -3270,12 +3270,12 @@
+         pkg_cv_GTKHTML_SHARP_LIBS="$GTKHTML_SHARP_LIBS"
+     else
+         if test -n "$PKG_CONFIG" && \
+-    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"gtkhtml-sharp-2.0\"") >&5
+-  ($PKG_CONFIG --exists --print-errors "gtkhtml-sharp-2.0") 2>&5
++    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"foobar\"") >&5
++  ($PKG_CONFIG --exists --print-errors "foobar") 2>&5
+   ac_status=$?
+   echo "$as_me:$LINENO: \$? = $ac_status" >&5
+   (exit $ac_status); }; then
+-  pkg_cv_GTKHTML_SHARP_LIBS=`$PKG_CONFIG --libs "gtkhtml-sharp-2.0" 2>/dev/null`
++  pkg_cv_GTKHTML_SHARP_LIBS=`$PKG_CONFIG --libs "foobar" 2>/dev/null`
+ else
+   pkg_failed=yes
+ fi
+@@ -3294,9 +3294,9 @@
+         _pkg_short_errors_supported=no
+ fi
+         if test $_pkg_short_errors_supported = yes; then
+-	        GTKHTML_SHARP_PKG_ERRORS=`$PKG_CONFIG --short-errors --errors-to-stdout --print-errors "gtkhtml-sharp-2.0"`
++	        GTKHTML_SHARP_PKG_ERRORS=`$PKG_CONFIG --short-errors --errors-to-stdout --print-errors "foobar"`
+         else
+-	        GTKHTML_SHARP_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "gtkhtml-sharp-2.0"`
++	        GTKHTML_SHARP_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "foobar"`
+         fi
+ 	# Put the nasty error message in config.log where it belongs
+ 	echo "$GTKHTML_SHARP_PKG_ERRORS" >&5
+--- mono-tools-1.2.6/docbrowser/Makefile.am	2007-12-13 14:06:45.000000000 +0100
++++ mono-tools-1.2.6/docbrowser/Makefile.am.old	2007-12-13 14:06:40.000000000 +0100
+@@ -1,5 +1,5 @@
+ monodocdir=$(prefix)/lib/monodoc
+-noinst_DATA = admin.exe
++noinst_DATA =
+ 
+ 
+ if ENABLE_GECKO
+--- mono-tools-1.2.6/docbrowser/Makefile.in	2007-12-13 14:07:00.000000000 +0100
++++ mono-tools-1.2.6/docbrowser/Makefile.in.old	2007-12-13 14:06:50.000000000 +0100
+@@ -194,7 +194,7 @@
+ top_builddir = @top_builddir@
+ top_srcdir = @top_srcdir@
+ monodocdir = $(prefix)/lib/monodoc
+-noinst_DATA = admin.exe
++noinst_DATA = 
+ @ENABLE_GECKO_TRUE@GECKO_TARGET = GeckoHtmlRender.dll
+ @ENABLE_GTKHTML_TRUE@GECKO_PRINTING_DEF = "-d:USE_GTKHTML_PRINT"
+ @ENABLE_GTKHTML_TRUE@GTKHTML_TARGET = GtkHtmlHtmlRender.dll
+--- mono-tools-1.2.6/docbrowser/PrintManager.cs.old	2007-12-13 14:16:48.000000000 +0100
++++ mono-tools-1.2.6/docbrowser/PrintManager.cs	2007-12-13 14:17:39.000000000 +0100
+@@ -14,46 +14,9 @@
+ namespace Monodoc {
+ 	class PrintManager {
+ 	
+-#if GTKHTML_SHARP_3_14
+ 		public static void Print (string html)
+ 		{
+-			new Gtk.HTML (html).PrintOperationRun (new PrintOperation (), PrintOperationAction.PrintDialog, null, null, null, null, null);
+ 		}
+-#else
+-		// Fallback to the original GNOME Print API.
+-		public static void Print (string html) 
+-		{
+-			string caption = "Monodoc Printing";
+-
+-			Gnome.PrintJob pj = new Gnome.PrintJob (PrintConfig.Default ());
+-			PrintDialog dialog = new PrintDialog (pj, caption, 0);
+-
+-			Gtk.HTML gtk_html = new Gtk.HTML (html);
+-			gtk_html.PrintSetMaster (pj);
+-			
+-			Gnome.PrintContext ctx = pj.Context;
+-			gtk_html.Print (ctx);
+-
+-			pj.Close ();
+-
+-			// hello user
+-			int response = dialog.Run ();
+-		
+-			if (response == (int) PrintButtons.Cancel) {
+-				dialog.Hide ();
+-				dialog.Destroy ();
+-				return;
+-			} else if (response == (int) PrintButtons.Print) {
+-				pj.Print ();
+-			} else if (response == (int) PrintButtons.Preview) {
+-				new PrintJobPreview (pj, caption).Show ();
+-			}
+-		
+-			ctx.Close ();
+-			dialog.Hide ();
+-			dialog.Destroy ();
+-		}
+-#endif
+ 	}
+ }
+ 
