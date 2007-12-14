@@ -7,6 +7,8 @@ mono-tools (1.2.6-1) unstable; urgency=low
       - Updated for the new version.
   * debian/control:
     + Update Standards-Version to 3.7.3, no additional changes needed.
+  * debian/monodoc-browser.menu:
+    + Fix section of the menu file.
 
  -- Sebastian Dröge <slomo@debian.org>  Thu, 13 Dec 2007 13:44:02 +0100
 
