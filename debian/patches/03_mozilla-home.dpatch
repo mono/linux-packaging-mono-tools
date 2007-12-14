@@ -70,3 +70,10 @@
  fi
  
  if [ -n $LD_LIBRARY_PATH ]; then
+@@ -98,5 +102,4 @@
+ export MOZILLA_HOME 
+ export LD_LIBRARY_PATH
+ 
+-# force '--no-gecko' because xulrunner is crashing on some browsers (bug #341815)
+-exec @RUNTIME@ $monodocdir/browser.exe --no-gecko $OPTIONS "$@" $REST
++exec @RUNTIME@ $monodocdir/browser.exe $OPTIONS "$@" $REST
