@@ -1,3 +1,12 @@
+mono-tools (1.2.6-2) unstable; urgency=low
+
+  * debian/control:
+    + Build depend on mono-1.0-devel for resgen to fix FTBFS (Closes: #458693).
+  * debian/watch:
+    + Update location (Closes: #449755).
+
+ -- Sebastian Dröge <slomo@debian.org>  Wed, 02 Jan 2008 20:12:51 +0100
+
 mono-tools (1.2.6-1) unstable; urgency=low
 
   * New upstream release:
