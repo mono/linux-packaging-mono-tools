@@ -1,3 +1,18 @@
+mono-tools (1.2.6-3) unstable; urgency=low
+
+  [ Sam Hocevar ]
+
+  * debian/patches/01_use_real_nunit.dpatch:
+    + Look for nunit.pc instead of now deprecated nunit-2.2.pc.
+    + Implement a few missing interface memebers that allow gnunit and gnunit2
+      to build with newer versions of nunit. Now nunit-console, gnunit and
+      gnunit2 are in sync and don't require rebuilds (Closes: #439835).
+
+  * debian/control:
+    + Build-depend on libnunit2.2.6-cil instead of libnunit2.2-cil.
+
+ -- Sam Hocevar (Debian packages) <sam+deb@zoy.org>  Thu, 10 Jan 2008 14:26:41 +0000
+
 mono-tools (1.2.6-2) unstable; urgency=low
 
   * debian/control:
