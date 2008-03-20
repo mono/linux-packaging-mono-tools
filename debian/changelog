@@ -1,3 +1,15 @@
+mono-tools (1.2.6-4) unstable; urgency=low
+
+  * debian/control,
+    debian/monodoc-browser.install,
+    debian/patches/04_no-gtkhtml.dpatch:
+    + Build and ship the GtkHTML backend of monodoc-browser again instead of
+      the gecko one. This also enabled printing again.
+  * debian/patches/04_gnome-sharp.patch:
+    + Also link to gnome-sharp-2.0 as it's required by gnunit.
+
+ -- Sebastian Dröge <slomo@debian.org>  Thu, 20 Mar 2008 16:02:07 +0100
+
 mono-tools (1.2.6-3) unstable; urgency=low
 
   [ Sam Hocevar ]
