@@ -1,3 +1,18 @@
+mono-tools (1.9-1) UNRELEASED; urgency=high
+
+  * TODO: get newer cecil, package gendarme & gui-compare
+  * New upstream release:
+    + debian/patches/04_gnome-sharp.patch:
+      - Dropped, merged upstream.
+    + debian/control:
+      - Build depend on Cecil.
+    + debian/patches/03_mozilla-home.dpatch:
+      - Updated to apply cleanly again.
+    + debian/patches/04_cecil.dpatch:
+      - Use correct pkg-config filename for cecil.
+
+ -- Sebastian Dröge <slomo@debian.org>  Mon, 07 Apr 2008 10:19:44 +0200
+
 mono-tools (1.2.6-4) unstable; urgency=low
 
   * debian/control,
