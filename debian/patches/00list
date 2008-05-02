@@ -1,4 +1,5 @@
 01_use_real_nunit
 02_startup_mono_path
 03_mozilla-home
+04_gendarme_link_libraries_correctly
 99_autoreconf
