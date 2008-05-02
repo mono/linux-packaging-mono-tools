@@ -12,7 +12,8 @@ mono-tools (1.9-1) unstable; urgency=low
     + Use dh_clifixperms instead of find commands.
     + Enhanced error handling of "make clean".
   * debian/control:
-    + Added libmono1.0-cil >= 1.9.1 to build-dependencies.
+    + Added libmono1.0-cil >= 1.9.1 to build-deps.
+    + Added libmono-system-web2.0-cil to build-deps as needed by gendarme.
     + Updated cli-common-dev build-dep to >= 0.5.4, as we are using
       dh_clistrip from it now.
   * debian/watch:

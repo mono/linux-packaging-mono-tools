@@ -20,7 +20,8 @@ Build-Depends-Indep: cli-common-dev (>= 0.5.4),
  libgtkhtml3.16-cil,
  monodoc-base (>= 1.1.9),
  libxul-dev,
- libmono1.0-cil (>= 1.9.1)
+ libmono1.0-cil (>= 1.9.1),
+ libmono-system-web2.0-cil
 Standards-Version: 3.7.3
 
 Package: monodoc-browser

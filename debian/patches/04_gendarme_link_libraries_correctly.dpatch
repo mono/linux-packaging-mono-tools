@@ -6,14 +6,14 @@
 
 @DPATCH@
 diff -urNad mono-tools-1.9~/gendarme/rules/Gendarme.Rules.Portability/Makefile.am mono-tools-1.9/gendarme/rules/Gendarme.Rules.Portability/Makefile.am
---- mono-tools-1.9~/gendarme/rules/Gendarme.Rules.Portability/Makefile.am	2008-02-06 19:12:16.000000000 +0100
-+++ mono-tools-1.9/gendarme/rules/Gendarme.Rules.Portability/Makefile.am	2008-05-02 19:57:39.000000000 +0200
+--- mono-tools-1.9~/gendarme/rules/Gendarme.Rules.Portability/Makefile.am	2008-05-02 20:22:08.000000000 +0200
++++ mono-tools-1.9/gendarme/rules/Gendarme.Rules.Portability/Makefile.am	2008-05-02 20:22:25.000000000 +0200
 @@ -17,7 +17,7 @@
  portability_rules_build_sources += $(portability_rules_generated_sources)
  
  ../../bin/Gendarme.Rules.Portability.dll: $(portability_rules_build_sources)
 -	$(GMCS) -debug -target:library -r:$(top_builddir)/gendarme/bin/Mono.Cecil.dll -pkg:dotnet -r:ICSharpCode.SharpZipLib.dll -r:../../bin/Gendarme.Framework.dll -out:$@ $(portability_rules_build_sources)
-+	$(GMCS) -debug -target:library -r:$(top_builddir)/gendarme/bin/Mono.Cecil.dll -r:ICSharpCode.SharpZipLib.dll -r:../../bin/Gendarme.Framework.dll -out:$@ $(portability_rules_build_sources)
++	$(GMCS) -debug -target:library -r:$(top_builddir)/gendarme/bin/Mono.Cecil.dll -r:System.Web.Services -r:ICSharpCode.SharpZipLib.dll -r:../../bin/Gendarme.Framework.dll -out:$@ $(portability_rules_build_sources)
  	cp Gendarme.Rules.*.xml ../../bin/
  
  portability_test_sources = NewLineLiteralTest.cs FeatureRequiresRootPrivilegeOnUnixTest.cs \
