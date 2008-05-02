@@ -1,2 +1,2 @@
-version=2
-http://go-mono.com/sources-stable/ .+/mono-tools-([\d+\.]+)\.tar\.bz2
+version=3
+http://ftp.novell.com/pub/mono/sources/mono-tools/mono-tools-([\d\.]+)\.(?:zip|tar\.(?:gz|bz2))

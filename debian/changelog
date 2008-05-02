@@ -1,17 +1,28 @@
-mono-tools (1.9-1) UNRELEASED; urgency=high
+mono-tools (1.9-1) unstable; urgency=low
 
-  * TODO: get newer cecil, package gendarme & gui-compare
+  [ Sebastian Dröge ]
   * New upstream release:
     + debian/patches/04_gnome-sharp.patch:
       - Dropped, merged upstream.
-    + debian/control:
-      - Build depend on Cecil.
     + debian/patches/03_mozilla-home.dpatch:
       - Updated to apply cleanly again.
-    + debian/patches/04_cecil.dpatch:
-      - Use correct pkg-config filename for cecil.
 
- -- Sebastian Dröge <slomo@debian.org>  Mon, 07 Apr 2008 10:19:44 +0200
+  [ Mirco Bauer ]
+  * debian/rules:
+    + Use dh_clifixperms instead of find commands.
+    + Enhanced error handling of "make clean".
+  * debian/control:
+    + Added libmono1.0-cil >= 1.9.1 to build-dependencies.
+    + Updated cli-common-dev build-dep to >= 0.5.4, as we are using
+      dh_clistrip from it now.
+  * debian/watch:
+    + Updated
+  * debian/mono-tools-gui.install:
+    + Added gui-compare.
+  * debian/mono-tools-devel.install:
+    + Added gendarme.
+
+ -- Mirco Bauer <meebey@debian.org>  Fri, 02 May 2008 19:40:07 +0200
 
 mono-tools (1.2.6-4) unstable; urgency=low
 
@@ -28,7 +39,6 @@ mono-tools (1.2.6-4) unstable; urgency=low
 mono-tools (1.2.6-3) unstable; urgency=low
 
   [ Sam Hocevar ]
-
   * debian/patches/01_use_real_nunit.dpatch:
     + Look for nunit.pc instead of now deprecated nunit-2.2.pc.
     + Implement a few missing interface memebers that allow gnunit and gnunit2

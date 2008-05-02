@@ -2,10 +2,11 @@
 
 #export DH_VERBOSE=1
 export MONO_SHARED_DIR=$(CURDIR)
+
 include /usr/share/dpatch/dpatch.make
 
 build: build-stamp
-build-stamp: patch
+build-stamp: patch-stamp
 	dh_testdir
 	./configure --prefix=/usr
 	$(MAKE)
@@ -16,10 +17,9 @@ clean-patched:
 	dh_testdir
 	dh_testroot
 	rm -f build-stamp
-	-$(MAKE) clean
-	# make clean is everything but clean
-	#find -name "*.exe*" -or -name "*.dll*" | xargs rm -f
-	# using 02_fix_buildsystem.dpatch now for this task
+	#[ ! -f Makefile ] || $(MAKE) distclean
+	# distclean deletes some Makefile.in files :(
+	[ ! -f Makefile ] || $(MAKE) clean
 	rm -rf $$MONO_SHARED_DIR/.wapi
 	dh_clean
 
@@ -29,8 +29,6 @@ install: build
 	dh_clean -k
 	dh_installdirs
 	$(MAKE) install DESTDIR=$(CURDIR)/debian/tmp
-	cd debian && find -type f -name "*.dll" -or -name "*.mdb" -or -name "*.cs" | xargs chmod -x
-	cd debian && find -type f -name "*.exe" | xargs chmod +x
 
 binary-indep: build install
 	dh_testdir
@@ -43,8 +41,10 @@ binary-indep: build install
 	dh_installmenu
 	dh_installman
 	dh_strip
+	dh_clistrip
 	dh_compress
 	dh_fixperms
+	dh_clifixperms
 	dh_installdeb
 	dh_clideps
 	dh_gencontrol
