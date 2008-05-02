@@ -16,11 +16,11 @@ clean: clean-patched unpatch
 clean-patched:
 	dh_testdir
 	dh_testroot
-	rm -f build-stamp
 	#[ ! -f Makefile ] || $(MAKE) distclean
 	# distclean deletes some Makefile.in files :(
 	[ ! -f Makefile ] || $(MAKE) clean
 	rm -rf $$MONO_SHARED_DIR/.wapi
+	rm -f build-stamp
 	dh_clean
 
 install: build
@@ -54,4 +54,4 @@ binary-indep: build install
 binary-arch:
 
 binary: binary-indep
-.PHONY: build clean binary-indep binary install
+.PHONY: build clean clean-patched binary-indep binary install

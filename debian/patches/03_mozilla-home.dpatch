@@ -13,17 +13,6 @@
     AC_SUBST(MOZILLA_HOME)
  fi
  
---- mono-tools-1.2.4/configure.old	2007-05-17 10:35:31.000000000 +0200
-+++ mono-tools-1.2.4/configure	2007-05-17 10:36:47.000000000 +0200
-@@ -3292,7 +3292,7 @@
- 
- if test "x$enable_gecko" = "xyes"; then
-    # get the mozilla home directory
--   MOZILLA_HOME="`$PKG_CONFIG --variable=libdir mozilla-gtkmozembed`"
-+   MOZILLA_HOME="`$PKG_CONFIG --variable=libdir xulrunner-gtkmozembed`"
- 
- fi
- 
 --- mono-tools-1.2.4/ilcontrast/ilcontrast.in.old	2007-12-14 11:03:22.000000000 +0100
 +++ mono-tools-1.2.4/ilcontrast/ilcontrast.in	2007-12-14 11:04:28.000000000 +0100
 @@ -19,16 +19,20 @@

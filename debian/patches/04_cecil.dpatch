@@ -22,28 +22,3 @@
  AC_SUBST(CECIL_ASM)
  
  dnl Intl
---- mono-tools-1.9/configure.old	2008-04-07 10:27:53.000000000 +0200
-+++ mono-tools-1.9/configure	2008-04-07 10:28:26.000000000 +0200
-@@ -3511,16 +3511,16 @@
-    { (exit 1); exit 1; }; }
- fi
- 
--if pkg-config --modversion cecil>/dev/null; then
--{ echo "$as_me:$LINENO: result: \"Found cecil.pc\"" >&5
--echo "${ECHO_T}\"Found cecil.pc\"" >&6; }
-+if pkg-config --modversion mono-cecil>/dev/null; then
-+{ echo "$as_me:$LINENO: result: \"Found mono-cecil.pc\"" >&5
-+echo "${ECHO_T}\"Found mono-cecil.pc\"" >&6; }
- else
--{ { echo "$as_me:$LINENO: error: You are missing Cecil (cecil.pc for packageconfig) required for gui-compare" >&5
--echo "$as_me: error: You are missing Cecil (cecil.pc for packageconfig) required for gui-compare" >&2;}
-+{ { echo "$as_me:$LINENO: error: You are missing Cecil (mono-cecil.pc for packageconfig) required for gui-compare" >&5
-+echo "$as_me: error: You are missing Cecil (mono-cecil.pc for packageconfig) required for gui-compare" >&2;}
-    { (exit 1); exit 1; }; }
- fi
- 
--CECIL_ASM=`pkg-config --variable=Libraries cecil`
-+CECIL_ASM=`pkg-config --variable=Libraries mono-cecil`
- 
- 
- GETTEXT_PACKAGE=mono-tools
