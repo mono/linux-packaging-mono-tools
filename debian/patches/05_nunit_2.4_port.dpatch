@@ -1,0 +1,249 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 05_nunit_2.4_port.dpatch by Mirco Bauer <meebey@debian.org>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: No description.
+
+@DPATCH@
+diff -urNad mono-tools-1.9~/gnunit/src/AssemblyStore.cs mono-tools-1.9/gnunit/src/AssemblyStore.cs
+--- mono-tools-1.9~/gnunit/src/AssemblyStore.cs	2008-07-26 22:56:28.000000000 +0200
++++ mono-tools-1.9/gnunit/src/AssemblyStore.cs	2008-07-26 22:56:43.000000000 +0200
+@@ -40,9 +40,9 @@
+ 		}
+ 	}
+ 	
+-	delegate void TestStartHandler (TestCase test);
++	delegate void TestStartHandler (TestName test);
+ 	delegate void TestFinishHandler (TestCaseResult result);
+-	delegate void SuiteStartHandler (TestSuite test);
++	delegate void SuiteStartHandler (TestName test);
+ 	delegate void SuiteFinishHandler (TestSuiteResult result);
+ 	delegate void TestCaseResultHandler (TestResult result);
+ 
+@@ -71,9 +71,9 @@
+ 	class QueuedSuiteStart : QueuedEvent
+ 	{
+ 		SuiteStartHandler handler;
+-		TestSuite suite;
++		TestName suite;
+ 
+-		public QueuedSuiteStart (SuiteStartHandler handler, TestSuite suite)
++		public QueuedSuiteStart (SuiteStartHandler handler, TestName suite)
+ 		{
+ 			this.handler = handler;
+ 			this.suite = suite;
+@@ -105,9 +105,9 @@
+ 	class QueuedTestStart : QueuedEvent
+ 	{
+ 		TestStartHandler handler;
+-		TestCase test;
++		TestName test;
+ 
+-		public QueuedTestStart (TestStartHandler handler, TestCase test)
++		public QueuedTestStart (TestStartHandler handler, TestName test)
+ 		{
+ 			this.handler = handler;
+ 			this.test = test;
+@@ -186,7 +186,7 @@
+ 		Queue pending;
+ 		System.Threading.Thread th;
+ 		string location;
+-		IFilter filter;
++		ITestFilter filter;
+ 
+ 		Exception exception;
+ 		static GLib.GType gtype = GLib.GType.Invalid;
+@@ -220,7 +220,7 @@
+ 			}
+ 		}
+ 
+-		public IFilter Filter {
++		public ITestFilter Filter {
+ 			get { return filter; }
+ 			set { filter = value; }
+ 		}
+@@ -437,7 +437,7 @@
+ 		{
+ 			TreeIter next;
+ 			foreach (Test t in suite.Tests) {
+-				next = AddFixture (parent, t.FullName);
++				next = AddFixture (parent, t.TestName.FullName);
+ 				if ((n % 5) == 0) {
+ 					while (GLib.MainContext.Iteration ());
+ 				}
+@@ -516,11 +516,11 @@
+ 		}
+ 
+ 		// Interface NUnit.Core.EventListener
+-		void EventListener.RunStarted (Test [] tests)
++		void EventListener.RunStarted (string name, int testCount)
+ 		{
+ 		}
+ 
+-		void EventListener.RunFinished (TestResult [] results)
++		void EventListener.RunFinished (TestResult result)
+ 		{
+ 		}
+ 
+@@ -532,7 +532,7 @@
+ 		{
+ 		}
+ 
+-		void EventListener.TestStarted (TestCase testCase)
++		void EventListener.TestStarted (TestName testCase)
+ 		{
+ 			if (listener != null) {
+ 				Monitor.Enter (pending);
+@@ -553,7 +553,7 @@
+ 			idle.Set ();
+ 		}
+ 
+-		void EventListener.SuiteStarted (TestSuite suite)
++		void EventListener.SuiteStarted (TestName suite)
+ 		{
+ 			if (listener != null) {
+ 				Monitor.Enter (pending);
+diff -urNad mono-tools-1.9~/gnunit/src/main.cs mono-tools-1.9/gnunit/src/main.cs
+--- mono-tools-1.9~/gnunit/src/main.cs	2008-07-26 22:56:28.000000000 +0200
++++ mono-tools-1.9/gnunit/src/main.cs	2008-07-26 22:56:28.000000000 +0200
+@@ -17,6 +17,7 @@
+ using Gnome;
+ using Gtk;
+ using NUnit.Core;
++using NUnit.Core.Filters;
+ using NUnit.Util;
+ using Dialog = Gtk.Dialog;
+ 
+@@ -125,7 +126,7 @@
+ 		}
+ 	}
+ 
+-	class CategoryMaster : IFilter {
++	class CategoryMaster : ITestFilter {
+ 		static Hashtable known_categories;
+ 		string [] categories;
+ 		bool [] states;
+@@ -134,7 +135,7 @@
+ 		string [] exclude;
+ 		bool uncategorized;
+ 		bool all;
+-		IFilter inner_filter;
++		ITestFilter inner_filter;
+ 
+ 		static CategoryMaster ()
+ 		{
+@@ -216,6 +217,10 @@
+ 			get { return cb; }
+ 		}
+ 
++		public bool IsEmpty {
++                	get { return false; }
++		}
++
+ 		void ToggleState (object sender, EventArgs args)
+ 		{
+ 			CheckMenuItem item = (CheckMenuItem) sender;
+@@ -255,25 +260,18 @@
+ 						idx++;
+ 					}
+ 				}
+-				inner_filter = new CategoryFilter (exclude, uncategorized);
++				inner_filter = new CategoryFilter (exclude);
+ 			} else {
+-				inner_filter = new CategoryFilter (categories, uncategorized);
++				inner_filter = new CategoryFilter (categories);
++			}
++
++			if (uncategorized) {
++				inner_filter = new NotFilter(inner_filter);
+ 			}
+ 		}
+ 
+ 		public bool Cancel;
+-		bool IFilter.Pass (TestSuite suite)
+-		{
+-			if (Cancel)
+-				return false;
+-
+-			if (all)
+-				return true;
+-
+-			return inner_filter.Pass (suite);
+-		}
+-		
+-		bool IFilter.Pass (TestCase test)
++		bool ITestFilter.Pass (ITest test)
+ 		{
+ 			if (Cancel)
+ 				return false;
+@@ -284,9 +282,9 @@
+ 			return inner_filter.Pass (test);
+ 		}
+ 
+-		public bool Exclude
++		public bool Match (ITest test)
+ 		{
+-			get { return false; }
++			return true;
+ 		}
+ 
+ 		static string _ (string key)
+@@ -724,11 +722,11 @@
+ 		}
+ 
+ 		// Interface NUnit.Core.EventListener
+-		void EventListener.RunStarted (Test [] tests)
++		void EventListener.RunStarted (string name, int testCount)
+ 		{
+ 		}
+ 
+-		void EventListener.RunFinished (TestResult [] results)
++		void EventListener.RunFinished (TestResult result)
+ 		{
+ 		}
+ 
+@@ -740,7 +738,7 @@
+ 		{
+ 		}
+ 
+-		void EventListener.TestStarted (TestCase testCase)
++		void EventListener.TestStarted (TestName testCase)
+ 		{
+ 			frameLabel.Text = "Test: " + testCase.FullName;
+ 		}
+@@ -752,7 +750,7 @@
+ 
+ 			assertions += result.AssertCount;
+ 			if (result.Executed == false) {
+-				AddIgnored (result.Test.FullName, result.Test.IgnoreReason);
++				AddIgnored (result.Test.TestName.FullName, result.Test.IgnoreReason);
+ 			} else if (result.IsFailure) {
+ 				AddError (result);
+ 			}
+@@ -762,7 +760,7 @@
+ 			ClockUpdater (this, EventArgs.Empty);
+ 		}
+ 
+-		void EventListener.SuiteStarted (TestSuite suite)
++		void EventListener.SuiteStarted (TestName suite)
+ 		{
+ 			frameLabel.Text = "Suite: " + suite.FullName;
+ 		}
+@@ -826,7 +824,7 @@
+ 			int dot;
+ 			TreeIter main = TreeIter.Zero;
+ 			TreeIter iter;
+-			string fullname = result.Test.FullName;
++			string fullname = result.Test.TestName.FullName;
+ 			if ((dot = fullname.LastIndexOf ('.')) != -1) {
+ 				string key = fullname.Substring (0, dot);
+ 				if (!errorIters.ContainsKey (key)) {
+@@ -841,7 +839,7 @@
+ 				errorIters [fullname] = main;
+ 			}
+ 
+-			iter = failuresStore.AppendValues (main, result.Test.Name);
++			iter = failuresStore.AppendValues (main, result.Test.TestName.Name);
+ 			iter = failuresStore.AppendValues (iter, result.Message);
+ 			iter = failuresStore.AppendValues (iter, result.StackTrace);
+ 			

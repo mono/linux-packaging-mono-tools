@@ -9,19 +9,18 @@ Build-Depends-Indep: cli-common-dev (>= 0.5.4),
  mono-mcs (>= 1.0),
  mono-gmcs (>= 1.0),
  libmono-dev (>= 1.0),
+ libmono-nunit2.2-cil,
+ libmono-system-web2.0-cil,
+ libmono1.0-cil (>= 1.9.1),
  mono-gac (>= 1.0),
  mono-1.0-devel,
- libnunit2.2.6-cil (>= 2.2.0),
  libgtk2.0-cil (>= 2.0),
  libgconf2.0-cil (>= 2.0),
  libglade2.0-cil (>= 2.0),
- libgecko2.0-cil (>= 0.10),
  libgnome2.0-cil (>= 2.0),
  libgtkhtml3.16-cil,
- monodoc-base (>= 1.1.9),
- libxul-dev,
- libmono1.0-cil (>= 1.9.1),
- libmono-system-web2.0-cil
+ libwebkit1.0-cil,
+ monodoc-base (>= 1.1.9)
 Standards-Version: 3.7.3
 
 Package: monodoc-browser
@@ -67,21 +66,21 @@ Depends: ${cli:Depends}
 Replaces: gnunit (<< 1.2.1)
 Description: Various GUI tools for mono
  This package contains various GUI tools for use with Mono:
- - gasnview
- - ilcontrast
- - gui-compare
+  - gasnview
+  - ilcontrast
+  - gui-compare
 
 Package: mono-tools-devel
 Architecture: all
 Depends: ${cli:Depends}
+Homepage: http://www.mono-project.com/Gendarme
 Description: Various development tools for mono
  This package contains various development tools for use with Mono:
- - create-native-map
- - gendarme
+  - create-native-map
+  - gendarme
     Gendarme is a extensible rule-based tool to find problems in .NET
     applications and libraries. Gendarme inspects programs and libraries that
     contain code in ECMA CIL format (Mono and .NET) and looks for common
     problems with the code, problems that compiler do not typically check or
     have not historically checked.
     .
-    Homepage: http://www.mono-project.com/Gendarme

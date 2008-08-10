@@ -39,6 +39,7 @@ binary-indep: build install
 	dh_installchangelogs ChangeLog
 	dh_installdocs
 	dh_installmenu
+	dh_desktop
 	dh_installman
 	dh_strip
 	dh_clistrip

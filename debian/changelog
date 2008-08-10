@@ -1,3 +1,26 @@
+mono-tools (1.9-2) unstable; urgency=medium
+
+  * debian/control:
+    + Removed libgecko2.0-cil and libxul-dev from build-dependencies.
+    + Added libwebkit1.0-cil to build-dependencies.
+    + Replaced libnunit2.2.6-cil build-dependency with libmono-nunit2.2-cil.
+    + Moved pseudo homepage field of gendarme to real field.
+    + Added extra space to lists in package description to make them verbatim.
+      (Closes: #480336, #480343)
+  * debian/patches/05_webkit-sharp_port.dpatch:
+    + Link against webkit-sharp instead of gecko-sharp (xulrunner).
+      (patch taken from upstream SVN, Closes: #480811, #488674)
+  * debian/patches/00list:
+    + Disabled 01_use_real_nunit, linking now against libmono-nunit2.2-cil
+      instead of libnunit2.2.6-cil. (Closes: #487037)
+  * debian/gnunit(2).desktop
+    debian/gnunit(2).install:
+    + Desktop files for the freedesktop menu.
+      (thanks goes to benoit tuduri <tuduri.benoit@freesurf.Fr> for the patch,
+       Closes: #478962)
+
+ -- Mirco Bauer <meebey@debian.org>  Sun, 10 Aug 2008 14:20:01 +0200
+
 mono-tools (1.9-1) unstable; urgency=low
 
   [ Sebastian Dröge ]

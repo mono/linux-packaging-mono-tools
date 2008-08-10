@@ -1,0 +1,1047 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 05_webkit-sharp_port.dpatch by Mirco Bauer <meebey@debian.org>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: Backport of webkit-sharp support, taken from upstream SVN revision:
+## DP: r97203, r97657, r97745, r105817, r105820, r105828, r105860 and r105868
+
+@DPATCH@
+diff -urNad mono-tools-1.9~/configure.in mono-tools-1.9/configure.in
+--- mono-tools-1.9~/configure.in	2008-08-10 14:59:40.000000000 +0200
++++ mono-tools-1.9/configure.in	2008-08-10 14:59:40.000000000 +0200
+@@ -10,6 +10,7 @@
+ AC_PATH_PROG(MCS, mcs, no)
+ AC_PATH_PROG(GMCS, gmcs, no)
+ AC_PATH_PROG(RUNTIME, mono, no)
++AC_PATH_PROG(GACUTIL, gacutil, no)
+ 
+ CS="C#"
+ if test "x$MCS" = "xno"  ; then
+@@ -31,6 +32,8 @@
+ AC_SUBST(GMCS)
+ AC_SUBST(RUNTIME)
+ AC_SUBST(RESGEN)
++AC_SUBST(GACUTIL)
++
+ 
+ PKG_CHECK_MODULES(NUNIT, mono-nunit)
+ AC_SUBST(NUNIT_LIBS)
+@@ -63,9 +66,35 @@
+    AC_SUBST(MOZILLA_HOME)
+ fi
+ 
++dnl TODO: check for webkit-sharp
++# AM_CONDITIONAL(ENABLE_WEBKIT, test "xno" = "xyes")
++PKG_CHECK_MODULES(WEBKIT_SHARP, webkit-sharp-1.0, enable_webkit=yes, enable_webkit=no)
++AC_SUBST(WEBKIT_SHARP_LIBS)
++AM_CONDITIONAL(ENABLE_WEBKIT, test "x$enable_webkit" = "xyes")
+ 
+-if test "x$enable_gtkhtml$enable_gecko" = "xnono" ; then
+-   AC_MSG_ERROR([no HTML display found. You need either gtkhtml or gecko])
++# PKG_CHECK_MODULES(MONOWEBBROWSER, mono-webbrowser, enable_monowebbrowser=yes, enable_monowebbrowser=no)
++# AC_SUBST(MONOWEBBROWSER_LIBS)
++
++AC_MSG_CHECKING([for Mono.WebBrowser])
++if test "x$GACUTIL" = "xno"
++then
++   	AC_MSG_RESULT([no])
++	if test "x$enable_monowebbrowser" = "x" ; then enable_monowebbrowser=no ; fi
++else
++	if $GACUTIL -l Mono.WebBrowser | grep -q "Mono.WebBrowser" 
++	then
++		AC_MSG_RESULT([yes])
++		enable_monowebbrowser=yes
++	else
++		AC_MSG_RESULT([no])
++		enable_monowebbrowser=no
++	fi  
++fi
++MONOWEBBROWSER_LIBS=-r:Mono.WebBrowser
++AM_CONDITIONAL(ENABLE_MONOWEBBROWSER, test "x$enable_monowebbrowser" = "xyes")
++
++if test "x$enable_gtkhtml$enable_gecko$enable_monowebbrowser$enable_webkit" = "xnononono" ; then
++   AC_MSG_ERROR([no HTML display found. You need either gtkhtml, gecko, WebKit or Mono.WebBrowser])
+ fi
+ 
+ dnl
+@@ -183,7 +212,10 @@
+ echo "Configuration summary"
+ echo ""
+ echo "   * Installation prefix = $prefix"
+-echo "   * gecko-sharp.dll = $enable_gecko"
++echo "   * Using Gecko = $enable_gecko"
++echo "   * Using GtkHtml = $enable_gtkhtml"
++echo "   * Using Mono.WebBrowser = $enable_monowebbrowser"
++echo "   * Using WebKit = $enable_webkit"
+ echo ""
+ echo "      NOTE: if any of the above say 'no' you may install the"
+ echo "            corresponding development packages for them, rerun"
+diff -urNad mono-tools-1.9~/docbrowser/BrowserWidget.cs mono-tools-1.9/docbrowser/BrowserWidget.cs
+--- mono-tools-1.9~/docbrowser/BrowserWidget.cs	1970-01-01 01:00:00.000000000 +0100
++++ mono-tools-1.9/docbrowser/BrowserWidget.cs	2008-08-10 14:59:40.000000000 +0200
+@@ -0,0 +1,108 @@
++//Permission is hereby granted, free of charge, to any person obtaining
++//a copy of this software and associated documentation files (the
++//"Software"), to deal in the Software without restriction, including
++//without limitation the rights to use, copy, modify, merge, publish,
++//distribute, sublicense, and/or sell copies of the Software, and to
++//permit persons to whom the Software is furnished to do so, subject to
++//the following conditions:
++//
++//The above copyright notice and this permission notice shall be
++//included in all copies or substantial portions of the Software.
++//
++//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
++//EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
++//MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
++//NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
++//LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
++//OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
++//WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
++//
++//Copyright (c) 2008 Novell, Inc.
++//
++//Authors:
++//	Andreia Gaita (avidigal at novell.com)
++//
++
++using System;
++using Mono.WebBrowser;
++using Gtk;
++using Gdk;
++using Gnome;
++
++namespace Monodoc
++{
++	public class BrowserWidget : Gtk.Bin
++	{
++		public IWebBrowser browser;
++		int width, height;
++	
++		public BrowserWidget() : base()
++		{
++			width = height = 200;
++			browser = Manager.GetNewInstance (Platform.Gtk);
++		}
++		
++		
++		protected override void OnRealized ()
++		{
++			base.OnRealized ();
++
++			WindowAttr attributes = new WindowAttr ();
++			attributes.WindowType = Gdk.WindowType.Child;
++			attributes.X = Allocation.X;
++			attributes.Y = Allocation.Y;
++			attributes.Width = Allocation.Width;
++			attributes.Height = Allocation.Height;
++			attributes.Wclass = WindowClass.InputOutput;
++			attributes.Visual = Visual;
++			attributes.Colormap = Colormap;
++			attributes.EventMask = (int) Events;
++			attributes.EventMask = attributes.EventMask | ((int) Gdk.EventMask.ExposureMask |
++						(int) Gdk.EventMask.KeyPressMask |
++						(int) Gdk.EventMask.KeyReleaseMask |
++						(int) Gdk.EventMask.EnterNotifyMask |
++						(int) Gdk.EventMask.LeaveNotifyMask |
++						(int) Gdk.EventMask.StructureMask |
++						(int) Gdk.EventMask.FocusChangeMask);
++
++			GdkWindow = new Gdk.Window (ParentWindow, attributes, Gdk.WindowAttributesType.X | Gdk.WindowAttributesType.Y | 
++			                            Gdk.WindowAttributesType.Colormap | Gdk.WindowAttributesType.Visual);
++			GdkWindow.UserData = this.Handle;
++
++			Style = Style.Attach (GdkWindow);
++			Style.Background (StateType.Normal);
++			
++			browser.Load (this.Handle, width, height);		
++		}
++		
++		protected override void OnMapped ()
++		{
++			base.OnMapped ();
++			GdkWindow.Show ();
++		}
++
++		protected override void OnUnmapped ()
++		{
++			base.OnUnmapped ();
++			GdkWindow.Hide ();
++		}		
++		
++		protected override void OnSizeAllocated (Rectangle allocation)
++		{
++			base.OnSizeAllocated (allocation);
++			if ((WidgetFlags & WidgetFlags.Realized) != 0) {
++				GdkWindow.MoveResize (allocation);
++				if (browser != null)
++					browser.Resize (allocation.Width, allocation.Height);
++			}
++		}
++			
++		protected override void OnSizeRequested (ref Requisition requisition)
++		{
++			SetSizeRequest (width, height);
++			
++		}
++
++
++	}
++}
+diff -urNad mono-tools-1.9~/docbrowser/GtkHtmlHtmlRender.cs mono-tools-1.9/docbrowser/GtkHtmlHtmlRender.cs
+--- mono-tools-1.9~/docbrowser/GtkHtmlHtmlRender.cs	2008-01-30 00:06:11.000000000 +0100
++++ mono-tools-1.9/docbrowser/GtkHtmlHtmlRender.cs	2008-08-10 14:59:40.000000000 +0200
+@@ -31,11 +31,6 @@
+ 	
+ 	public GtkHtmlHtmlRender (RootTree help_tree) 
+ 	{
+-		html_panel = new HTML();
+-		html_panel.Show(); 
+-		html_panel.LinkClicked += new LinkClickedHandler (LinkClicked);
+-		html_panel.OnUrl += new OnUrlHandler (OnUrlMouseOver);
+-		html_panel.UrlRequested += new UrlRequestedHandler (UrlRequested);
+ 		this.help_tree = help_tree;
+ 	}
+ 	
+@@ -115,5 +110,34 @@
+ 
+ 		PrintManager.Print (Html);
+ 	}
++
++	public bool Initialize ()
++	{
++		try {
++			html_panel = new HTML ();
++		}
++		catch (Exception ex) {
++			Console.WriteLine (ex.Message);
++			Console.WriteLine (ex.StackTrace);
++			return false;
++		}
++		html_panel.Show ();
++		html_panel.LinkClicked += new LinkClickedHandler (LinkClicked);
++		html_panel.OnUrl += new OnUrlHandler (OnUrlMouseOver);
++		html_panel.UrlRequested += new UrlRequestedHandler (UrlRequested);
++		return true;
++
++	}
++
++	public Capabilities Capabilities
++	{
++		get { return Capabilities.None; }
++	}
++
++	public string Name
++	{
++		get { return "GtkHtml"; }
++	}
++
+ }
+ }
+diff -urNad mono-tools-1.9~/docbrowser/IHtmlRender.cs mono-tools-1.9/docbrowser/IHtmlRender.cs
+--- mono-tools-1.9~/docbrowser/IHtmlRender.cs	2007-12-06 22:43:45.000000000 +0100
++++ mono-tools-1.9/docbrowser/IHtmlRender.cs	2008-08-10 14:59:40.000000000 +0200
+@@ -6,35 +6,49 @@
+ using System;
+ using Gtk;
+ 
+-namespace Monodoc {
+-public interface IHtmlRender {
+-	// Jump to an anchor of the form <a name="tttt">
+-	void JumpToAnchor (string anchor_name);
++namespace Monodoc
++{
++	public interface IHtmlRender
++	{
++		// Jump to an anchor of the form <a name="tttt">
++		void JumpToAnchor (string anchor_name);
+ 
+-	//Copy to the clipboard the selcted text
+-	void Copy ();
++		//Copy to the clipboard the selcted text
++		void Copy ();
+ 
+-	//Select all the text
+-	void SelectAll ();
++		//Select all the text
++		void SelectAll ();
+ 
+-	//Render the HTML code given
+-	void Render (string html_code);
++		//Render the HTML code given
++		void Render (string html_code);
+ 
+-	//Event fired when the use is over an Url
+-	event EventHandler OnUrl;
++		//Event fired when the use is over an Url
++		event EventHandler OnUrl;
+ 
+-	//Event fired when the user clicks on a Link
+-	event EventHandler UrlClicked;
++		//Event fired when the user clicks on a Link
++		event EventHandler UrlClicked;
+ 
+-	// Variable that handles the info encessary for the events
+-	// As every implementation of HtmlRender will have differents events
+-	// we try to homogenize them with the variabel
+-	string Url { get; }
++		// Variable that handles the info encessary for the events
++		// As every implementation of HtmlRender will have differents events
++		// we try to homogenize them with the variabel
++		string Url { get; }
+ 
+-	Widget HtmlPanel { get; }
++		Widget HtmlPanel { get; }
+ 
+-	void Print (string Html);
+-}
++		void Print (string Html);
++
++		bool Initialize ();
++		Capabilities Capabilities { get; }
++		string Name { get; }
++
++	}
+ 
++	[Flags]
++	public enum Capabilities
++	{
++		None = 0,
++		Css = 1,
++		Fonts = 2
++	}
+ 
+ }
+diff -urNad mono-tools-1.9~/docbrowser/Makefile.am mono-tools-1.9/docbrowser/Makefile.am
+--- mono-tools-1.9~/docbrowser/Makefile.am	2008-01-30 00:06:11.000000000 +0100
++++ mono-tools-1.9/docbrowser/Makefile.am	2008-08-10 14:59:40.000000000 +0200
+@@ -10,9 +10,15 @@
+ 
+ GTKHTML_TARGET=GtkHtmlHtmlRender.dll
+ endif
++if ENABLE_WEBKIT
++WEBKIT_TARGET=WebKitHtmlRender.dll
++endif
++if ENABLE_MONOWEBBROWSER
++MONOWEBBROWSER_TARGET=MonoWebBrowserHtmlRender.dll
++endif
+ 
+-CLEANFILES = browser.exe browser.exe.mdb admin.exe admin.exe.mdb $(GECKO_TARGET) $(GECKO_TARGET).mdb $(GTKHTML_TARGET) $(GTKHTML_TARGET).mdb monodoc.desktop
+-monodoc_DATA = browser.exe $(GECKO_TARGET) $(GTKHTML_TARGET)
++CLEANFILES = browser.exe browser.exe.mdb admin.exe admin.exe.mdb $(GECKO_TARGET) $(GECKO_TARGET).mdb $(GTKHTML_TARGET) $(GTKHTML_TARGET).mdb $(WEBKIT_TARGET) $(WEBKIT_TARGET).mdb $(MONOWEBBROWSER_TARGET) $(MONOWEBBROWSER_TARGET).mdb monodoc.desktop
++monodoc_DATA = browser.exe $(GECKO_TARGET) $(GTKHTML_TARGET) $(WEBKIT_TARGET) $(MONOWEBBROWSER_TARGET)
+ 
+ DISTCLEANFILES = AssemblyInfo.cs monodoc.desktop monodoc
+ 
+@@ -39,6 +45,13 @@
+ 	$(srcdir)/PrintManager.cs	\
+ 	$(srcdir)/GtkHtmlHtmlRender.cs
+ 
++webkitrender_sources = 			\
++	$(srcdir)/WebKitHtmlRender.cs
++
++monowebbrowserrender_sources = 		\
++	$(srcdir)/BrowserWidget.cs	\
++	$(srcdir)/MonoWebBrowserHtmlRender.cs
++
+ admin_sources = \
+ 	$(srcdir)/admin.cs		\
+ 	$(srcdir)/Contributions.cs
+@@ -48,10 +61,17 @@
+ geckorender_assemblies = $(GTK_SHARP_LIBS) $(GTKHTML_SHARP_LIBS) $(GECKO_SHARP_LIBS) $(MONODOC_LIBS) -r:browser.exe
+ gtkhtmlrender_assemblies = $(GTK_SHARP_LIBS) $(GTKHTML_SHARP_LIBS) $(MONODOC_LIBS) -r:browser.exe
+ 
++# TODO: use pkg-config for webkit-sharp
++# WEBKIT_SHARP_LIBS = -r:nwebkit.dll
++webkitrender_assemblies = $(GTK_SHARP_LIBS) $(WEBKIT_SHARP_LIBS) $(MONODOC_LIBS) -r:browser.exe
++
++monowebbrowserrender_assemblies = $(GTK_SHARP_LIBS) $(MONOWEBBROWSER_LIBS) $(MONODOC_LIBS) -r:browser.exe -r:Mono.Mozilla.dll
++
+ EXTRA_DIST = \
+ 	$(browser_sources) 		\
+ 	$(geckorender_sources)		\
+ 	$(gtkhtmlrender_sources)	\
++	$(webkitrender_sources)		\
+ 	monodoc.desktop.in		\
+ 	admin.cs			\
+ 	admin.glade 			\
+@@ -63,17 +83,23 @@
+ # admin hardcodes GTKHTML for now.
+ if ENABLE_GTKHTML
+ admin.exe: $(admin_sources) $(srcdir)/admin.glade
+-	$(MCS) -debug -out:admin.exe $(admin_sources) -resource:$(srcdir)/admin.glade,admin.glade $(browser_assemblies) $(GTKHTML_SHARP_LIBS) -r:System.Drawing
++	$(GMCS) -debug -out:admin.exe $(admin_sources) -resource:$(srcdir)/admin.glade,admin.glade $(browser_assemblies) $(GTKHTML_SHARP_LIBS) -r:System.Drawing
+ endif
+ 
+ browser.exe: $(browser_sources) $(browser_built_sources) $(srcdir)/browser.glade $(srcdir)/monodoc.png 
+-	$(MCS) -debug -out:browser.exe $(browser_sources) $(browser_built_sources) -resource:$(srcdir)/monodoc.png,monodoc.png -resource:$(srcdir)/browser.glade,browser.glade  $(browser_assemblies) 
++	$(GMCS) -debug -out:browser.exe $(browser_sources) $(browser_built_sources) -resource:$(srcdir)/monodoc.png,monodoc.png -resource:$(srcdir)/browser.glade,browser.glade  $(browser_assemblies) 
+ 
+ GeckoHtmlRender.dll : $(geckorender_sources) browser.exe
+-	$(MCS) -debug -target:library -out:$@ $(geckorender_sources) $(geckorender_assemblies)  $(GECKO_PRINTING_DEF) $(CSHARP_FLAGS)
++	$(GMCS) -debug -target:library -out:$@ $(geckorender_sources) $(geckorender_assemblies)  $(GECKO_PRINTING_DEF) $(CSHARP_FLAGS)
+ 
+ GtkHtmlHtmlRender.dll : $(gtkhtmlrender_sources) browser.exe
+-	$(MCS) -debug -target:library -out:$@ $(gtkhtmlrender_sources) $(gtkhtmlrender_assemblies) $(CSHARP_FLAGS)
++	$(GMCS) -debug -target:library -out:$@ $(gtkhtmlrender_sources) $(gtkhtmlrender_assemblies) $(CSHARP_FLAGS)
++
++WebKitHtmlRender.dll : $(webkitrender_sources) browser.exe
++	$(GMCS) -debug -target:library -out:$@ $(webkitrender_sources) $(webkitrender_assemblies) $(CSHARP_FLAGS)
++
++MonoWebBrowserHtmlRender.dll : $(monowebbrowserrender_sources) browser.exe
++	$(GMCS) -debug -target:library -out:$@ $(monowebbrowserrender_sources) $(monowebbrowserrender_assemblies) $(CSHARP_FLAGS)
+ 
+ b: browser.exe
+ 	MONO_PATH=. $(RUNTIME) --debug browser.exe
+diff -urNad mono-tools-1.9~/docbrowser/Makefile.am.orig mono-tools-1.9/docbrowser/Makefile.am.orig
+--- mono-tools-1.9~/docbrowser/Makefile.am.orig	1970-01-01 01:00:00.000000000 +0100
++++ mono-tools-1.9/docbrowser/Makefile.am.orig	2008-08-10 14:59:40.000000000 +0200
+@@ -0,0 +1,117 @@
++monodocdir=$(prefix)/lib/monodoc
++noinst_DATA = admin.exe
++
++
++if ENABLE_GECKO
++GECKO_TARGET=GeckoHtmlRender.dll
++endif
++if ENABLE_GTKHTML
++GECKO_PRINTING_DEF="-d:USE_GTKHTML_PRINT"
++
++GTKHTML_TARGET=GtkHtmlHtmlRender.dll
++endif
++if ENABLE_WEBKIT
++WEBKIT_TARGET=WebKitHtmlRender.dll
++endif
++if ENABLE_MONOWEBBROWSER
++MONOWEBBROWSER_TARGET=MonoWebBrowserHtmlRender.dll
++endif
++
++CLEANFILES = browser.exe browser.exe.mdb admin.exe admin.exe.mdb $(GECKO_TARGET) $(GECKO_TARGET).mdb $(GTKHTML_TARGET) $(GTKHTML_TARGET).mdb $(WEBKIT_TARGET) $(WEBKIT_TARGET).mdb $(MONOWEBBROWSER_TARGET) $(MONOWEBBROWSER_TARGET).mdb monodoc.desktop
++monodoc_DATA = browser.exe $(GECKO_TARGET) $(GTKHTML_TARGET) $(WEBKIT_TARGET) $(MONOWEBBROWSER_TARGET)
++
++DISTCLEANFILES = AssemblyInfo.cs monodoc.desktop monodoc
++
++bin_SCRIPTS = monodoc
++
++browser_sources   = \
++	$(srcdir)/browser.cs		\
++	$(srcdir)/list.cs 		\
++	$(srcdir)/elabel.cs 		\
++	$(srcdir)/history.cs 		\
++	$(srcdir)/Contributions.cs	\
++	$(srcdir)/XmlNodeWriter.cs	\
++	$(srcdir)/IHtmlRender.cs	\
++	$(srcdir)/BookmarkManager.cs	\
++	$(srcdir)/ProgressPanel.cs
++
++browser_built_sources = AssemblyInfo.cs
++
++geckorender_sources = 			\
++	$(srcdir)/PrintManager.cs	\
++	$(srcdir)/GeckoHtmlRender.cs
++
++gtkhtmlrender_sources = 		\
++	$(srcdir)/PrintManager.cs	\
++	$(srcdir)/GtkHtmlHtmlRender.cs
++
++webkitrender_sources = 			\
++	$(srcdir)/WebKitHtmlRender.cs
++
++monowebbrowserrender_sources = 		\
++	$(srcdir)/BrowserWidget.cs	\
++	$(srcdir)/MonoWebBrowserHtmlRender.cs
++
++admin_sources = \
++	$(srcdir)/admin.cs		\
++	$(srcdir)/Contributions.cs
++
++browser_assemblies = $(GTK_SHARP_LIBS) $(MONODOC_LIBS) -r:System.Web.Services
++# we insert gtkhtml libs if we have them for printing 
++geckorender_assemblies = $(GTK_SHARP_LIBS) $(GTKHTML_SHARP_LIBS) $(GECKO_SHARP_LIBS) $(MONODOC_LIBS) -r:browser.exe
++gtkhtmlrender_assemblies = $(GTK_SHARP_LIBS) $(GTKHTML_SHARP_LIBS) $(MONODOC_LIBS) -r:browser.exe
++
++# TODO: use pkg-config for webkit-sharp
++# WEBKIT_SHARP_LIBS = -r:nwebkit.dll
++webkitrender_assemblies = $(GTK_SHARP_LIBS) $(WEBKIT_SHARP_LIBS) $(MONODOC_LIBS) -r:browser.exe
++
++monowebbrowserrender_assemblies = $(GTK_SHARP_LIBS) $(MONOWEBBROWSER_LIBS) $(MONODOC_LIBS) -r:browser.exe -r:Mono.Mozilla.dll
++
++EXTRA_DIST = \
++	$(browser_sources) 		\
++	$(geckorender_sources)		\
++	$(gtkhtmlrender_sources)	\
++	$(webkitrender_sources)		\
++	monodoc.desktop.in		\
++	admin.cs			\
++	admin.glade 			\
++	browser.glade 			\
++	monodoc.png			\
++	AssemblyInfo.cs.in		\
++	README.ADMIN
++
++# admin hardcodes GTKHTML for now.
++if ENABLE_GTKHTML
++admin.exe: $(admin_sources) $(srcdir)/admin.glade
++	$(MCS) -debug -out:admin.exe $(admin_sources) -resource:$(srcdir)/admin.glade,admin.glade $(browser_assemblies) $(GTKHTML_SHARP_LIBS) -r:System.Drawing
++endif
++
++browser.exe: $(browser_sources) $(browser_built_sources) $(srcdir)/browser.glade $(srcdir)/monodoc.png 
++	$(MCS) -debug -out:browser.exe $(browser_sources) $(browser_built_sources) -resource:$(srcdir)/monodoc.png,monodoc.png -resource:$(srcdir)/browser.glade,browser.glade  $(browser_assemblies) 
++
++GeckoHtmlRender.dll : $(geckorender_sources) browser.exe
++	$(MCS) -debug -target:library -out:$@ $(geckorender_sources) $(geckorender_assemblies)  $(GECKO_PRINTING_DEF) $(CSHARP_FLAGS)
++
++GtkHtmlHtmlRender.dll : $(gtkhtmlrender_sources) browser.exe
++	$(MCS) -debug -target:library -out:$@ $(gtkhtmlrender_sources) $(gtkhtmlrender_assemblies) $(CSHARP_FLAGS)
++
++WebKitHtmlRender.dll : $(webkitrender_sources) browser.exe
++	$(GMCS) -debug -target:library -out:$@ $(webkitrender_sources) $(webkitrender_assemblies) $(CSHARP_FLAGS)
++
++MonoWebBrowserHtmlRender.dll : $(monowebbrowserrender_sources) browser.exe
++	$(GMCS) -debug -target:library -out:$@ $(monowebbrowserrender_sources) $(monowebbrowserrender_assemblies) $(CSHARP_FLAGS)
++
++b: browser.exe
++	MONO_PATH=. $(RUNTIME) --debug browser.exe
++
++c: admin.exe
++	MONO_PATH=. $(RUNTIME) --debug admin.exe
++
++desktopdir = $(datadir)/applications
++desktop_DATA = monodoc.desktop
++
++monodoc.desktop: monodoc.desktop.in
++	sed -e "s|\@bindir\@|$(bindir)|" $< > $@
++
++pixmapdir = $(datadir)/pixmaps
++pixmap_DATA = monodoc.png
+diff -urNad mono-tools-1.9~/docbrowser/MonoWebBrowserHtmlRender.cs mono-tools-1.9/docbrowser/MonoWebBrowserHtmlRender.cs
+--- mono-tools-1.9~/docbrowser/MonoWebBrowserHtmlRender.cs	1970-01-01 01:00:00.000000000 +0100
++++ mono-tools-1.9/docbrowser/MonoWebBrowserHtmlRender.cs	2008-08-10 14:59:40.000000000 +0200
+@@ -0,0 +1,116 @@
++//Permission is hereby granted, free of charge, to any person obtaining
++//a copy of this software and associated documentation files (the
++//"Software"), to deal in the Software without restriction, including
++//without limitation the rights to use, copy, modify, merge, publish,
++//distribute, sublicense, and/or sell copies of the Software, and to
++//permit persons to whom the Software is furnished to do so, subject to
++//the following conditions:
++//
++//The above copyright notice and this permission notice shall be
++//included in all copies or substantial portions of the Software.
++//
++//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
++//EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
++//MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
++//NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
++//LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
++//OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
++//WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
++//
++//Copyright (c) 2008 Novell, Inc.
++//
++//Authors:
++//	Andreia Gaita (avidigal at novell.com)
++//
++
++using System;
++using Mono.WebBrowser;
++using Gtk;
++
++namespace Monodoc
++{
++	public class MonoWebBrowserHtmlRender : IHtmlRender
++	{
++		BrowserWidget html_panel;
++//		Widget html_panel;
++		RootTree help_tree;
++		
++		public MonoWebBrowserHtmlRender (RootTree help_tree)
++		{
++			
++			
++//			html_panel = new Gtk.Bin (IntPtr.Zero);
++//			html_panel.ExposeEvent += new ExposeEventHandler (OnExposed);
++			//html_panel.Realized += new EventHandler (OnRealized);
++			this.help_tree = help_tree;
++			
++		}
++		
++		public void OnRealized (object sender, EventArgs e)
++		{
++		
++		}
++		
++		public void OnExposed (object sender, ExposeEventArgs e) 
++		{
++		}
++		
++		public event EventHandler OnUrl;
++		public event EventHandler UrlClicked;
++		
++		// Jump to an anchor of the form <a name="tttt">
++		public void JumpToAnchor (string anchor_name) 
++		{
++		}
++
++		//Copy to the clipboard the selcted text
++		public void Copy () 
++		{
++		}
++
++		//Select all the text
++		public void SelectAll () 
++		{
++		}
++
++		//Render the HTML code given
++		public void Render (string html_code) 
++		{
++			Console.WriteLine (html_code);
++			html_panel.browser.Render (html_code);
++		}
++
++
++		// Variable that handles the info encessary for the events
++		// As every implementation of HtmlRender will have differents events
++		// we try to homogenize them with the variabel
++		public string Url { 
++			get {return String.Empty;}//return html_panel.browser.Document.Url; } 
++		}
++
++		public Widget HtmlPanel { 
++			get { return (Widget)html_panel; } 
++		}
++
++		public void Print (string Html) 
++		{
++		}
++
++		public bool Initialize ()
++		{
++			html_panel = new BrowserWidget ();
++			return html_panel.browser.Initialized;
++		}
++
++		public Capabilities Capabilities
++		{
++			get { return Capabilities.Css | Capabilities.Fonts; }
++		}
++
++		public string Name
++		{
++			get { return "MonoWebBrowser"; }
++		}
++
++	}
++}
+diff -urNad mono-tools-1.9~/docbrowser/WebKitHtmlRender.cs mono-tools-1.9/docbrowser/WebKitHtmlRender.cs
+--- mono-tools-1.9~/docbrowser/WebKitHtmlRender.cs	1970-01-01 01:00:00.000000000 +0100
++++ mono-tools-1.9/docbrowser/WebKitHtmlRender.cs	2008-08-10 14:59:40.000000000 +0200
+@@ -0,0 +1,89 @@
++//
++// WebKitHtmlRender.cs: Implementation of IHtmlRender that uses WebKit
++//
++// Author: Alp Toker <alp at nuanti.com>
++//
++
++using System;
++using System.IO;
++using Gtk;
++using WebKit;
++
++namespace Monodoc {
++public class WebKitHtmlRender : IHtmlRender {
++
++	WebView web_view;
++	public Widget HtmlPanel {
++		get { return (Widget) web_view; }
++	}
++
++	string url;
++	public string Url {
++		get { return url; }
++	}
++
++	RootTree help_tree;
++	public event EventHandler OnUrl;
++	public event EventHandler UrlClicked;
++
++	public WebKitHtmlRender (RootTree help_tree) 
++	{
++		web_view = new WebView ();
++		web_view.Show (); 
++		web_view.NavigationRequested += delegate (object sender, NavigationRequestedArgs e) {
++			url = e.Request.Uri;
++			if (UrlClicked != null)
++				UrlClicked (this, new EventArgs());
++			e.RetVal = NavigationResponse.Ignore;
++		};
++		web_view.HoveringOverLink += delegate (object sender, HoveringOverLinkArgs e) {
++			url = e.Link;
++			if (OnUrl != null)
++			  OnUrl (this, new EventArgs ());
++		};
++		this.help_tree = help_tree;
++	}
++
++	public void JumpToAnchor (string anchor)
++	{
++		web_view.Open ("#" + anchor);
++	}
++
++	public void Copy () 
++	{
++		web_view.CopyClipboard ();
++	}
++
++	public void SelectAll () 
++	{
++		web_view.SelectAll ();	
++	}
++
++	public void Render (string html) 
++	{
++		web_view.LoadHtmlString (html, null);
++	}
++
++	public void Print (string html)
++	{
++		web_view.ExecuteScript ("print();");
++	}
++
++	public bool Initialize ()
++	{
++		return true;
++	}
++
++	public Capabilities Capabilities
++	{
++		get { return Capabilities.Css | Capabilities.Fonts; }
++	}
++
++	public string Name
++	{
++		get { return "WebKit"; }
++	}
++
++
++}
++}
+diff -urNad mono-tools-1.9~/docbrowser/browser.cs mono-tools-1.9/docbrowser/browser.cs
+--- mono-tools-1.9~/docbrowser/browser.cs	2008-01-30 00:06:10.000000000 +0100
++++ mono-tools-1.9/docbrowser/browser.cs	2008-08-10 14:59:40.000000000 +0200
+@@ -15,17 +15,22 @@
+ using System.Reflection;
+ using System.Threading;
+ using System.Collections;
++using System.Collections.Generic;
+ using System.Web.Services.Protocols;
+ using System.Xml;
+ 
+ namespace Monodoc {
+ class Driver {
++	  
++	public static string[] engines = {"WebKit", "GtkHtml", "MonoWebBrowser", "Gecko"};
++	  
+ 	static int Main (string [] args)
+ 	{
+ 		string topic = null;
+-		bool useGecko = true;
+ 		bool remote_mode = false;
+ 		
++		string engine = engines[0];
++		
+ 		for (int i = 0; i < args.Length; i++){
+ 			switch (args [i]){
+ 			case "--html":
+@@ -98,8 +103,14 @@
+ 				remote_mode = true;
+ 				break;
+ 				
+-			case "--no-gecko":
+-				useGecko = false;
++			case "--engine":
++				if (i + 1 == args.Length) {
++					Console.WriteLine ("Usage: --engine engine, where engine is the name of the browser engine to use (WebKit, GtkHtml, MonoWebBrowser, Gecko or another).");
++					return 1;
++				}
++
++				engine = args [i+1];
++				i++;
+ 				break;
+ 			default:
+ 				topic = args [i];
+@@ -112,7 +123,7 @@
+ 		
+ 		Settings.RunningGUI = true;
+ 		Application.Init ();
+-		Browser browser = new Browser (useGecko);
++		Browser browser = new Browser (engine);
+ 		
+ 		if (topic != null)
+ 			browser.LoadUrl (topic);
+@@ -165,7 +176,7 @@
+ 	public Notebook tabs_nb;
+ 	public Tab CurrentTab;
+ 	bool HoldCtrl;
+-	public bool UseGecko;
++	public string engine;
+ 
+ 	[Glade.Widget] public MenuItem bookmarksMenu;
+ 	[Glade.Widget] MenuItem view1;
+@@ -231,9 +242,11 @@
+ 
+ 	public ArrayList bookList;
+ 
+-	public Browser (bool UseGecko)
++	public Capabilities capabilities;
++
++	public Browser (string engine)
+ 	{
+-		this.UseGecko = UseGecko;
++		this.engine = engine;		
+ 		ui = new Glade.XML (null, "browser.glade", "window1", null);
+ 		ui.Autoconnect (this);
+ 
+@@ -280,7 +293,10 @@
+ 		tabs_nb.SwitchPage += new SwitchPageHandler(ChangeTab);
+ 		help_container.Add(tabs_nb);
+ 
+-		if (UseGecko) {
++		AddTab();
++			
++			
++		if ((capabilities & Capabilities.Fonts) != 0) {
+ 			// Add Menu entries for changing the font
+ 			Menu aux = (Menu) view1.Submenu;
+ 			MenuItem sep = new SeparatorMenuItem ();
+@@ -334,10 +350,11 @@
+ 
+ 		index_browser = IndexBrowser.MakeIndexBrowser (this);
+ 		
+-		AddTab();
+ 		MainWindow.ShowAll();
+ 	}
+ 
++
++
+ 	// Initianlizes the search index
+ 	void CreateSearchPanel ()
+ 	{
+@@ -821,7 +838,7 @@
+ 	void on_print_activate (object sender, EventArgs e) 
+ 	{
+ 		 // desactivate css temporary
+-		 if (UseGecko)
++		 if ((capabilities & Capabilities.Css) != 0)
+ 		 	HelpSource.use_css = false;
+ 		 
+ 		string url = CurrentUrl;
+@@ -842,7 +859,7 @@
+ 		if (html != null)
+ 			CurrentTab.html.Print (html);
+ 
+-		if (UseGecko)
++		if ((capabilities & Capabilities.Css) != 0)
+ 			HelpSource.use_css = true;
+ 	}
+ 
+@@ -2264,19 +2281,65 @@
+ 			text_editor.GrabFocus ();	
+ 	}
+ 
+-	static IHtmlRender GetRenderer (string file, string type, Browser browser)
+-	{
++
++	private static IHtmlRender LoadRenderer (string dll, Browser browser) {
+ 		try {
+-			
+-			string exeAssembly = Assembly.GetExecutingAssembly ().Location;
+-			string myPath = System.IO.Path.GetDirectoryName (exeAssembly);
+-			Assembly dll = Assembly.LoadFrom (System.IO.Path.Combine (myPath, file));
+-			Type t = dll.GetType (type, true);
++			Assembly ass = Assembly.LoadFile (dll);		
++			System.Type type = ass.GetType ("Monodoc." + ass.GetName ().Name, false, false);
++			if (type == null)
++				return null;
++			return (IHtmlRender) Activator.CreateInstance (type, new object[1] { browser.help_tree });
++		} catch (Exception ex) {
++			Console.Error.WriteLine (ex);
++		}
++		return null;
++	}
++	
++	
++	public static IHtmlRender GetRenderer (string engine, string fallback, Browser browser)
++	{
++		IHtmlRender renderer = LoadRenderer (System.IO.Path.Combine (AppDomain.CurrentDomain.BaseDirectory, engine + "HtmlRender.dll"), browser);
++		if (renderer != null) {
++			try {
++				if (renderer.Initialize ()) {
++					Console.WriteLine ("using " + renderer.Name);
++					return renderer;
++				}
++			} catch (Exception ex) {
++				Console.Error.WriteLine (ex);
++			}
++		}
+ 		
+-			return (IHtmlRender) Activator.CreateInstance (t, new object [1] { browser.help_tree });
+-		} catch {
+-			return null;
++		renderer = LoadRenderer (System.IO.Path.Combine (AppDomain.CurrentDomain.BaseDirectory, fallback + "HtmlRender.dll"), browser);
++		if (renderer != null) {
++			try {
++				if (renderer.Initialize ()) {
++					Console.WriteLine ("using " + renderer.Name);
++					return renderer;
++				}
++			} catch (Exception ex) {
++				//Console.Error.WriteLine (ex);
++			}
++		}
++
++		foreach (string backend in Driver.engines) {
++			string dll = System.IO.Path.Combine (AppDomain.CurrentDomain.BaseDirectory, backend + "HtmlRender.dll");
++			if (System.IO.File.Exists (dll)) {
++				renderer = LoadRenderer (dll, browser);
++				if (renderer != null) {
++					try {
++						if (renderer.Initialize ()) {
++							Console.WriteLine ("using " + renderer.Name);
++							return renderer;
++						}
++					} catch (Exception ex) {
++						//Console.Error.WriteLine (ex);
++					}
++				}			
++			}
+ 		}
++		
++		return null;		
+ 	}
+ 	
+ 
+@@ -2300,24 +2363,19 @@
+ 		//
+ 		// Setup the HTML rendering and preview area
+ 		//
+-		if (browser.UseGecko) {
+-			html = GetRenderer ("GeckoHtmlRender.dll", "Monodoc.GeckoHtmlRender", browser);
+-			html_preview = GetRenderer ("GeckoHtmlRender.dll", "Monodoc.GeckoHtmlRender", browser);
+-			HelpSource.use_css = true;
+-		}
+-		
+-		if (html == null || html_preview == null) {
+-			html = GetRenderer ("GtkHtmlHtmlRender.dll", "Monodoc.GtkHtmlHtmlRender", browser);
+-			html_preview = GetRenderer ("GtkHtmlHtmlRender.dll", "Monodoc.GtkHtmlHtmlRender", browser);
+-			browser.UseGecko = false;
+-			HelpSource.use_css = false;
+-		}
+ 
++		html = GetRenderer (browser.engine, Driver.engines[1], browser);
++		html_preview = GetRenderer (browser.engine, Driver.engines[1], browser);
+ 		if (html == null || html_preview == null)
+ 			throw new Exception ("Couldn't find html renderer!");
+-				
++
++		browser.capabilities = html.Capabilities;
++
++		if ((html.Capabilities & Capabilities.Css) != 0)
++			HelpSource.use_css = true;
++
+ 		//Prepare Font for css (TODO: use GConf?)
+-		if (browser.UseGecko && SettingsHandler.Settings.preferred_font_size == 0) { 
++		if ((html.Capabilities & Capabilities.Fonts) != 0 && SettingsHandler.Settings.preferred_font_size == 0) { 
+ 			Pango.FontDescription font_desc = Pango.FontDescription.FromString ("Sans 12");
+ 			SettingsHandler.Settings.preferred_font_family = font_desc.Family;
+ 			SettingsHandler.Settings.preferred_font_size = 100; //size: 100%
+diff -urNad mono-tools-1.9~/docbrowser/monodoc.in mono-tools-1.9/docbrowser/monodoc.in
+--- mono-tools-1.9~/docbrowser/monodoc.in	2008-03-10 23:34:01.000000000 +0100
++++ mono-tools-1.9/docbrowser/monodoc.in	2008-08-10 15:00:17.000000000 +0200
+@@ -98,4 +98,4 @@
+ export MOZILLA_HOME 
+ export LD_LIBRARY_PATH
+ 
+-exec @RUNTIME@ $monodocdir/browser.exe $OPTIONS "$@" $REST
++exec @RUNTIME@ $monodocdir/browser.exe --engine GtkHtml $OPTIONS "$@" $REST
+diff -urNad mono-tools-1.9~/ilcontrast/Makefile.am mono-tools-1.9/ilcontrast/Makefile.am
+--- mono-tools-1.9~/ilcontrast/Makefile.am	2007-12-06 22:43:43.000000000 +0100
++++ mono-tools-1.9/ilcontrast/Makefile.am	2008-08-10 14:59:40.000000000 +0200
+@@ -7,6 +7,12 @@
+ desktopdir = $(datadir)/applications
+ pixmapdir = $(datadir)/pixmaps
+ 
++if ENABLE_WEBKIT
++assembly_DATA = $(TARGET)
++bin_SCRIPTS = ilcontrast
++desktop_DATA = ilcontrast.desktop
++pixmap_DATA = ilcontrast.png
++else
+ if ENABLE_GECKO
+ assembly_DATA = $(TARGET)
+ bin_SCRIPTS = ilcontrast
+@@ -14,10 +20,15 @@
+ pixmap_DATA = ilcontrast.png
+ else
+ all:
+-	echo "Install gecko-sharp to build ilContrast"
++	echo "Install webkit-sharp or gecko-sharp to build ilContrast"
++endif
+ endif
+ 
+-references = $(GTK_SHARP_LIBS) $(GECKO_SHARP_LIBS) -r:ICSharpCode.SharpZipLib.dll
++if ENABLE_WEBKIT
++references = $(GTK_SHARP_LIBS) $(WEBKIT_SHARP_LIBS) -r:ICSharpCode.SharpZipLib.dll
++else
++references = $(GTK_SHARP_LIBS) $(GECKO_SHARP_LIBS) -d:USE_GECKO -r:ICSharpCode.SharpZipLib.dll
++endif
+ 
+ resources = 							\
+ 	/resource:$(srcdir)/ilcontrast.png,ilcontrast.png	\
+diff -urNad mono-tools-1.9~/ilcontrast/Window.cs mono-tools-1.9/ilcontrast/Window.cs
+--- mono-tools-1.9~/ilcontrast/Window.cs	2007-12-06 22:43:43.000000000 +0100
++++ mono-tools-1.9/ilcontrast/Window.cs	2008-08-10 14:59:40.000000000 +0200
+@@ -40,7 +40,11 @@
+ 
+ 		Box main_vbox;
+ 		Statusbar statusbar;
++#if USE_GECKO
+ 		Gecko.WebControl browser;
++#else
++		WebKit.WebView web_view;
++#endif
+ 		bool first_show = false;
+ 		Thread worker;
+ 		ComparisonInfo info;
+@@ -49,10 +53,17 @@
+ 		{
+ 			DefaultSize = new Size (450, 450);
+ 
+-			browser = new Gecko.WebControl ();
+ 			main_vbox = new VBox (false, 0);
+ 			AddActionUI ();
++#if USE_GECKO
++			browser = new Gecko.WebControl ();
+ 			main_vbox.PackStart (browser, true, true, 0);
++#else
++			web_view = new WebKit.WebView ();
++			ScrolledWindow sw = new ScrolledWindow ();
++			sw.Add (web_view);
++			main_vbox.PackStart (sw, true, true, 0);
++#endif
+ 			statusbar = new Statusbar ();
+ 			main_vbox.PackStart (statusbar, false, false, 0);
+ 			Add (main_vbox);
+@@ -125,7 +136,11 @@
+ 
+ 		void LoadUrl (string url)
+ 		{
++#if USE_GECKO
+ 			browser.LoadUrl (url);
++#else
++			web_view.Open (url);
++#endif
+ 		}
+ 
+ 		void GenerateHtmlTarget ()
