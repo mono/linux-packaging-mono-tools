@@ -6,10 +6,21 @@ CURVER = $(shell dpkg-parsechangelog | grep ^Version | cut -d' ' -f2 | cut -d'-'
 
 include /usr/share/dpatch/dpatch.make
 
-build: build-stamp
-build-stamp: patch-stamp
+configure: config-stamp
+config-stamp: patch
 	dh_testdir
+	
+	aclocal
+	autoconf
+	automake --add-missing --copy
+	
 	./configure --prefix=/usr
+	
+	touch $@
+
+build: build-stamp
+build-stamp: config-stamp
+	dh_testdir
 	$(MAKE)
 	touch build-stamp
 
@@ -17,12 +28,10 @@ clean: clean-patched unpatch
 clean-patched:
 	dh_testdir
 	dh_testroot
-	#[ ! -f Makefile ] || $(MAKE) distclean
-	# distclean deletes some Makefile.in files :(
-	[ ! -f Makefile ] || $(MAKE) clean
-	rm -rf $$MONO_SHARED_DIR/.wapi
-	rm -f build-stamp
-	dh_clean
+	[ ! -f Makefile ] || $(MAKE) distclean
+	find . -name "Makefile.in" | xargs rm -rf
+	rm -rf $$MONO_SHARED_DIR/.wapi autom4te.cache/
+	dh_clean configure config.sub config.guess
 
 install: build
 	dh_testdir

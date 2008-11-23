@@ -1,12 +1,24 @@
 mono-tools (2.0-1) UNRELEASED; urgency=low
 
+  NOT READY YET.
+  
   * New upstream release
   * Group Policy:
     + implemented get-orig-source in debian/rules
   * debian/control:
+    + Build-Depends:
+      - added autotools-dev, autoconf, automake
+      - added mono-devel
+      - removed mono-mcs, mono-gmcs, mono-gac and mono-1.0-devel
     + fixed spurious dot in long description
+  * debian/rules:
+    + implemented autotools files re-generation
+  * debian/patches:
+    + 04_gendarme_link_libraries_correctly updated
+    + 05_webkit-sharp_port disabled
+    + 99_autoreconf disabled
 
- -- David Paleino <d.paleino@gmail.com>  Sun, 23 Nov 2008 23:11:28 +0100
+ -- David Paleino <d.paleino@gmail.com>  Mon, 24 Nov 2008 00:14:31 +0100
 
 mono-tools (1.9-2) unstable; urgency=medium
 

@@ -1,19 +1,19 @@
 #! /bin/sh /usr/share/dpatch/dpatch-run
-## gendarme_link_libraries_correctly.dpatch by Mirco Bauer <meebey@debian.org>
+## 04_gendarme_link_libraries_correctly.dpatch by Mirco Bauer <meebey@debian.org>
 ##
 ## All lines beginning with `## DP:' are a description of the patch.
 ## DP: No description.
 
 @DPATCH@
-diff -urNad mono-tools-1.9~/gendarme/rules/Gendarme.Rules.Portability/Makefile.am mono-tools-1.9/gendarme/rules/Gendarme.Rules.Portability/Makefile.am
---- mono-tools-1.9~/gendarme/rules/Gendarme.Rules.Portability/Makefile.am	2008-05-02 20:22:08.000000000 +0200
-+++ mono-tools-1.9/gendarme/rules/Gendarme.Rules.Portability/Makefile.am	2008-05-02 20:22:25.000000000 +0200
-@@ -17,7 +17,7 @@
- portability_rules_build_sources += $(portability_rules_generated_sources)
+diff -urNad mono-tools-2.0~/gendarme/rules/Gendarme.Rules.Portability/Makefile.am mono-tools-2.0/gendarme/rules/Gendarme.Rules.Portability/Makefile.am
+--- mono-tools-2.0~/gendarme/rules/Gendarme.Rules.Portability/Makefile.am	2008-11-23 23:54:52.000000000 +0100
++++ mono-tools-2.0/gendarme/rules/Gendarme.Rules.Portability/Makefile.am	2008-11-23 23:56:39.000000000 +0100
+@@ -13,7 +13,7 @@
+ CLEANFILES = $(rules_dll) $(rules_dll).mdb $(tests_dll)
+ DISTCLEANFILES = Makefile.in Gendarme.Rules.Portability.xml TestResult.xml
  
- ../../bin/Gendarme.Rules.Portability.dll: $(portability_rules_build_sources)
--	$(GMCS) -debug -target:library -r:$(top_builddir)/gendarme/bin/Mono.Cecil.dll -pkg:dotnet -r:ICSharpCode.SharpZipLib.dll -r:../../bin/Gendarme.Framework.dll -out:$@ $(portability_rules_build_sources)
-+	$(GMCS) -debug -target:library -r:$(top_builddir)/gendarme/bin/Mono.Cecil.dll -r:System.Web.Services -r:ICSharpCode.SharpZipLib.dll -r:../../bin/Gendarme.Framework.dll -out:$@ $(portability_rules_build_sources)
- 	cp Gendarme.Rules.*.xml ../../bin/
+-EXTRA_RULES_OPTIONS = -r:ICSharpCode.SharpZipLib.dll -pkg:dotnet
++EXTRA_RULES_OPTIONS = -r:ICSharpCode.SharpZipLib.dll -r:System.Web.Services
  
- portability_test_sources = NewLineLiteralTest.cs FeatureRequiresRootPrivilegeOnUnixTest.cs \
+ rules_sources = \
+ 	DoNotHardcodePathsRule.cs \
