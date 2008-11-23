@@ -1,3 +1,9 @@
+mono-tools (2.0-1) UNRELEASED; urgency=low
+
+  * New upstream release
+
+ -- David Paleino <d.paleino@gmail.com>  Sun, 23 Nov 2008 23:02:17 +0100
+
 mono-tools (1.9-2) unstable; urgency=medium
 
   * debian/control:
