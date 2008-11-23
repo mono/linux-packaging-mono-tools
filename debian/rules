@@ -2,6 +2,7 @@
 
 #export DH_VERBOSE=1
 export MONO_SHARED_DIR=$(CURDIR)
+CURVER = $(shell dpkg-parsechangelog | grep ^Version | cut -d' ' -f2 | cut -d'-' -f1)
 
 include /usr/share/dpatch/dpatch.make
 
@@ -55,4 +56,14 @@ binary-indep: build install
 binary-arch:
 
 binary: binary-indep
+
+get-orig-source:
+	[ -d ../tarballs ] || mkdir ../tarballs
+	uscan \
+		--force-download \
+		--download-version $(CURVER) \
+		--repack \
+		--rename \
+		--destdir ../tarballs
+
 .PHONY: build clean clean-patched binary-indep binary install
