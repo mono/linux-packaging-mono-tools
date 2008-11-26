@@ -1,0 +1,8 @@
+#01-use_real_nunit.patch
+00-fix_build_system.patch
+02-startup_mono_path.patch
+03-mozilla_home.patch
+04-gendarme_link_libraries_correctly.patch
+#05-cecil.patch
+#06-nunit_2.4_port.patch
+#07-webkit-sharp_port.patch

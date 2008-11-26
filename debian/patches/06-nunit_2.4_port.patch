@@ -1,13 +1,5 @@
-#! /bin/sh /usr/share/dpatch/dpatch-run
-## 05_nunit_2.4_port.dpatch by Mirco Bauer <meebey@debian.org>
-##
-## All lines beginning with `## DP:' are a description of the patch.
-## DP: No description.
-
-@DPATCH@
-diff -urNad mono-tools-1.9~/gnunit/src/AssemblyStore.cs mono-tools-1.9/gnunit/src/AssemblyStore.cs
---- mono-tools-1.9~/gnunit/src/AssemblyStore.cs	2008-07-26 22:56:28.000000000 +0200
-+++ mono-tools-1.9/gnunit/src/AssemblyStore.cs	2008-07-26 22:56:43.000000000 +0200
+--- mono-tools-2.0.orig/gnunit/src/AssemblyStore.cs
++++ mono-tools-2.0/gnunit/src/AssemblyStore.cs
 @@ -40,9 +40,9 @@
  		}
  	}
@@ -103,9 +95,8 @@ diff -urNad mono-tools-1.9~/gnunit/src/AssemblyStore.cs mono-tools-1.9/gnunit/sr
  		{
  			if (listener != null) {
  				Monitor.Enter (pending);
-diff -urNad mono-tools-1.9~/gnunit/src/main.cs mono-tools-1.9/gnunit/src/main.cs
---- mono-tools-1.9~/gnunit/src/main.cs	2008-07-26 22:56:28.000000000 +0200
-+++ mono-tools-1.9/gnunit/src/main.cs	2008-07-26 22:56:28.000000000 +0200
+--- mono-tools-2.0.orig/gnunit/src/main.cs
++++ mono-tools-2.0/gnunit/src/main.cs
 @@ -17,6 +17,7 @@
  using Gnome;
  using Gtk;
@@ -137,13 +128,13 @@ diff -urNad mono-tools-1.9~/gnunit/src/main.cs mono-tools-1.9/gnunit/src/main.cs
  		}
  
 +		public bool IsEmpty {
-+                	get { return false; }
++			get { return false; }
 +		}
 +
  		void ToggleState (object sender, EventArgs args)
  		{
  			CheckMenuItem item = (CheckMenuItem) sender;
-@@ -255,25 +260,18 @@
+@@ -255,25 +260,19 @@
  						idx++;
  					}
  				}
@@ -170,16 +161,16 @@ diff -urNad mono-tools-1.9~/gnunit/src/main.cs mono-tools-1.9/gnunit/src/main.cs
 -
 -			return inner_filter.Pass (suite);
 -		}
--		
+ 		
 -		bool IFilter.Pass (TestCase test)
 +		bool ITestFilter.Pass (ITest test)
  		{
  			if (Cancel)
  				return false;
-@@ -284,9 +282,9 @@
+@@ -284,9 +283,9 @@
  			return inner_filter.Pass (test);
  		}
- 
+ 		
 -		public bool Exclude
 +		public bool Match (ITest test)
  		{
@@ -188,7 +179,7 @@ diff -urNad mono-tools-1.9~/gnunit/src/main.cs mono-tools-1.9/gnunit/src/main.cs
  		}
  
  		static string _ (string key)
-@@ -724,11 +722,11 @@
+@@ -724,11 +723,11 @@
  		}
  
  		// Interface NUnit.Core.EventListener
@@ -202,7 +193,7 @@ diff -urNad mono-tools-1.9~/gnunit/src/main.cs mono-tools-1.9/gnunit/src/main.cs
  		{
  		}
  
-@@ -740,7 +738,7 @@
+@@ -740,7 +739,7 @@
  		{
  		}
  
@@ -211,7 +202,7 @@ diff -urNad mono-tools-1.9~/gnunit/src/main.cs mono-tools-1.9/gnunit/src/main.cs
  		{
  			frameLabel.Text = "Test: " + testCase.FullName;
  		}
-@@ -752,7 +750,7 @@
+@@ -752,7 +751,7 @@
  
  			assertions += result.AssertCount;
  			if (result.Executed == false) {
@@ -220,7 +211,7 @@ diff -urNad mono-tools-1.9~/gnunit/src/main.cs mono-tools-1.9/gnunit/src/main.cs
  			} else if (result.IsFailure) {
  				AddError (result);
  			}
-@@ -762,7 +760,7 @@
+@@ -762,7 +761,7 @@
  			ClockUpdater (this, EventArgs.Empty);
  		}
  
@@ -229,7 +220,7 @@ diff -urNad mono-tools-1.9~/gnunit/src/main.cs mono-tools-1.9/gnunit/src/main.cs
  		{
  			frameLabel.Text = "Suite: " + suite.FullName;
  		}
-@@ -826,7 +824,7 @@
+@@ -826,7 +825,7 @@
  			int dot;
  			TreeIter main = TreeIter.Zero;
  			TreeIter iter;
@@ -238,7 +229,7 @@ diff -urNad mono-tools-1.9~/gnunit/src/main.cs mono-tools-1.9/gnunit/src/main.cs
  			if ((dot = fullname.LastIndexOf ('.')) != -1) {
  				string key = fullname.Substring (0, dot);
  				if (!errorIters.ContainsKey (key)) {
-@@ -841,7 +839,7 @@
+@@ -841,7 +840,7 @@
  				errorIters [fullname] = main;
  			}
  

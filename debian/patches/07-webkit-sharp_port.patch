@@ -1,11 +1,6 @@
-#! /bin/sh /usr/share/dpatch/dpatch-run
-## 05_webkit-sharp_port.dpatch by Mirco Bauer <meebey@debian.org>
-##
-## All lines beginning with `## DP:' are a description of the patch.
-## DP: Backport of webkit-sharp support, taken from upstream SVN revision:
-## DP: r97203, r97657, r97745, r105817, r105820, r105828, r105860 and r105868
-
-@DPATCH@
+Author: Mirco Bauer <meebey@debian.org>
+Reason: Backport of webkit-sharp support, taken from upstream SVN revision:
+ r97203, r97657, r97745, r105817, r105820, r105828, r105860 and r105868
 diff -urNad mono-tools-1.9~/configure.in mono-tools-1.9/configure.in
 --- mono-tools-1.9~/configure.in	2008-08-10 14:59:40.000000000 +0200
 +++ mono-tools-1.9/configure.in	2008-08-10 14:59:40.000000000 +0200

@@ -1,10 +1,6 @@
-#! /bin/sh /usr/share/dpatch/dpatch-run
-
-@DPATCH@
-
---- mono-tools-1.9/configure.in.old	2008-04-07 10:23:25.000000000 +0200
-+++ mono-tools-1.9/configure.in	2008-04-07 10:23:43.000000000 +0200
-@@ -71,13 +71,13 @@
+--- mono-tools-2.0.orig/configure.in
++++ mono-tools-2.0/configure.in
+@@ -119,13 +119,13 @@
  dnl
  dnl I hate PKG_CONFIG_MODULES, that is for the weak
  dnl

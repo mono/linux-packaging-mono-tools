@@ -1,0 +1,51 @@
+--- mono-tools-2.0.orig/configure.in
++++ mono-tools-2.0/configure.in
+@@ -35,7 +35,7 @@
+ AC_SUBST(GACUTIL)
+ 
+ 
+-PKG_CHECK_MODULES(NUNIT, mono-nunit)
++PKG_CHECK_MODULES(NUNIT, nunit)
+ AC_SUBST(NUNIT_LIBS)
+ 
+ PKG_CHECK_MODULES(MONODOC, monodoc)
+--- mono-tools-2.0.orig/gnunit/src/AssemblyStore.cs
++++ mono-tools-2.0/gnunit/src/AssemblyStore.cs
+@@ -574,6 +574,11 @@
+ 			idle.Set ();
+ 		}
+ 
++		void EventListener.TestOutput (TestOutput testOutput)
++		{
++			;
++		}
++
+ 		void SetIconFromResult (TestResult result)
+ 		{
+ 			CircleColor color;
+--- mono-tools-2.0.orig/gnunit/src/main.cs
++++ mono-tools-2.0/gnunit/src/main.cs
+@@ -284,6 +284,11 @@
+ 			return inner_filter.Pass (test);
+ 		}
+ 		
++		public bool Exclude
++		{
++			get { return false; }
++		}
++
+ 		static string _ (string key)
+ 		{
+ 			return Catalog.GetString (key);
+@@ -767,6 +772,11 @@
+ 			ClockUpdater (this, EventArgs.Empty);
+ 		}
+ 
++		void EventListener.TestOutput (TestOutput testOutput)
++		{
++			;
++		}
++
+ 		// Misc.
+ 
+ 		void UpdateRunStatus ()

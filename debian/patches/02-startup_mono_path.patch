@@ -1,0 +1,12 @@
+--- mono-tools-2.0.orig/gnunit/src/script.in
++++ mono-tools-2.0/gnunit/src/script.in
+@@ -1,2 +1,3 @@
+ #!/bin/sh
++export MONO_PATH=/usr/lib/nunit:$MONO_PATH
+ exec @RUNTIME@ @mono_one_instdir@/@exe_file@ "$@"
+--- mono-tools-2.0.orig/gnunit/src/script2.in
++++ mono-tools-2.0/gnunit/src/script2.in
+@@ -1,2 +1,3 @@
+ #!/bin/sh
++export MONO_PATH=/usr/lib/nunit:$MONO_PATH
+ exec @RUNTIME@ @mono_two_instdir@/@exe_file@ "$@"

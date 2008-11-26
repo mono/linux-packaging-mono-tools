@@ -1,10 +1,6 @@
-#! /bin/sh /usr/share/dpatch/dpatch-run
-
-@DPATCH@
-
---- mono-tools-1.2.4/configure.in.old	2007-05-17 10:35:26.000000000 +0200
-+++ mono-tools-1.2.4/configure.in	2007-05-17 10:35:50.000000000 +0200
-@@ -53,7 +53,7 @@
+--- mono-tools-2.0.orig/configure.in
++++ mono-tools-2.0/configure.in
+@@ -62,7 +62,7 @@
  
  if test "x$enable_gecko" = "xyes"; then
     # get the mozilla home directory
@@ -13,17 +9,17 @@
     AC_SUBST(MOZILLA_HOME)
  fi
  
---- mono-tools-1.2.4/ilcontrast/ilcontrast.in.old	2007-12-14 11:03:22.000000000 +0100
-+++ mono-tools-1.2.4/ilcontrast/ilcontrast.in	2007-12-14 11:04:28.000000000 +0100
+--- mono-tools-2.0.orig/ilcontrast/ilcontrast.in
++++ mono-tools-2.0/ilcontrast/ilcontrast.in
 @@ -19,16 +19,20 @@
  elif test x@MOZILLA_HOME@ != x; then
      if [ -f @MOZILLA_HOME@/chrome/comm.jar ]; then
          MOZILLA_HOME=@MOZILLA_HOME@
-+	MOZILLA_FIVE_HOME=$MOZILLA_HOME
++        MOZILLA_FIVE_HOME=$MOZILLA_HOME
      fi 
  elif grep GRE_PATH /etc/gre.d/*.conf > /dev/null ; then
          MOZILLA_HOME=$(grep -h GRE_PATH= /etc/gre.d/*.conf | cut -d '"' -f 2 -d = | head -n 1)
-+	MOZILLA_FIVE_HOME=$MOZILLA_HOME
++        MOZILLA_FIVE_HOME=$MOZILLA_HOME
  elif [ $(which xulrunner 2> /dev/null) ] > /dev/null ; then
      MOZILLA_FIVE_HOME=`getdirectory xulrunner`
      MOZILLA_HOME=$MOZILLA_FIVE_HOME

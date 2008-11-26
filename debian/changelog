@@ -10,15 +10,17 @@ mono-tools (2.0-1) UNRELEASED; urgency=low
       - added autotools-dev, autoconf, automake
       - added mono-devel
       - removed mono-mcs, mono-gmcs, mono-gac and mono-1.0-devel
+      - added libmono-winforms2.0-cil
+      - added libmono-webbrowser0.5-cil
+      - removed libmono1.0-cil
     + fixed spurious dot in long description
   * debian/rules:
     + implemented autotools files re-generation
   * debian/patches:
-    + 04_gendarme_link_libraries_correctly updated
-    + 05_webkit-sharp_port disabled
-    + 99_autoreconf disabled
+    + converted to quilt
+    + 00-fix_build_system.patch added
 
- -- David Paleino <d.paleino@gmail.com>  Mon, 24 Nov 2008 00:14:31 +0100
+ -- David Paleino <d.paleino@gmail.com>  Wed, 26 Nov 2008 14:12:09 +0100
 
 mono-tools (1.9-2) unstable; urgency=medium
 

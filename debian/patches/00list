@@ -1,7 +1,0 @@
-#01_use_real_nunit
-02_startup_mono_path
-03_mozilla-home
-04_gendarme_link_libraries_correctly
-#05_webkit-sharp_port
-#05_nunit_2.4_port
-#99_autoreconf

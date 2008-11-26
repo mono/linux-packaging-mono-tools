@@ -1,0 +1,13 @@
+--- mono-tools-2.0.orig/configure.in
++++ mono-tools-2.0/configure.in
+@@ -7,8 +7,8 @@
+ AC_PROG_INSTALL
+ 
+ dnl C# compiler
+-AC_PATH_PROG(MCS, mcs, no)
+-AC_PATH_PROG(GMCS, gmcs, no)
++AC_PATH_PROG(MCS, csc, no)
++AC_PATH_PROG(GMCS, csc, no)
+ AC_PATH_PROG(RUNTIME, mono, no)
+ AC_PATH_PROG(GACUTIL, gacutil, no)
+ 

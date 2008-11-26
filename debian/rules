@@ -4,10 +4,10 @@
 export MONO_SHARED_DIR=$(CURDIR)
 CURVER = $(shell dpkg-parsechangelog | grep ^Version | cut -d' ' -f2 | cut -d'-' -f1)
 
-include /usr/share/dpatch/dpatch.make
+include /usr/share/quilt/quilt.make
 
 configure: config-stamp
-config-stamp: patch
+config-stamp: $(QUILT_STAMPFN)
 	dh_testdir
 	
 	aclocal
