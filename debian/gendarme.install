@@ -1,0 +1,3 @@
+debian/tmp/usr/bin/gendarme*
+debian/tmp/usr/lib/gendarme/
+debian/tmp/usr/lib/pkgconfig/gendarme*

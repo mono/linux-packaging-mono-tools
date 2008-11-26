@@ -31,14 +31,14 @@ clean-patched:
 	[ ! -f Makefile ] || $(MAKE) distclean
 	find . -name "Makefile.in" | xargs rm -rf
 	rm -rf $$MONO_SHARED_DIR/.wapi autom4te.cache/
-	dh_clean configure config.sub config.guess
+	dh_clean configure config.sub config.guess aclocal.m4
 
 install: build
 	dh_testdir
 	dh_testroot
 	dh_clean -k
 	dh_installdirs
-	$(MAKE) install DESTDIR=$(CURDIR)/debian/tmp
+	$(MAKE) install DESTDIR=$(CURDIR)/debian/tmp/
 
 binary-indep: build install
 	dh_testdir

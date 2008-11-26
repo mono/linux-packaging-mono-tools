@@ -1,10 +1,9 @@
 mono-tools (2.0-1) UNRELEASED; urgency=low
 
-  NOT READY YET.
-  
   * New upstream release
   * Group Policy:
     + implemented get-orig-source in debian/rules
+  * debian/compat bumped to 7
   * debian/control:
     + Build-Depends:
       - added autotools-dev, autoconf, automake
@@ -13,14 +12,26 @@ mono-tools (2.0-1) UNRELEASED; urgency=low
       - added libmono-winforms2.0-cil
       - added libmono-webbrowser0.5-cil
       - removed libmono1.0-cil
+      - debhelper bumped to (>= 7)
     + fixed spurious dot in long description
+    + New binary packages:
+      - mono-profiler, since these two related programs should have gone
+                       into two different packages, and this is not nice
+                       at all;
+      - gendarme, because it would've been split into mono-tools-devel and
+                  mono-tools-gui, as mono-profiler; because it uses 
+                  System.Windows.Forms, and if in future we want to get rid
+                  of it, we might break other unrelated packages. Go on
+                  your own! Conflicts and Replaces mono-tools-devel (<< 2.0),
+                  since it was contained there.
+    + Standards-Version bumped to 3.8.0 (no changes needed)
   * debian/rules:
     + implemented autotools files re-generation
   * debian/patches:
     + converted to quilt
     + 00-fix_build_system.patch added
 
- -- David Paleino <d.paleino@gmail.com>  Wed, 26 Nov 2008 14:12:09 +0100
+ -- David Paleino <d.paleino@gmail.com>  Thu, 27 Nov 2008 00:12:02 +0100
 
 mono-tools (1.9-2) unstable; urgency=medium
 
