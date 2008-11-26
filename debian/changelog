@@ -1,4 +1,4 @@
-mono-tools (2.0-1) UNRELEASED; urgency=low
+mono-tools (2.0-1) experimental; urgency=low
 
   * New upstream release
   * Group Policy:
@@ -15,14 +15,13 @@ mono-tools (2.0-1) UNRELEASED; urgency=low
       - debhelper bumped to (>= 7)
     + fixed spurious dot in long description
     + New binary packages:
-      - mono-profiler, since these two related programs should have gone
+      - mono-profiler, since these two related programs would have gone
                        into two different packages, and this is not nice
                        at all;
       - gendarme, because it would've been split into mono-tools-devel and
-                  mono-tools-gui, as mono-profiler; because it uses 
-                  System.Windows.Forms, and if in future we want to get rid
-                  of it, we might break other unrelated packages. Go on
-                  your own! Conflicts and Replaces mono-tools-devel (<< 2.0),
+                  mono-tools-gui, like mono-profiler; because it uses 
+                  System.Windows.Forms.
+                  Added Conflicts and Replaces mono-tools-devel (<< 2.0),
                   since it was contained there.
     + Standards-Version bumped to 3.8.0 (no changes needed)
   * debian/rules:
