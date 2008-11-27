@@ -1,5 +1,6 @@
 mono-tools (2.0-1) experimental; urgency=low
 
+  [ David Paleino ]
   * New upstream release
   * Group Policy:
     + implemented get-orig-source in debian/rules
@@ -29,6 +30,11 @@ mono-tools (2.0-1) experimental; urgency=low
   * debian/patches:
     + converted to quilt
     + 00-fix_build_system.patch added
+
+  [ Mirco Bauer ]
+  * debian/patches/dont_bundle_cecil.patch:
+    + Don't copy the Mono.Cecil library during the build into the binary
+      package, as it's already in the GAC.
 
  -- David Paleino <d.paleino@gmail.com>  Thu, 27 Nov 2008 00:12:02 +0100
 

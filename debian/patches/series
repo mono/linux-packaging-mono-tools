@@ -6,3 +6,4 @@
 #05-cecil.patch
 #06-nunit_2.4_port.patch
 #07-webkit-sharp_port.patch
+dont_bundle_cecil.patch
