@@ -1,3 +1,12 @@
+mono-tools (2.0-2) unstable; urgency=low
+
+  * Upload to unstable.
+  * debian/control:
+    + Versioned mono-devel build-dep using >= 2.0.1, as only that version
+      contains the csc program.
+
+ -- Mirco Bauer <meebey@debian.org>  Wed, 25 Feb 2009 23:32:46 +0100
+
 mono-tools (2.0-1) experimental; urgency=low
 
   [ David Paleino ]
