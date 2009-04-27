@@ -2,8 +2,10 @@ mono-tools (2.0-3) UNRELEASED; urgency=low
 
   * debian/control:
     + Add Vcs-* fields
+  * debian/monodoc-browser.install:
+    + Actually use Webkit# renderer, don't just build it and throw it away
 
- -- Jo Shields <directhex@apebox.org>  Tue, 03 Mar 2009 11:45:08 +0000
+ -- Jo Shields <directhex@apebox.org>  Mon, 27 Apr 2009 10:09:09 +0100
 
 mono-tools (2.0-2) unstable; urgency=low
 
