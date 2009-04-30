@@ -1,11 +1,16 @@
-mono-tools (2.0-3) UNRELEASED; urgency=low
+mono-tools (2.0-3) unstable; urgency=low
 
+  [ Jo Shields ]
   * debian/control:
     + Add Vcs-* fields
   * debian/monodoc-browser.install:
     + Actually use Webkit# renderer, don't just build it and throw it away
 
- -- Jo Shields <directhex@apebox.org>  Mon, 27 Apr 2009 10:09:09 +0100
+  [ Sebastian Dröge ]
+  * debian/control:
+    + Build depend on libgnome2.24-cil for the GNOME# 2.24 transition.
+
+ -- Sebastian Dröge <slomo@debian.org>  Thu, 30 Apr 2009 07:36:26 +0200
 
 mono-tools (2.0-2) unstable; urgency=low
 
