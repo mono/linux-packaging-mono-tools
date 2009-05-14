@@ -8,7 +8,8 @@ mono-tools (2.0-3) unstable; urgency=low
 
   [ Sebastian Dröge ]
   * debian/control:
-    + Build depend on libgnome2.24-cil for the GNOME# 2.24 transition.
+    + Build depend on libgnome2.24-cil for the GNOME# 2.24
+      transition (Closes: #527783).
     + Update Standards-Version to 3.8.1. 
 
  -- Sebastian Dröge <slomo@debian.org>  Thu, 14 May 2009 08:54:21 +0200
