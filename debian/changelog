@@ -1,3 +1,11 @@
+mono-tools (2.0-4) UNRELEASED; urgency=low
+
+  * debian/monodoc.1,
+    debian/monodoc-browser.manpages:
+    + Provide a manpage for the "monodoc" command
+
+ -- Jo Shields <directhex@apebox.org>  Wed, 10 Jun 2009 19:42:00 +0100
+
 mono-tools (2.0-3) unstable; urgency=low
 
   [ Jo Shields ]
