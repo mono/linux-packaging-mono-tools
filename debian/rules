@@ -2,7 +2,15 @@
 
 #export DH_VERBOSE=1
 export MONO_SHARED_DIR=$(CURDIR)
-CURVER = $(shell dpkg-parsechangelog | grep ^Version | cut -d' ' -f2 | cut -d'-' -f1)
+
+MAKEFILE = $(firstword $(MAKEFILE_LIST))
+DEBIAN_DIR = $(dir $(MAKEFILE))
+SOURCE_DIR = $(DEBIAN_DIR)/..
+
+DEB_VERSION = $(shell dpkg-parsechangelog -l$(DEBIAN_DIR)/changelog | grep ^Version | cut -d" " -f2)
+DEB_SOURCE_NAME = $(shell dpkg-parsechangelog -l$(DEBIAN_DIR)/changelog | grep ^Source | cut -d" " -f2)
+VERSION = $(shell echo $(DEB_VERSION) | cut -d"-" -f1 | sed 's/+dfsg.*//')
+
 
 include /usr/share/quilt/quilt.make
 
@@ -69,10 +77,15 @@ binary: binary-indep
 get-orig-source:
 	[ -d ../tarballs ] || mkdir ../tarballs
 	uscan \
+		--package $(DEB_SOURCE_NAME) \
+		--watchfile $(DEBIAN_DIR)/watch \
+		--upstream-version $(VERSION) \
+		--download-version $(VERSION) \
+		--destdir ../tarballs \
 		--force-download \
-		--download-version $(CURVER) \
-		--repack \
-		--rename \
-		--destdir ../tarballs
+		--rename
+	bzcat ../tarballs/$(DEB_SOURCE_NAME)_$(VERSION).orig.tar.bz2 | \
+		gzip -9fn -c - > ../tarballs/$(DEB_SOURCE_NAME)_$(VERSION).orig.tar.gz
+	rm ../tarballs/$(DEB_SOURCE_NAME)_$(VERSION).orig.tar.bz2
 
 .PHONY: build clean clean-patched binary-indep binary install

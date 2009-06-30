@@ -21,7 +21,7 @@ Build-Depends-Indep: cli-common-dev (>= 0.5.4),
  libmono-webbrowser0.5-cil,
  libwebkit1.0-cil,
  monodoc-base (>= 1.1.9)
-Standards-Version: 3.8.1
+Standards-Version: 3.8.2
 Vcs-Svn: svn://svn.debian.org/svn/pkg-mono/mono-tools/trunk
 Vcs-Browser: http://svn.debian.org/wsvn/pkg-mono/mono-tools/trunk/
 

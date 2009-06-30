@@ -3,6 +3,10 @@ mono-tools (2.0-4) UNRELEASED; urgency=low
   * debian/monodoc.1,
     debian/monodoc-browser.manpages:
     + Provide a manpage for the "monodoc" command
+  * debian/rules:
+    + Enhance get-orig-source rule to produce consistent md5sums
+  * debian/control:
+    + Bump to Standards version 3.8.2
 
  -- Jo Shields <directhex@apebox.org>  Wed, 10 Jun 2009 19:42:00 +0100
 
