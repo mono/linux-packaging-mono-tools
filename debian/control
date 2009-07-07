@@ -88,6 +88,7 @@ Depends: monodoc-manual,
  ${cli:Depends},
  ${cli:XspServer2},
  monodoc-base
+Recommends: lynx | www-browser
 Description: MonoDoc http based viewer
  The MonoDoc Project is the documentation framework of the Mono project which
  provides detailed API documentation for all Mono components and the Mono CLI
