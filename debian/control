@@ -20,9 +20,6 @@ Build-Depends-Indep: cli-common-dev (>= 0.5.4),
  libwebkit1.0-cil,
  monodoc-base (>= 1.1.9),
  mono-xsp-base,
- libmono-system-ldap2.0-cil,
- libmono-microsoft8.0-cil,
- libmono-cscompmgd8.0-cil,
  libmono-management2.0-cil,
  mono-csharp-shell
 Standards-Version: 3.8.2
