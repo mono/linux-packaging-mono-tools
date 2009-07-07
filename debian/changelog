@@ -6,7 +6,7 @@ mono-tools (2.4.2-1) UNRELEASED; urgency=low
     debian/gnunit.desktop,
     debian/gnunit2.desktop,
     debian/control:
-    + Remove GNunit - abandoned upstream
+    + Remove GNunit - abandoned upstream (Closes: #439835)
   * debian/monodoc.1,
     debian/monodoc-browser.manpages:
     + Provide a manpage for the "monodoc" command
@@ -19,7 +19,7 @@ mono-tools (2.4.2-1) UNRELEASED; urgency=low
   * debian/control:
     + Bump to Standards version 3.8.2
     + Remove build-dependencies on web browser engines that aren't Webkit
-      as we only install one anyway
+      as we only install one anyway (Closes: #525775)
     + Remove seemingly pointless lynx Recommends on monodoc-browser, instead
       add www-browser as a Recommends on monodoc-http, with lynx as the
       suggested provider (although, let's face it, Firefox will provide it
