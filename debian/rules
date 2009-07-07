@@ -1,6 +1,6 @@
 #!/usr/bin/make -f
 
-#export DH_VERBOSE=1
+export DH_VERBOSE=1
 export MONO_SHARED_DIR=$(CURDIR)
 
 MAKEFILE = $(firstword $(MAKEFILE_LIST))
@@ -54,6 +54,12 @@ binary-indep: build install
 	dh_movefiles
 	dh_link
 	dh_install
+	cp $(CURDIR)/debian/monodoc-http-script $(CURDIR)/debian/monodoc-http/usr/bin/monodoc-http
+	# fix upstream file permissions
+	find debian/monodoc-http/usr/*/monodoc/web -type f -exec chmod 644 {} \;
+	find debian/monodoc-http/usr/*/monodoc/web -type d -exec chmod 755 {} \;
+	# remove directories moved to /usr/share/
+	#find debian/monodoc-http/usr/lib/monodoc/web -type d -name "images" -o -name "xtree" | xargs rm -rf
 	dh_installchangelogs ChangeLog
 	dh_installdocs
 	dh_installmenu
@@ -65,6 +71,7 @@ binary-indep: build install
 	dh_fixperms
 	dh_clifixperms
 	dh_installdeb
+	dh_installxsp -V 2
 	dh_clideps
 	dh_gencontrol
 	dh_md5sums

@@ -10,17 +10,21 @@ Build-Depends-Indep: cli-common-dev (>= 0.5.4),
  automake,
  autotools-dev,
  mono-devel (>= 2.0.1),
- libmono-nunit2.2-cil,
+ libmono-nunit2.4-cil,
  libmono-winforms2.0-cil,
  libmono-system-web2.0-cil,
  libgtk2.0-cil (>= 2.0),
  libgconf2.0-cil (>= 2.0),
  libglade2.0-cil (>= 2.0),
  libgnome2.24-cil (>= 2.0),
- libgtkhtml3.16-cil,
- libmono-webbrowser0.5-cil,
  libwebkit1.0-cil,
- monodoc-base (>= 1.1.9)
+ monodoc-base (>= 1.1.9),
+ mono-xsp-base,
+ libmono-system-ldap2.0-cil,
+ libmono-microsoft8.0-cil,
+ libmono-cscompmgd8.0-cil,
+ libmono-management2.0-cil,
+ mono-csharp-shell
 Standards-Version: 3.8.2
 Vcs-Svn: svn://svn.debian.org/svn/pkg-mono/mono-tools/trunk
 Vcs-Browser: http://svn.debian.org/wsvn/pkg-mono/mono-tools/trunk/
@@ -29,7 +33,6 @@ Package: monodoc-browser
 Provides: monodoc-viewer
 Replaces: monodoc-base (<< 1.1.9)
 Architecture: all
-Recommends: lynx
 Depends: ${cli:Depends}, monodoc-manual
 Description: MonoDoc GTK+ based viewer
  The MonoDoc Project is the documentation framework of the Mono project which
@@ -37,30 +40,6 @@ Description: MonoDoc GTK+ based viewer
  implementation.
  .
  This package contains the GTK+ based viewer of the Mono documentation.
-
-Package: gnunit
-Architecture: all
-Depends: ${cli:Depends}
-Description: frontend for running NUnit 2 test suites
- gnunit (formerly known as nunit-gtk) is a frontend for NUnit which uses
- the Mono class library version 1.0.
- .
- NUnit is a unit testing framework for all .NET languages. It serves the
- same purpose as JUnit does in the Java world. It supports test
- categories, testing for exceptions and writing test results in plain
- text or XML.
-
-Package: gnunit2
-Architecture: all
-Depends: ${cli:Depends}
-Description: frontend for running NUnit 2 test suites
- gnunit2 (formerly known as nunit-gtk) is a frontend for NUnit which uses
- the Mono class library version 2.0.
- .
- NUnit is a unit testing framework for all .NET languages. It serves the
- same purpose as JUnit does in the Java world. It supports test
- categories, testing for exceptions and writing test results in plain
- text or XML.
 
 Package: mono-tools-gui
 Architecture: all
@@ -71,6 +50,8 @@ Description: Various GUI tools for mono
   - gasnview
   - ilcontrast
   - gui-compare
+  - mperfmon
+  - gsharp
 
 Package: mono-tools-devel
 Architecture: all
@@ -100,3 +81,18 @@ Description: Mono profiler
    - mprof-decoder
    - mprof-heap-viewer
 
+Package: monodoc-http
+Provides: monodoc-viewer
+Architecture: all
+Depends: monodoc-manual,
+ ${cli:Depends},
+ ${cli:XspServer2},
+ monodoc-base
+Description: MonoDoc http based viewer
+ The MonoDoc Project is the documentation framework of the Mono project which
+ provides detailed API documentation for all Mono components and the Mono CLI
+ implementation.
+ .
+ This package contains ASP.NET scripts which allow viewing the Mono
+ documentation via an ASP.NET enabled webserver with a standard http
+ webbrowser.

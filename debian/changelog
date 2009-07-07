@@ -1,14 +1,51 @@
-mono-tools (2.0-4) UNRELEASED; urgency=low
+mono-tools (2.4.2-1) UNRELEASED; urgency=low
 
+  * New upstream release
+  * debian/gnunit.install,
+    debian/gnunit2.install,
+    debian/gnunit.desktop,
+    debian/gnunit2.desktop,
+    debian/control:
+    + Remove GNunit - abandoned upstream
   * debian/monodoc.1,
     debian/monodoc-browser.manpages:
     + Provide a manpage for the "monodoc" command
   * debian/rules:
     + Enhance get-orig-source rule to produce consistent md5sums
+  * debian/mono-tools-gui.install,
+    debian/control:
+    + Add mperfmon to the apps in mono-tools-gui
+    + Add gsharp to the apps in mono-tools-gui
   * debian/control:
     + Bump to Standards version 3.8.2
+    + Remove build-dependencies on web browser engines that aren't Webkit
+      as we only install one anyway
+    + Remove seemingly pointless lynx Recommends on monodoc-browser
+    + Build-depends on NUnit 2.4, not 2.2
+    + Add new gsharp dependencies
+  * debian/monodoc-http.conffiles,
+    debian/monodoc-http.dirs,
+    debian/monodoc-http.hostxsp2,
+    debian/monodoc-http.links,
+    debian/monodoc-http.menu,
+    debian/monodoc-http.desktop,
+    debian/monodoc-http.install,
+    debian/monodoc-http.manpages,
+    debian/monodoc-http-script:
+    + Add MonoDoc HTTP frontend (transplanted packaging files from old
+      monodoc source package)
+  * debian/mono-tools-devel.manpages,
+    debian/mono-tools-gui.manpages:
+    + Include as many manpages as upstream provide us with
+  * debian/patches/02-startup_mono_path.patch,
+    debian/patches/dont_bundle_cecil.patch:
+    + Removed, obsoleted by upstream
+  * debian/patches/03-mozilla_home.patch:
+    + Removed, we don't care about Moz anymore
+  * debian/patches/04-gendarme_link_libraries_correctly.patch:
+    + Refreshed
 
- -- Jo Shields <directhex@apebox.org>  Wed, 10 Jun 2009 19:42:00 +0100
+ -- Jo Shields <directhex@apebox.org>  Tue, 07 Jul 2009 17:51:43 +0100
 
 mono-tools (2.0-3) unstable; urgency=low
 
