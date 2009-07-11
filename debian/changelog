@@ -1,6 +1,8 @@
 mono-tools (2.4.2-1) UNRELEASED; urgency=low
 
   * New upstream release
+  * debian/copyright:
+    + Long overdue update
   * debian/gnunit.install,
     debian/gnunit2.install,
     debian/gnunit.desktop,
