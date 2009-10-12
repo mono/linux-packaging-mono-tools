@@ -1,0 +1,13 @@
+Index: mono-tools-2.4.2/docbrowser/WebKitHtmlRender.cs
+===================================================================
+--- mono-tools-2.4.2.orig/docbrowser/WebKitHtmlRender.cs	2009-10-13 00:37:50.000000000 +0100
++++ mono-tools-2.4.2/docbrowser/WebKitHtmlRender.cs	2009-10-13 00:38:11.000000000 +0100
+@@ -31,6 +31,8 @@
+ 		web_view = new WebView ();
+ 		web_view.Show (); 
+ 		web_view.NavigationRequested += delegate (object sender, NavigationRequestedArgs e) {
++			if (e.Request.Uri == "about:blank")
++				return;
+ 			url = e.Request.Uri;
+ 			if (UrlClicked != null)
+ 				UrlClicked (this, new EventArgs());
