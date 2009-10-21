@@ -1,8 +1,8 @@
-mono-tools (2.4.2-2) UNRELEASED; urgency=low
+mono-tools (2.4.2-2) unstable; urgency=medium
 
   * debian/patches/05_fix_webkit_about_blank_signal.patch:
     + Fix Monodoc's WebKit engine to ignore spurious events indicating
-      a request of about:blank
+      a request of about:blank. (Closes: #548520)
 
  -- Jo Shields <directhex@apebox.org>  Tue, 13 Oct 2009 00:42:18 +0100
 
