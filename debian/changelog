@@ -1,3 +1,18 @@
+mono-tools (2.4.3-1) UNRELEASED; urgency=low
+
+  * New upstream release
+  * debian/control:
+    + Bump Standards to 3.8.3
+    + Raise mono-devel build-dep to 2.4.3, and strip out individual 
+      library build-deps which are no longer needed
+    + Use Webkit#'s -dev package (Closes: #559209, #561628)
+  * debian/patches/05_fix_webkit_about_blank_signal.patch:
+    + Drop, merged upstream
+  * debian/patches/00-fix_build_system.patch:
+    + Modify to use mono-csc command, not csc
+
+ -- Jo Shields <directhex@apebox.org>  Fri, 18 Dec 2009 21:19:30 +0000
+
 mono-tools (2.4.2-2) unstable; urgency=medium
 
   * debian/patches/05_fix_webkit_about_blank_signal.patch:

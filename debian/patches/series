@@ -1,3 +1,2 @@
 00-fix_build_system.patch
 04-gendarme_link_libraries_correctly.patch
-05_fix_webkit_about_blank_signal.patch

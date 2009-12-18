@@ -9,20 +9,16 @@ Build-Depends-Indep: cli-common-dev (>= 0.5.4),
  autoconf,
  automake,
  autotools-dev,
- mono-devel (>= 2.0.1),
- libmono-nunit2.4-cil,
- libmono-winforms2.0-cil,
- libmono-system-web2.0-cil,
+ mono-devel (>= 2.4.3),
  libgtk2.0-cil (>= 2.0),
  libgconf2.0-cil (>= 2.0),
  libglade2.0-cil (>= 2.0),
  libgnome2.24-cil (>= 2.0),
- libwebkit1.0-cil,
+ libwebkit-cil-dev,
  monodoc-base (>= 1.1.9),
  mono-xsp-base,
- libmono-management2.0-cil,
  mono-csharp-shell
-Standards-Version: 3.8.2
+Standards-Version: 3.8.3
 Vcs-Svn: svn://svn.debian.org/svn/pkg-mono/mono-tools/trunk
 Vcs-Browser: http://svn.debian.org/wsvn/pkg-mono/mono-tools/trunk/
 
