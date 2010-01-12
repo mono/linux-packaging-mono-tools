@@ -1,3 +1,11 @@
+mono-tools (2.4.3-2) UNRELEASED; urgency=low
+
+  * debian/control:
+    + Add explicit build-dep on libnunit-cil-dev (Closes: #564407)
+    + Update GNOME# build-deps for -dev transition
+
+ -- Jo Shields <directhex@apebox.org>  Tue, 12 Jan 2010 12:58:08 +0000
+
 mono-tools (2.4.3-1) unstable; urgency=low
 
   * New upstream release
