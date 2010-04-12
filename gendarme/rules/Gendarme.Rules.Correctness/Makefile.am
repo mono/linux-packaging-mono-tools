@@ -1,0 +1,55 @@
+include ../common.make
+common_tests=../Test.Rules/Test.Rules.dll,System.Configuration
+
+rules_sources =  \
+	AttributeStringLiteralsShouldParseCorrectlyRule.cs \
+	AvoidConstructorsInStaticTypesRule.cs \
+	AvoidFloatingPointEqualityRule.cs \
+	DoNotRecurseInEqualityRule.cs \
+	BadRecursiveInvocationRule.cs \
+	CallingEqualsWithNullArgRule.cs \
+	CheckParametersNullityInVisibleMethodsRule.cs \
+	DisposableFieldsShouldBeDisposedRule.cs \
+	DoNotRoundIntegersRule.cs \
+	DontCompareWithNaNRule.cs \
+	EnsureLocalDisposalRule.cs \
+	FinalizersShouldCallBaseClassFinalizerRule.cs \
+	FloatComparisonRule.cs \
+	ReviewInconsistentIdentityRule.cs \
+	MethodCanBeMadeStaticRule.cs \
+	ProvideCorrectArgumentsToFormattingMethodsRule.cs \
+	ProvideCorrectRegexPatternRule.cs \
+	ReviewCastOnIntegerDivisionRule.cs \
+	ReviewCastOnIntegerMultiplicationRule.cs \
+	ReviewDoubleAssignmentRule.cs \
+	ReviewSelfAssignmentRule.cs \
+	ReviewUselessControlFlowRule.cs \
+	ReviewUseOfInt64BitsToDoubleRule.cs \
+	ReviewUseOfModuloOneOnIntegersRule.cs \
+	UseValueInPropertySetterRule.cs
+
+tests_sources = \
+	AvoidConstructorsInStaticTypesTest.cs \
+	AvoidFloatingPointEqualityTest.cs \
+	DoNotRecurseInEqualityTest.cs \
+	BadRecursiveInvocationTest.cs \
+	CallingEqualsWithNullArgTest.cs \
+	CheckParametersNullityInVisibleMethodsTest.cs \
+	DisposableFieldsShouldBeDisposedTest.cs \
+	DontCompareWithNaNTest.cs \
+	DoNotRoundIntegersTest.cs \
+	EnsureLocalDisposalTest.cs \
+	FinalizersShouldCallBaseClassFinalizerTest.cs \
+	ReviewInconsistentIdentityTest.cs \
+	MethodCanBeMadeStaticTest.cs \
+	ProvideCorrectRegexPatternTest.cs \
+	ReviewCastOnIntegerDivisionTest.cs \
+	ReviewCastOnIntegerMultiplicationTest.cs \
+	ReviewDoubleAssignmentTest.cs \
+	ReviewSelfAssignmentTest.cs \
+	ReviewUselessControlFlowTest.cs \
+	ReviewUseOfInt64BitsToDoubleTest.cs \
+	ReviewUseOfModuloOneOnIntegersTest.cs \
+	UseValueInPropertySetterTest.cs \
+	ProvideCorrectArgumentsToFormattingMethodsTest.cs \
+	AttributeStringLiteralsShouldParseCorrectlyTest.cs	
