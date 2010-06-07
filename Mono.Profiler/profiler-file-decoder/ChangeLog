@@ -1,3 +1,20 @@
+2009-06-12  Massimiliano Mantione <massi@ximian.com>
+	* Main.cs: Get the root frames from the event handler now.
+
+2009-06-12  Massimiliano Mantione <massi@ximian.com>
+	* Main.cs: Also show method execution time grouped by
+	individual stack frames in the call tree
+
+2009-06-09  Mike Kestner <mkestner@novell.com>
+	* Main.cs: commit Massi's new calls profile formatting code.
+
+2009-05-21  Mike Kestner <mkestner@novell.com>
+	* *: replace MD 1.0 solution files with 2.0 msbuild files, and turn
+	on makefile synchronization instead of generated makefiles.
+
+2009-04-06  Massimiliano Mantione <massi@ximian.com>
+	* Main.cs: Added support for monitor profiling.
+
 2008-11-03  Massimiliano Mantione <massi@ximian.com>
 	* Main.cs: Changed clicksToSeconds to ClicksToSeconds after refactoring.
 

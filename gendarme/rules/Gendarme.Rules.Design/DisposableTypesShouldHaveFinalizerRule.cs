@@ -35,10 +35,9 @@ using Gendarme.Framework.Rocks;
 namespace Gendarme.Rules.Design {
 
 	/// <summary>
-	/// The rule inspects all types that implements <c>System.IDisposable</c> and contains
-	/// fields that use native types, like <c>System.IntPtr</c>, <c>System.UIntPtr</c> or
-	/// <c>System.Runtime.InteropServices.HandleRef</c>. If so the rule will warn unless
-	/// the type provides a finalizer (destructor in C#).
+	/// This rule will fire for types which implement <c>System.IDisposable</c>, contain
+	/// native fields such as <c>System.IntPtr</c>, <c>System.UIntPtr</c>, and
+	/// <c>System.Runtime.InteropServices.HandleRef</c>, but do not define a finalizer.
 	/// </summary>
 	/// <example>
 	/// Bad example:
@@ -67,6 +66,8 @@ namespace Gendarme.Rules.Design {
 	[FxCopCompatibility ("Microsoft.Usage", "CA2216:DisposableTypesShouldDeclareFinalizer")]
 	public class DisposableTypesShouldHaveFinalizerRule : Rule, ITypeRule {
 
+		const string Struct = "Consider using a class since a struct cannot define a finalizer.";
+
 		public RuleResult CheckType (TypeDefinition type)
 		{
 			// rule applies only to types, interfaces and structures (value types)
@@ -90,6 +91,11 @@ namespace Gendarme.Rules.Design {
 					continue;
 				Runner.Report (field, Severity.High, Confidence.High);
 			}
+
+			// special case: a struct cannot define a finalizer so it's a
+			// bad candidate to hold references to unmanaged resources
+			if (type.IsValueType && (Runner.CurrentRuleResult == RuleResult.Failure))
+				Runner.Report (type, Severity.High, Confidence.High, Struct);
 
 			return Runner.CurrentRuleResult;
 		}

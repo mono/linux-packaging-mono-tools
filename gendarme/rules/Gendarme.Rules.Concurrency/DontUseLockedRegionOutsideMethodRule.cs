@@ -41,24 +41,47 @@ using Mono.Cecil.Cil;
 namespace Gendarme.Rules.Concurrency {
 
 	/// <summary>
-	/// This rule ensures the method atomicity.  You should put the
-	/// Monitor.Enter and Monitor.Exit call in the same method, otherwise
-	/// may have several headaches related to concurrency issues.
+	/// This rule will fire if a method calls <c>System.Threading.Monitor.Enter</c>, 
+	/// but not <c>System.Threading.Monitor.Exit</c>. This is a bad idea for public
+	/// methods because the callers must (indirectly) manage a lock which they do not
+	/// own. This increases the potential for problems such as dead locks because 
+	/// locking/unlocking may not be done together, the callers must do the unlocking
+	/// even in the presence of exceptions, and it may not be completely clear that
+	/// the public method is acquiring a lock without releasing it.
+	///
+	/// This is less of a problem for private methods because the lock is managed by
+	/// code that owns the lock. So, it's relatively easy to analyze the class to ensure
+	/// that the lock is locked and unlocked correctly and that any invariants are 
+	/// preserved when the lock is acquired and after it is released. However it is
+	/// usually simpler and more maintainable if methods unlock whatever they lock.
 	/// </summary>
 	/// <example>
 	/// Bad example:
 	/// <code>
 	/// class BadExample {
 	/// 	int producer = 0;
+	/// 	object lock = new object();
 	///
-	/// 	public void EnteringMethod ()
+	/// 	// This class is meant to be thread safe, but in the interests of
+	/// 	// performance it requires clients to manage its lock. This allows
+	/// 	// clients to grab the lock, batch up edits, and release the lock
+	/// 	// when they are done. But this means that the clients must
+	/// 	// now (implicitly) manage the lock which is problematic, especially
+	/// 	// if this object is shared across threads.
+	/// 	public void BeginEdits ()
 	/// 	{
-	///		Monitor.Enter ();
+	///		Monitor.Enter (lock);
+	///	}
+	///
+	/// 	public void AddProducer ()
+	/// 	{
+	/// 		// Real code would either assert or throw if the lock is not held. 
 	///		producer++;
 	///	}
-	///     public void ExitingMethod ()
+	///
+	/// 	public void EndEdits ()
 	/// 	{
-	///		Monitor.Exit ();
+	///		Monitor.Exit (lock);
 	///	}
 	/// }
 	/// </code>
@@ -68,12 +91,26 @@ namespace Gendarme.Rules.Concurrency {
 	/// <code>
 	/// class GoodExample {
 	/// 	int producer = 0;
+	/// 	object mutex = new object();
 	///	
 	///	public void AddProducer ()
 	///	{
-	///		Monitor.Enter ();
-	///		producer++;
-	///		Monitor.Exit ();
+	/// 		// We need a try block in case the assembly is compiled with
+	/// 		// checked arithmetic.
+	///		Monitor.Enter (mutex);
+	/// 		try {
+	///			producer++;
+	/// 		} finally {
+	///			Monitor.Exit (mutex);
+	/// 		}
+	///	}
+	///	
+	///	public void AddProducer2 ()
+	///	{
+	/// 		// Same as the above, but with C# sugar.
+	///		lock (mutex) {
+	///			producer++;
+	/// 		}
 	///	}
 	/// }
 	/// </code>
@@ -82,7 +119,7 @@ namespace Gendarme.Rules.Concurrency {
 	// TODO: do a rule that checks if Monitor.Enter is used *before* Exit (dumb code, I know)
 	// TODO: do a more complex rule that checks that you have used Thread.Monitor.Exit in a finally block
 	[Problem ("This method uses Thread.Monitor.Enter() but doesn't use Thread.Monitor.Exit().")]
-	[Solution ("Rather use the lock{} statement in case your language is C#, or Thread.Monitor.Exit() in other case.")]
+	[Solution ("Prefer the lock{} statement when using C# or redesign the code so that Monitor.Enter and Exit are called together.")]
 	[EngineDependency (typeof (OpCodeEngine))]
 	public class DoNotUseLockedRegionOutsideMethodRule : Rule, IMethodRule {
 

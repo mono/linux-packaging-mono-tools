@@ -1,138 +1,53 @@
-
-EXTRA_DIST =  
-
-# Warning: This is an automatically generated file, do not edit!
+ASSEMBLY = $(top_builddir)/Mono.Profiler/lib/mprof-heap-viewer.exe
 
 if ENABLE_DEBUG
-ASSEMBLY_COMPILER_COMMAND = gmcs
-ASSEMBLY_COMPILER_FLAGS =  -noconfig -codepage:utf8 -warn:4 -optimize+ -debug "-define:DEBUG"
-
-ASSEMBLY = bin/Debug/mprof-heap-viewer.exe
+CSFLAGS =  -noconfig -codepage:utf8 -warn:4 -optimize+ -debug "-define:DEBUG"
 ASSEMBLY_MDB = $(ASSEMBLY).mdb
-COMPILE_TARGET = exe
-PROJECT_REFERENCES =  \
-	../heap-snapshot-explorer/bin/Debug/mprof-heap-snapshot-explorer.dll \
-	../profiler-decoder-library/bin/Debug/mprof-decoder-library.dll
-BUILD_DIR = bin/Debug
-
-MPROF_HEAP_VIEWER_DESKTOP_SOURCE=app.desktop
-MPROF_HEAP_SNAPSHOT_EXPLORER_DLL_MDB_SOURCE=../heap-snapshot-explorer/bin/Debug/mprof-heap-snapshot-explorer.dll.mdb
-MPROF_HEAP_SNAPSHOT_EXPLORER_DLL_MDB=$(BUILD_DIR)/mprof-heap-snapshot-explorer.dll.mdb
-PROFILER_DECODER_LIBRARY_DLL=
-HEAP_SNAPSHOT_EXPLORER_DLL=
-MPROF_DECODER_LIBRARY_DLL_MDB_SOURCE=../profiler-decoder-library/bin/Debug/mprof-decoder-library.dll.mdb
-MPROF_DECODER_LIBRARY_DLL_MDB=$(BUILD_DIR)/mprof-decoder-library.dll.mdb
-MPROF_DECODER_LIBRARY_DLL_SOURCE=../profiler-decoder-library/bin/Debug/mprof-decoder-library.dll
-MPROF_DECODER_LIBRARY_DLL=$(BUILD_DIR)/mprof-decoder-library.dll
-MPROF_HEAP_SNAPSHOT_EXPLORER_DLL_SOURCE=../heap-snapshot-explorer/bin/Debug/mprof-heap-snapshot-explorer.dll
-MPROF_HEAP_SNAPSHOT_EXPLORER_DLL=$(BUILD_DIR)/mprof-heap-snapshot-explorer.dll
-MPROF_HEAP_VIEWER_1_SOURCE=man/man1/mprof-heap-viewer.1
-MPROF_HEAP_VIEWER_EXE_MDB_SOURCE=bin/Debug/mprof-heap-viewer.exe.mdb
-MPROF_HEAP_VIEWER_EXE_MDB=$(BUILD_DIR)/mprof-heap-viewer.exe.mdb
-
-endif
-
-if ENABLE_RELEASE
-ASSEMBLY_COMPILER_COMMAND = gmcs
-ASSEMBLY_COMPILER_FLAGS =  -noconfig -codepage:utf8 -warn:4 -optimize+
-ASSEMBLY = bin/Release/mprof-heap-viewer.exe
+else
+CSFLAGS =  -noconfig -codepage:utf8 -warn:4 -optimize+
 ASSEMBLY_MDB = 
-COMPILE_TARGET = exe
-PROJECT_REFERENCES =  \
-	../heap-snapshot-explorer/bin/Release/heap-snapshot-explorer.dll \
-	../profiler-decoder-library/bin/Release/profiler-decoder-library.dll
-BUILD_DIR = bin/Release
-
-MPROF_HEAP_VIEWER_DESKTOP_SOURCE=app.desktop
-MPROF_HEAP_SNAPSHOT_EXPLORER_DLL_MDB=
-PROFILER_DECODER_LIBRARY_DLL_SOURCE=../profiler-decoder-library/bin/Release/profiler-decoder-library.dll
-PROFILER_DECODER_LIBRARY_DLL=$(BUILD_DIR)/profiler-decoder-library.dll
-HEAP_SNAPSHOT_EXPLORER_DLL_SOURCE=../heap-snapshot-explorer/bin/Release/heap-snapshot-explorer.dll
-HEAP_SNAPSHOT_EXPLORER_DLL=$(BUILD_DIR)/heap-snapshot-explorer.dll
-MPROF_DECODER_LIBRARY_DLL_MDB=
-MPROF_DECODER_LIBRARY_DLL=
-MPROF_HEAP_SNAPSHOT_EXPLORER_DLL=
-MPROF_HEAP_VIEWER_1_SOURCE=man/man1/mprof-heap-viewer.1
-MPROF_HEAP_VIEWER_EXE_MDB=
-
 endif
 
-AL=al2
-SATELLITE_ASSEMBLY_NAME=.resources.dll
+pkglib_DATA = $(ASSEMBLY) $(ASSEMBLY_MDB)
+bin_SCRIPTS = mprof-heap-viewer
+man_MANS=man/man1/mprof-heap-viewer.1
 
-PROGRAMFILES = \
-	$(MPROF_HEAP_SNAPSHOT_EXPLORER_DLL_MDB) \
-	$(PROFILER_DECODER_LIBRARY_DLL) \
-	$(HEAP_SNAPSHOT_EXPLORER_DLL) \
-	$(MPROF_DECODER_LIBRARY_DLL_MDB) \
-	$(MPROF_DECODER_LIBRARY_DLL) \
-	$(MPROF_HEAP_SNAPSHOT_EXPLORER_DLL) \
-	$(MPROF_HEAP_VIEWER_EXE_MDB)  
+CLEANFILES = $(ASSEMBLY) $(ASSEMBLY_MDB)
 
-LINUX_DESKTOPAPPLICATIONS = \
-	$(MPROF_HEAP_VIEWER_DESKTOP)  
-
-COMMONAPPLICATIONDATAROOT_MAN_MAN1 = \
-	$(MPROF_HEAP_VIEWER_1)  
-
-BINARIES = \
-	$(MPROF_HEAP_VIEWER)  
-
-
-RESGEN=resgen2
-	
-all: $(ASSEMBLY) $(PROGRAMFILES) $(LINUX_DESKTOPAPPLICATIONS) $(COMMONAPPLICATIONDATAROOT_MAN_MAN1) $(BINARIES) 
-
-FILES = \
-	gtk-gui/generated.cs \
-	MainWindow.cs \
-	Main.cs \
+FILES =  \
 	AssemblyInfo.cs \
-	gtk-gui/Mono.Profiler.MainWindow.cs 
+	gtk-gui/generated.cs \
+	gtk-gui/Mono.Profiler.MainWindow.cs \
+	Main.cs \
+	MainWindow.cs 
 
-DATA_FILES = \
-	app.desktop \
-	man/man1/mprof-heap-viewer.1 
+build_sources = $(addprefix $(srcdir)/, $(FILES))
 
-RESOURCES = \
+RESOURCES =  \
 	gtk-gui/gui.stetic \
 	gtk-gui/objects.xml 
 
-EXTRAS = \
-	mprof-heap-viewer.in 
+build_resources = $(addprefix $(srcdir)/, $(RESOURCES))
+build_resources_args = $(addprefix -resource:, $(build_resources))
 
 REFERENCES =  \
-	$(GTK_SHARP_LIBS) \
-	$(GLIB_SHARP_20_LIBS) \
 	$(GLADE_SHARP_20_LIBS) \
-	System \
-	Mono.Posix
+	$(GLIB_SHARP_20_LIBS) \
+	$(GTK_SHARP_LIBS) \
+	-r:Mono.Posix \
+	-r:System
 
 DLL_REFERENCES = 
 
-CLEANFILES = $(PROGRAMFILES) $(LINUX_DESKTOPAPPLICATIONS) $(COMMONAPPLICATIONDATAROOT_MAN_MAN1) $(BINARIES) 
+PROJECT_REFERENCES =  \
+	../lib/mprof-decoder-library.dll \
+	../lib/mprof-heap-snapshot-explorer.dll
 
-include $(top_srcdir)/Mono.Profiler/Makefile.include
+build_references = $(addprefix -r:, $(PROJECT_REFERENCES)) $(REFERENCES)
 
-MPROF_HEAP_VIEWER = $(BUILD_DIR)/mprof-heap-viewer
-MPROF_HEAP_VIEWER_DESKTOP = $(BUILD_DIR)/mprof-heap-viewer.desktop
-MPROF_HEAP_VIEWER_1 = $(BUILD_DIR)/man/man1/mprof-heap-viewer.1
-
-$(eval $(call emit-deploy-wrapper,MPROF_HEAP_VIEWER,mprof-heap-viewer,x))
-$(eval $(call emit-deploy-target,MPROF_HEAP_VIEWER_DESKTOP))
-$(eval $(call emit-deploy-target,MPROF_HEAP_SNAPSHOT_EXPLORER_DLL_MDB))
-$(eval $(call emit-deploy-target,PROFILER_DECODER_LIBRARY_DLL))
-$(eval $(call emit-deploy-target,HEAP_SNAPSHOT_EXPLORER_DLL))
-$(eval $(call emit-deploy-target,MPROF_DECODER_LIBRARY_DLL_MDB))
-$(eval $(call emit-deploy-target,MPROF_DECODER_LIBRARY_DLL))
-$(eval $(call emit-deploy-target,MPROF_HEAP_SNAPSHOT_EXPLORER_DLL))
-$(eval $(call emit-deploy-target,MPROF_HEAP_VIEWER_1))
-
-
-$(eval $(call emit_resgen_targets))
-$(build_xamlg_list): %.xaml.g.cs: %.xaml
-	xamlg '$<'
-
-$(ASSEMBLY) $(ASSEMBLY_MDB): $(build_sources) $(build_resources) $(build_datafiles) $(DLL_REFERENCES) $(PROJECT_REFERENCES) $(build_xamlg_list) $(build_satellite_assembly_list)
+$(ASSEMBLY) $(ASSEMBLY_MDB): $(build_sources) $(build_resources) $(PROJECT_REFERENCES)
 	mkdir -p $(shell dirname $(ASSEMBLY))
-	$(ASSEMBLY_COMPILER_COMMAND) $(ASSEMBLY_COMPILER_FLAGS) -out:$(ASSEMBLY) -target:$(COMPILE_TARGET) $(build_sources_embed) $(build_resources_embed) $(build_references_ref)
+	$(GMCS) $(CSFLAGS) -out:$(ASSEMBLY) -target:exe $(build_sources) $(build_resources_args) $(build_references)
+
+EXTRA_DIST = heap-snapshot-viewer.csproj $(FILES) $(RESOURCES) $(man_MANS)
+

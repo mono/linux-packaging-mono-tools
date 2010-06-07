@@ -1,3 +1,45 @@
+2009-12-13  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* DisposableTypesShouldHaveFinalizerRule.cs: Report an additional
+	defect for struct, which cannot define a finalizer.
+	[Backport r148085]
+
+2009-08-11  Jesse Jones  <jesjones@mindspring.com>
+
+	* AvoidSmallNamespaceRule.cs, DeclareEventHandlersCorrectlyRule.cs,
+	DontDeclareProtectedFieldsInSealedClassRule.cs, 
+	AttributeArgumentsShouldHaveAccessorsRule.cs,
+	AvoidMultidimensionalIndexerRule.cs: Rewrote the descriptions.
+
+2009-07-02  Jesse Jones  <jesjones@mindspring.com>
+
+	* *Rule.cs: Edited most of the rule descriptions.
+
+2009-03-27  Cedric Vivier  <cedricv@neonux.com>
+
+	* PreferXmlAbstractionsRule.cs: New. Rule that checks if visible
+	methods signatures uses XmlDocument, XPathDocument or XmlNode instead of
+	a more flexible/efficient abstraction.
+
+2009-03-13  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* Makefile.am: Fix 'make-clean' (found by dna) and compile all
+	rules (even the last one)
+
+2009-02-21  Jesse Jones  <jesjones@mindspring.com>
+
+	* Makefile.am, UseCorrectDisposeSignaturesRule.cs: added
+	new rule.
+
+2009-01-23  Jesse Jones  <jesjones@mindspring.com>
+
+	* Makefile.am: fixed line continuations.
+
+2009-01-20  Jesse Jones  <jesjones@mindspring.com>
+
+	* UseFlagsAttributeRule.cs: fixed misspelled "Serializeable", 
+	improved solution text.
+
 2009-01-12  Jesse Jones  <jesjones@mindspring.com>
 
 	* UseFlagsAttributeRule.cs, Makefile.am: added new rule.

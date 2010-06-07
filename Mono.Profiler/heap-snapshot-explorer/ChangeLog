@@ -1,6 +1,20 @@
+2009-08-12  Massimiliano Mantione <massi@ximian.com>
+	* HeapExplorerTreeModel.cs (HeapExplorerTreeModel.Initialize):
+	Also decode LOADED blocks so we know about assemblies.
+
+2009-05-21  Mike Kestner <mkestner@novell.com>
+	* *: replace MD 1.0 solution files with 2.0 msbuild files, and turn
+	on makefile synchronization instead of generated makefiles.
+
 2009-03-17  Massimiliano Mantione <massi@ximian.com>
-	* HeapSnapshotExplorer.cs: backport small fixes from trunk (make it
-	like r129643).
+	* HeapSnapshotExplorer.cs: Use "Text" instead of "Markup" to set
+	the tree and list cells contents.
+
+2009-03-16  Massimiliano Mantione <massi@ximian.com>
+	* HeapSnapshotExplorer.cs: Modified the delegates of the MenuItem
+	actions specifiying the whole signature, otherwise GTK# cannot call
+	them (the parameter marshalling throws an "argument has an incompatible
+	type" exception).
 
 2008-12-01  Massimiliano Mantione <massi@ximian.com>
 	* HeapExplorerTreeModel.cs: Linked all root nodes n a list, so that it

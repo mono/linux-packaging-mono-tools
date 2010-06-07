@@ -40,7 +40,7 @@ using Gendarme.Framework.Rocks;
 namespace Gendarme.Rules.Correctness {
 
 	/// <summary>
-	/// This rule checks to see if a type is managing its identity in a
+	/// This rule checks to see if a type manages its identity in a
 	/// consistent way. It checks:
 	/// <list type = "bullet">
 	///    <item>
@@ -61,7 +61,7 @@ namespace Gendarme.Rules.Correctness {
 	/// <remarks>This rule is available since Gendarme 2.4</remarks>
 
 	[Problem ("The type does not manage identity consistently in its Equals, relational operator, CompareTo, GetHashCode, and Clone methods.")]
-	[Solution ("Equals, relational operator, CompareTo methods should use the same fields and get properties. GetHashCode should use the same fields/properties or a strict subset of them. Clone should use the same fields/properties or a superset of them.")]
+	[Solution ("Equals, relational operator, CompareTo methods should use the same fields and getter properties. GetHashCode should use the same fields/properties or a strict subset of them. Clone should use the same fields/properties or a superset of them.")]
 	public sealed class ReviewInconsistentIdentityRule: Rule, ITypeRule {
 	
 		private const int MaxMethodCount = 10;
@@ -135,6 +135,10 @@ namespace Gendarme.Rules.Correctness {
 		{
 			Log.WriteLine (this, method);
 
+			// don't process abstract, pinvoke... methods
+			if (!method.HasBody)
+				return;
+
 			setFields.Clear ();
 			setProps.Clear ();
 
@@ -143,7 +147,7 @@ namespace Gendarme.Rules.Correctness {
 			
 				// If we're loading a field which belongs to our type then
 				// we need to add it to our list of referenced fields.
-				if (ins.OpCode.Code == Code.Ldfld) {
+				if (ins.OpCode.Code == Code.Ldfld || ins.OpCode.Code == Code.Ldflda) {
 					if (method.IsStatic) {
 						if (ins.Previous.IsLoadArgument ()) {
 							ParameterDefinition pd = ins.Previous.GetParameter (method);
@@ -248,12 +252,17 @@ namespace Gendarme.Rules.Correctness {
 			
 			// We also have a problem if GetHashCode does not check a 
 			// subset of the equality state.
-			if (hashMethod != null && !hashInfo.Delegates && (hashInfo.Fields.Count > 0 || hashInfo.Getters.Count > 0)) {
-				// Note that if there are no fields or getters then the 
+			if (hashMethod != null && !hashInfo.Delegates) {
+				// Note that if there are no equality fields or getters then the 
 				// equality methods delegate all of their work so we don't
-				// don't really know which state they are checking.
+				// don't know which state they are checking.
 				if (equalityFields.Count > 0 || equalityGetters.Count > 0) {
-					if (!hashInfo.Fields.IsSubsetOf (equalityFields) || !hashInfo.Getters.IsSubsetOf (equalityGetters)) {
+					if (hashInfo.Fields.Count == 0 && hashInfo.Getters.Count == 0) {
+						string mesg = "GetHashCode does not use any of the fields and/or properties used by the equality methods.";
+						Log.WriteLine (this, mesg);
+						Runner.Report (hashMethod, Severity.High, Confidence.Normal, mesg);
+						
+					} else if (!hashInfo.Fields.IsSubsetOf (equalityFields) || !hashInfo.Getters.IsSubsetOf (equalityGetters)) {
 						hashInfo.Fields.ExceptWith (equalityFields);
 						hashInfo.Getters.ExceptWith (equalityGetters);
 						

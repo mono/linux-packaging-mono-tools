@@ -35,15 +35,21 @@ using Gendarme.Framework.Rocks;
 namespace Gendarme.Rules.Exceptions {
 
 	/// <summary>
-	/// This rule check that any exceptions, i.e. types deriving from <c>System.Exception</c>, 
-	/// provide all the necessary constructors that can be expected from consumer or required 
-	/// by the runtime.
+	/// This rule will fire if an exception class is missing one or more of the following
+	/// constructors:
+	/// <list>
+	/// <item><description><c>public E ()</c> is required for XML serialization. Public access is required
+	/// in case the assembly uses CAS to prevent reflection on non-public members.</description></item>
+	/// <item><description><c>public E (string message)</c> is a .NET convention.</description></item>
+	/// <item><description><c>public E (string message, ..., Exception inner)</c> is a .NET convention.</description></item>
+	/// <item><description><c>(non)public E (SerializationInfo info, StreamingContext context)</c> is required for binary serialization.</description></item>
+	/// </list>
 	/// </summary>
 	/// <example>
 	/// Bad example:
 	/// <code>
 	/// public class GeneralException : Exception {
-	///	// it should be a default public constructor
+	///	// access should be public
 	/// 	private GeneralException ()
 	/// 	{
 	/// 	}
@@ -58,15 +64,15 @@ namespace Gendarme.Rules.Exceptions {
 	/// 	{
 	/// 	}
 	/// 	
-	/// 	public GeneralException (string message)
+	/// 	public GeneralException (string message) : base (message)
 	/// 	{
 	/// 	}
 	/// 	
-	/// 	public GeneralException (string message, Exception inner)
+	/// 	public GeneralException (string message, Exception inner) : base (message, inner)
 	/// 	{
 	/// 	}
 	/// 	
-	/// 	protected GeneralException (SerializationInfo info, StreamingContext context)
+	/// 	protected GeneralException (SerializationInfo info, StreamingContext context) : base (info, context)
 	/// 	{
 	/// 	}
 	/// }
@@ -74,8 +80,8 @@ namespace Gendarme.Rules.Exceptions {
 	/// </example>
 	/// <remarks>This rule is available since Gendarme 2.0</remarks>
 
-	[Problem ("Not all required constructors for an exception type are present in this type.")]
-	[Solution ("Add the missing constructor(s) for this exception.")]
+	[Problem ("The exception does not provide all of the constructors required by the runtime or by .NET programming conventions.")]
+	[Solution ("Add the missing constructor(s).")]
 	[FxCopCompatibility ("Microsoft.Design", "CA1032:ImplementStandardExceptionConstructors")]
 	public class MissingExceptionConstructorsRule : Rule, ITypeRule {
 

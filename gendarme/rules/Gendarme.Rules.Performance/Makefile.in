@@ -124,6 +124,7 @@ LTLIBOBJS = @LTLIBOBJS@
 MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
 MCS = @MCS@
+MDOC = @MDOC@
 MKDIR_P = @MKDIR_P@
 MONODOC_CFLAGS = @MONODOC_CFLAGS@
 MONODOC_LIBS = @MONODOC_LIBS@
@@ -250,6 +251,7 @@ tests_build_sources = $(addprefix $(srcdir)/Test/, $(tests_sources))
 rules_sources = \
 	AvoidLargeNumberOfLocalVariablesRule.cs \
 	AvoidLargeStructureRule.cs \
+	AvoidMethodWithLargeMaximumStackSize.cs \
 	AvoidRepetitiveCastsRule.cs \
 	AvoidReturningArraysOnPropertiesRule.cs \
 	AvoidTypeGetTypeForConstantStringsRule.cs \
@@ -273,6 +275,7 @@ rules_sources = \
 	PreferCharOverloadRule.cs \
 	PreferLiteralOverInitOnlyFieldsRule.cs \
 	RemoveUnusedLocalVariablesRule.cs \
+	ReviewLinqMethodRule.cs \
 	UseIsOperatorRule.cs \
 	UseStringEmptyRule.cs \
 	UseTypeEmptyTypesRule.cs
@@ -286,6 +289,7 @@ tests_sources = \
 	UseTypeEmptyTypesTest.cs \
 	AvoidUnusedParametersTest.cs \
 	CompareWithStringEmptyEfficientlyTest.cs \
+	AvoidMethodWithLargeMaximumStackSizeTest.cs \
 	AvoidUncalledPrivateCodeTest.cs \
 	AvoidUnneededCallsOnStringTest.cs \
 	AvoidUninstantiatedInternalClassesTest.cs \
@@ -305,7 +309,8 @@ tests_sources = \
 	AvoidRepetitiveCastsTest.cs \
 	AvoidUnusedPrivateFieldsTest.cs \
 	PreferCharOverloadTest.cs \
-	PreferLiteralOverInitOnlyFieldsTest.cs
+	PreferLiteralOverInitOnlyFieldsTest.cs \
+	ReviewLinqMethodTest.cs
 
 all: all-recursive
 
@@ -681,6 +686,7 @@ self-test: $(rules_dll)
 $(generated_doc): $(rules_dll)
 	mkdir -p doc
 	mdoc update -i $(rules_dll).doc -o doc/generated $(rules_dll)
+	touch $(generated_doc)
 
 $(rules_doc_zip): $(generated_doc)
 	mdoc assemble -f ecma -o doc/$(prefixed_rules_category) doc/generated 

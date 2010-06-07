@@ -25,6 +25,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace GuiCompare {
 
@@ -36,11 +37,16 @@ namespace GuiCompare {
 	}
 
 	public class ComparisonNode {
-		public ComparisonNode (CompType type,
-		                       string name)
+		public ComparisonNode (CompType type, string displayName)
+		: this (type, displayName, null)
+		{
+		}
+		
+		public ComparisonNode (CompType type, string displayName, string typeName)
 		{
 			Type = type;
-			Name = name;
+			Name = displayName;
+			TypeName = typeName;
 			Children = new List<ComparisonNode>();
 			Messages = new List<string>();
 			Todos = new List<string>();
@@ -67,10 +73,93 @@ namespace GuiCompare {
 			}
 		}
 
+		public void ResetCounts ()
+		{
+			foreach (ComparisonNode n in Children)
+				n.ResetCounts ();
+
+			Todo = 0;
+			Niex = 0;
+			Extra = 0;
+			Missing = 0;
+			Present = 0;
+			Warning = 0;
+		}
+
 		public void AddError (string msg)
 		{
 			Status = ComparisonStatus.Error;
 			Messages.Add (msg);
+		}
+
+		// TODO: detect user's locale and reflect that in the url
+		public string MSDNUrl {
+			get {
+				if (msdnUrl != null)
+					return msdnUrl;
+				
+				if (String.IsNullOrEmpty (TypeName)) {
+					msdnUrl = ConstructMSDNUrl ();
+					return msdnUrl;
+				}
+				
+				if (msdnUrl == null)
+					msdnUrl = MSDN_BASE_URL + TypeName.ToLower () + ".aspx";
+
+				return msdnUrl;
+			}
+		}
+
+		string FormatMyName ()
+		{
+			string name = Name;
+			int start = name.IndexOf (' ') + 1;
+			int end = name.IndexOf ('(');
+
+			switch (Type) {
+				case CompType.Method:
+				case CompType.Attribute:
+				case CompType.Delegate:
+					break;
+
+				default:
+					if (end < 0)
+						end = name.Length;
+					break;
+			}
+			int len = end - start;
+
+			if (len <= 0)
+				return name;
+			
+			return name.Substring (start, end - start).Trim ();
+		}
+		
+		string ConstructMSDNUrl ()
+		{
+			ComparisonNode n = Parent;
+			List <string> segments = new List <string> ();
+			string name = FormatMyName ();			
+
+			if (Type == CompType.Method && Parent.Type == CompType.Property && (name.StartsWith ("get_") || name.StartsWith ("set_")))
+				return null;
+			else if (Type == CompType.Method && Parent.Type == CompType.Event && (name.StartsWith ("add_") || name.StartsWith ("remove_")))
+				return null;
+
+			segments.Add ("aspx");
+			segments.Insert (0, name.ToLower ());
+			n = Parent;
+			while (n != null) {
+				name = n.Name.ToLower ();
+				if (name.EndsWith (".dll"))
+					break;
+				
+				segments.Insert (0, n.Name.ToLower ());
+				n = n.Parent;
+			}
+
+			string[] path = segments.ToArray ();
+			return MSDN_BASE_URL + String.Join (".", path);
 		}
 		
 		public ComparisonStatus Status;
@@ -79,6 +168,7 @@ namespace GuiCompare {
 		public ComparisonNode Parent;
 
 		public readonly string Name;
+		public readonly string TypeName;
 		public readonly List<string> Messages;
 		public readonly List<string> Todos;
 		public bool ThrowsNIE;
@@ -91,5 +181,12 @@ namespace GuiCompare {
 		public int Niex;
 
 		public readonly List<ComparisonNode> Children;
+		public bool HasChildren; // This is set when lazy-loading from the DB
+		public bool HasMessages; // This is set when lazy-loading from the DB
+		public object InternalID;
+
+		string msdnUrl;
+
+		const string MSDN_BASE_URL = "http://msdn.microsoft.com/en-us/library/";
 	}
 }

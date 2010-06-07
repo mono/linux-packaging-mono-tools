@@ -81,10 +81,13 @@
     <Compile Include="OverrideEqualsMethodRule.cs" />
     <Compile Include="PreferEventsOverMethodsRule.cs" />
     <Compile Include="PreferIntegerOrStringForIndexersRule.cs" />
+    <Compile Include="PreferXmlAbstractionsRule.cs" />
     <Compile Include="ProvideAlternativeNamesForOperatorOverloadsRule.cs" />
     <Compile Include="TypesShouldBeInsideNamespacesRule.cs" />
     <Compile Include="TypesWithDisposableFieldsShouldBeDisposableRule.cs" />
     <Compile Include="TypesWithNativeFieldsShouldBeDisposableRule.cs" />
+    <Compile Include="UseCorrectDisposeSignaturesRule.cs" />
+    <Compile Include="UseFlagsAttributeRule.cs" />
     <Compile Include="UsingCloneWithoutImplementingICloneableRule.cs" />
     <Compile Include="ConsiderAddingInterfaceRule.cs" />
   </ItemGroup>

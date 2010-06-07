@@ -41,9 +41,9 @@ using Gendarme.Framework.Rocks;
 namespace Gendarme.Rules.Naming {
 
 	/// <summary>
-	/// This rule ensure that types that inherit from certain types or implement some interfaces
-	/// are named correctly by appending the right suffix to them. It also ensure that no other
-	/// types are using the suffixes without inheriting/implementing the types/interfaces. E.g.
+	/// This rule ensure that types that inherit from certain types or implement certain interfaces
+	/// have a specific suffix. It also ensures that no other
+	/// types are using those suffixes without inheriting/implementing the types/interfaces. E.g.
 	/// <list>
 	/// <item><description><c>System.Attribute</c> should end with <c>Attribute</c></description></item>
 	/// <item><description><c>System.EventArgs</c> should end with <c>EventArgs</c></description></item>
@@ -76,7 +76,7 @@ namespace Gendarme.Rules.Naming {
 	/// </code>
 	/// </example>
 
-	[Problem ("This type does not end with the correct suffix. That usually happens when you define a custom attribute or exception and forget appending suffixes like 'Attribute' or 'Exception' to the type name.")]
+	[Problem ("This type does not end with the correct suffix. That usually happens when you define a custom attribute or exception and forget to append suffixes like 'Attribute' or 'Exception' to the type name.")]
 	[Solution ("Rename the type and append the correct suffix.")]
 	[FxCopCompatibility ("Microsoft.Naming", "CA1710:IdentifiersShouldHaveCorrectSuffix")]
 	[FxCopCompatibility ("Microsoft.Naming", "CA1711:IdentifiersShouldNotHaveIncorrectSuffix")]
@@ -182,9 +182,11 @@ namespace Gendarme.Rules.Naming {
 
 		// checks if type name ends with an approriate suffix
 		// returns array of proposed suffixes via out suffixes parameter or empty list (if none)
-		private static bool HasRequiredSuffix (TypeDefinition type, List<string> suffixes)
+		// `currentTypeSuffix' is true if `type' itself does not have an appropriate suffix
+		private static bool HasRequiredSuffix (TypeDefinition type, List<string> suffixes, out bool currentTypeSuffix)
 		{
 			TypeDefinition current = type;
+			currentTypeSuffix = false;
 
 			while (current != null && current.BaseType != null) {
 				string base_name = GetFullName (current.BaseType);
@@ -192,12 +194,17 @@ namespace Gendarme.Rules.Naming {
 				HashSet<string> candidates;
 				if (definedSuffixes.TryGetValue (base_name, out candidates)) {
 					suffixes.AddRangeIfNew (candidates);
+					if (current == type)
+						currentTypeSuffix = true;
 				} else {
 					// if no suffix for base type is found, we start looking through interfaces
 					foreach (TypeReference iface in current.Interfaces) {
 						string interface_name = GetFullName (iface);
-						if (definedSuffixes.TryGetValue (interface_name, out candidates))
+						if (definedSuffixes.TryGetValue (interface_name, out candidates)) {
 							suffixes.AddRangeIfNew (candidates);
+							if (current == type)
+								currentTypeSuffix = true;
+						}
 					}
 				}
 				if (suffixes.Count > 0) {
@@ -256,9 +263,20 @@ namespace Gendarme.Rules.Naming {
 			// then check if the type should have a (or one of) specific suffixes
 			// e.g. MyStuff where the type implements ICollection
 			proposedSuffixes.Clear ();
-			if (!HasRequiredSuffix (type, proposedSuffixes)) {
+
+			bool currentTypeSuffix;
+			if (!HasRequiredSuffix (type, proposedSuffixes, out currentTypeSuffix)) {
+				Confidence confidence = Confidence.High;
+
+				// if base type itself does not have any of the proposed suffixes, lower the confidence
+				if (!currentTypeSuffix) {
+					TypeDefinition baseType = type.BaseType.Resolve ();
+					if (null != baseType && !HasRequiredSuffix (baseType, proposedSuffixes, out currentTypeSuffix))
+						confidence = Confidence.Low;
+				}
+
 				// there must be some suffixes defined, but type name doesn't end with any of them
-				Runner.Report (type, Severity.Medium, Confidence.High, ComposeMessage (proposedSuffixes));
+				Runner.Report (type, Severity.Medium, confidence, ComposeMessage (proposedSuffixes));
 			}
 
 			return Runner.CurrentRuleResult;

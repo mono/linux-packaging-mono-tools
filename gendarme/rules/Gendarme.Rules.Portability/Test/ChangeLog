@@ -1,3 +1,14 @@
+2009-12-13  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* MonoCompatibilityReviewTest.cs: Add test cases to ensure we're not
+	analyzing the calls inside the current assembly.
+	[Backport r148353]
+
+2009-08-29  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* MonoCompatibilityReviewTest.cs: Adjust DeleteDefinitionData since
+	we are now keeping multiple zip files.
+
 2008-11-18  Sebastien Pouliot  <sebastien@ximian.com>
 
 	* MonoCompatibilityReviewTest.cs: Adjust test wrt rule changes.

@@ -36,9 +36,9 @@ using Gendarme.Framework.Rocks;
 namespace Gendarme.Rules.Design {
 
 	/// <summary>
-	/// This rule ensure that <c>sealed</c> types (i.e. types that you can't inherit from) 
-	/// do not define family (<c>protected</c> in C#) fields or methods. Such visibility 
-	/// for members would only be useful in sub-types.
+	/// This rule ensures that <c>sealed</c> types (i.e. types that you can't inherit from) 
+	/// do not define family (<c>protected</c> in C#) fields or methods. Instead make the
+	/// member private so that its accessibility is not misleading. 
 	/// </summary>
 	/// <example>
 	/// Bad example (field):
@@ -52,7 +52,7 @@ namespace Gendarme.Rules.Design {
 	/// Bad example (method):
 	/// <code>
 	/// public sealed class MyClass {
-	///	protected virtual int GetAnswer ()
+	///	protected int GetAnswer ()
 	///	{
 	///		return 42;
 	///	}
@@ -71,7 +71,7 @@ namespace Gendarme.Rules.Design {
 	/// Good example (method):
 	/// <code>
 	/// public sealed class MyClass {
-	///	public virtual int GetAnswer ()
+	///	private int GetAnswer ()
 	///	{
 	///		return 42;
 	///	}
@@ -81,7 +81,7 @@ namespace Gendarme.Rules.Design {
 	/// <remarks>Prior to Gendarme 2.2 this rule applied only to fields and was named DoNotDeclareProtectedFieldsInSealedClassRule</remarks>
 
 	[Problem ("This sealed type contains family (protected in C#) fields and/or methods.")]
-	[Solution ("Change the visibility to public or private to represent its true intended use.")]
+	[Solution ("Change the access to private to make it clear that the type is not intended to be subclassed.")]
 	[FxCopCompatibility ("Microsoft.Design", "CA1047:DoNotDeclareProtectedMembersInSealedTypes")]
 	public class DoNotDeclareProtectedMembersInSealedTypeRule: Rule, ITypeRule {
 

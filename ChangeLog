@@ -1,15 +1,23 @@
-2009-06-05  Jonathan Pryor <jpryor@novell.com>
+2009-09-24 Gonzalo Paniagua Javier <gonzalo@novell.com>
 
-	* configure.in: Fix the build (webdoc needs to be included).
+	* configure.in: avoid a lot of warnings.
 
-2009-06-03  Jonathan Pryor <jpryor@novell.com>
+2009-09-20  Sebastien Pouliot  <sebastien@ximian.com>
 
-	* Makefile.am: Add webdoc to the build.
+	* configure.in: Add gendarme.5.in
 
 2008-12-15  Miguel de Icaza  <miguel@novell.com>
 
 	* configure.in: Detect the proper LIB_PREFIX and LIB_SUFIX to fix
 	the crasher for gsharp when trying to Plot on other systems.
+
+2009-06-05  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* configure.in: Fix build.
+
+2009-06-03  Jonathan Pryor <jpryor@novell.com>
+
+	* Makefile.am: Add webdoc to the build.
 
 2008-12-02  Sebastien Pouliot  <sebastien@ximian.com>
 

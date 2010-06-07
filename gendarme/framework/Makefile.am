@@ -48,6 +48,7 @@ framework_sources =  \
 	Gendarme.Framework.Rocks/MethodRocks.cs \
 	Gendarme.Framework.Rocks/ModuleRocks.cs \
 	Gendarme.Framework.Rocks/TypeRocks.cs \
+	Gendarme.Framework.Rocks/VariableDefinitionRocks.cs \
 	Gendarme.Framework/ApplicabilityScope.cs \
 	Gendarme.Framework/AssemblyResolver.cs \
 	Gendarme.Framework/BasicIgnoreList.cs \
@@ -74,7 +75,8 @@ framework_sources =  \
 	Gendarme.Framework/RunnerEventArgs.cs \
 	Gendarme.Framework/Severity.cs \
 	Gendarme.Framework/SolutionAttribute.cs \
-	Gendarme.Framework/Symbols.cs
+	Gendarme.Framework/Symbols.cs \
+	Gendarme.Framework/ThreadModelAttribute.cs
 
 framework_build_sources = $(addprefix $(srcdir)/, $(framework_sources))
 framework_build_sources += $(framework_generated_sources)
@@ -94,6 +96,7 @@ framework_test_sources = \
 	Gendarme.Framework.Rocks/InstructionRocksTest.cs \
 	Gendarme.Framework.Rocks/MethodRocksTest.cs \
 	Gendarme.Framework.Rocks/TypeRocksTest.cs \
+	Gendarme.Framework.Rocks/VariableDefinitionRocksTest.cs \
 	Gendarme.Framework.Rocks/FieldRocksTest.cs
 framework_test_build_sources = $(addprefix $(srcdir)/Test/, $(framework_test_sources))
 
@@ -112,6 +115,7 @@ self-test: $(framework_SCRIPTS)
 $(generated_doc): $(framework_SCRIPTS)
 	mkdir -p doc
 	mdoc update -i $(framework_SCRIPTS).doc -o doc/generated $(framework_SCRIPTS)
+	touch $(generated_doc)
 
 $(framework_doc_zip): $(generated_doc)
 	mdoc assemble -f ecma -o doc/Gendarme.Framework doc/generated 

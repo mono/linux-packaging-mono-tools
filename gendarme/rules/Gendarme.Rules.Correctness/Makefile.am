@@ -3,8 +3,10 @@ common_tests=../Test.Rules/Test.Rules.dll,System.Configuration
 
 rules_sources =  \
 	AttributeStringLiteralsShouldParseCorrectlyRule.cs \
+	AvoidCodeWithSideEffectsInConditionalCodeRule.cs \
 	AvoidConstructorsInStaticTypesRule.cs \
 	AvoidFloatingPointEqualityRule.cs \
+	AvoidMethodsWithSideEffectsInConditionalCodeRule.cs \
 	DoNotRecurseInEqualityRule.cs \
 	BadRecursiveInvocationRule.cs \
 	CallingEqualsWithNullArgRule.cs \
@@ -19,6 +21,8 @@ rules_sources =  \
 	MethodCanBeMadeStaticRule.cs \
 	ProvideCorrectArgumentsToFormattingMethodsRule.cs \
 	ProvideCorrectRegexPatternRule.cs \
+	ProvideValidXmlStringRule.cs \
+	ProvideValidXPathExpressionRule.cs \
 	ReviewCastOnIntegerDivisionRule.cs \
 	ReviewCastOnIntegerMultiplicationRule.cs \
 	ReviewDoubleAssignmentRule.cs \
@@ -29,8 +33,11 @@ rules_sources =  \
 	UseValueInPropertySetterRule.cs
 
 tests_sources = \
+	AttributeStringLiteralsShouldParseCorrectlyTest.cs \
+	AvoidCodeWithSideEffectsInConditionalCodeTest.cs \
 	AvoidConstructorsInStaticTypesTest.cs \
 	AvoidFloatingPointEqualityTest.cs \
+	AvoidMethodsWithSideEffectsInConditionalCodeTest.cs \
 	DoNotRecurseInEqualityTest.cs \
 	BadRecursiveInvocationTest.cs \
 	CallingEqualsWithNullArgTest.cs \
@@ -42,7 +49,10 @@ tests_sources = \
 	FinalizersShouldCallBaseClassFinalizerTest.cs \
 	ReviewInconsistentIdentityTest.cs \
 	MethodCanBeMadeStaticTest.cs \
+	ProvideCorrectArgumentsToFormattingMethodsTest.cs \
 	ProvideCorrectRegexPatternTest.cs \
+	ProvideValidXmlStringTest.cs \
+	ProvideValidXPathExpressionTest.cs \
 	ReviewCastOnIntegerDivisionTest.cs \
 	ReviewCastOnIntegerMultiplicationTest.cs \
 	ReviewDoubleAssignmentTest.cs \
@@ -50,6 +60,4 @@ tests_sources = \
 	ReviewUselessControlFlowTest.cs \
 	ReviewUseOfInt64BitsToDoubleTest.cs \
 	ReviewUseOfModuloOneOnIntegersTest.cs \
-	UseValueInPropertySetterTest.cs \
-	ProvideCorrectArgumentsToFormattingMethodsTest.cs \
-	AttributeStringLiteralsShouldParseCorrectlyTest.cs	
+	UseValueInPropertySetterTest.cs

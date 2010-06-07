@@ -19,6 +19,8 @@ using System.Collections.Generic;
 using System.Web.Services.Protocols;
 using System.Xml;
 
+using Mono.Options;
+
 namespace Monodoc {
 class Driver {
 	  
@@ -30,105 +32,125 @@ class Driver {
 		bool remote_mode = false;
 		
 		string engine = engines[0];
+		string basedir = null;
+		string mergeConfigFile = null;
+		bool show_help = false, show_version = false;
+		bool show_gui = true;
+		var sources = new List<string> ();
 		
-		for (int i = 0; i < args.Length; i++){
-			switch (args [i]){
-			case "--html":
-				if (i+1 == args.Length){
-					Console.WriteLine ("--html needed argument");
-					return 1; 
-				}
+		int r = 0;
 
-				Node n;
-				RootTree help_tree = RootTree.LoadTree ();
-				string res = help_tree.RenderUrl (args [i+1], out n);
-				if (res != null){
-					Console.WriteLine (res);
-					return 0;
-				} else {
-					return 1;
-				}
-			case "--make-index":
-				RootTree.MakeIndex ();
-				return 0;
-				
-			case "--make-search-index":
-				RootTree.MakeSearchIndex ();
-				return 0;
-				
-			case "--about":
-				Console.WriteLine ("Mono Documentation Browser");
-				Version ver = Assembly.GetExecutingAssembly ().GetName ().Version;
-				if (ver != null)
-					Console.WriteLine (ver.ToString ());
-				return 0;
+		var p = new OptionSet () {
+			{ "docrootdir=",
+				"Load documentation tree & sources from {DIR}.  The default directory is $libdir/monodoc.",
+				v => {
+					basedir = v != null && v.Length > 0 ? v : null;
+					string md;
+					if (basedir != null && !File.Exists (Path.Combine (basedir, "monodoc.xml"))) {
+						Error ("Missing required file monodoc.xml.");
+						r = 1;
+					}
+				} },
+			{ "docdir=",
+				"Load documentation from {DIR}.",
+				v => sources.Add (v) },
+			{ "edit=",
+				"Edit mdoc(5) XML documentation found within {PATH}.",
+				v => RootTree.UncompiledHelpSources.Add (v) },
+			{ "engine=",
+				"Specify which HTML rendering {ENGINE} to use:\n" + 
+					"  " + string.Join ("\n  ", engines) + "\n" +
+					"If the chosen engine isn't available " + 
+					"(or you\nhaven't chosen one), monodoc will fallback to the next " +
+					"one on the list until one is found.",
+				v => engine = v },
+			{ "html=",
+				"Write to stdout the HTML documentation for {CREF}.",
+				v => {
+					show_gui = false;
+					Node n;
+					RootTree help_tree = LoadTree (basedir, sources);
+					string res = help_tree.RenderUrl (v, out n);
+					if (res != null)
+						Console.WriteLine (res);
+					else {
+						Error ("Could not find topic: {0}", v);
+						r = 1;
+					}
+				} },
+			{ "make-index",
+				"Generate a documentation index.  Requires write permission to $libdir/monodoc.",
+				v => {
+					show_gui = false;
+					RootTree.MakeIndex ();
+				} },
+			{ "make-search-index",
+				"Generate a search index.  Requires write permission to $libdir/monodoc.",
+				v => {
+					show_gui = false;
+					RootTree.MakeSearchIndex () ;
+				} },
+			{ "merge-changes=",
+				"Merge documentation changes found within {FILE} and target directories.",
+				v => {
+					show_gui = false;
+					if (v != null)
+						mergeConfigFile = v;
+					else {
+						Error ("Missing config file for --merge-changes.");
+						r = 1;
+					}
+				} },
+			{ "remote-mode",
+				"Accept CREFs from stdin to display in the browser.\n" +
+					"For MonoDevelop integration.",
+				v => remote_mode = v != null },
+			{ "about|version",
+				"Write version information and exit.",
+				v => show_version = v != null },
+			{ "h|?|help",
+				"Show this message and exit.",
+				v => show_help = v != null },
+		};
 
-			case "--help":
-				Console.WriteLine ("Usage:");
-				Console.WriteLine ("browser [--html TOPIC] [--make-index] [--make-search-index] [--merge-changes CHANGE_FILE TARGET_DIR+] [--about] [--edit path] [--remote-mode] [--engine engine] [TOPIC]");
-				Console.WriteLine ("");
-				Console.WriteLine ("--edit path:\t\tEdit a file. Path is the location of Monodoc-format XML documentation files.");
-				Console.WriteLine ("--engine engine:\tChoose a rendering engine. Available engines are: WebKit, Gecko, MonoWebBrowser, GtkHtml.");
-				Console.WriteLine ("\t\t\tIf the chosen engine is not available (or you haven't chosen one), monodoc will fallback to the next one on");
-				Console.WriteLine ("\t\t\tthe list until one is found");
-				return 0;
+		List<string> topics = p.Parse (args);
+
+		if (show_version) {
+			Console.WriteLine ("Mono Documentation Browser");
+			Version ver = Assembly.GetExecutingAssembly ().GetName ().Version;
+			if (ver != null)
+				Console.WriteLine (ver.ToString ());
+			return r;
+		}
+		if (show_help) {
+			Console.WriteLine ("usage: monodoc [--html TOPIC] [--make-index] [--make-search-index] [--merge-changes CHANGE_FILE TARGET_DIR+] [--about] [--edit path] [--remote-mode] [--engine engine] [TOPIC]");
+			p.WriteOptionDescriptions (Console.Out);
+			return r;
+		}
+
+		if (mergeConfigFile != null) {
+			ArrayList targetDirs = new ArrayList ();
 			
-			case "--merge-changes":
-				if (i+2 == args.Length) {
-					Console.WriteLine ("--merge-changes 2+ args");
-					return 1; 
-				}
-				
-				ArrayList targetDirs = new ArrayList ();
-				
-				for (int j = i+2; j < args.Length; j++)
-					targetDirs.Add (args [j]);
-				
-				EditMerger e = new EditMerger (
-					GlobalChangeset.LoadFromFile (args [i+1]),
-					targetDirs
-				);
-
-				e.Merge ();
-				
-				return 0;
+			for (int i = 0; i < topics.Count; i++)
+				targetDirs.Add (topics [i]);
 			
-			case "--edit":
-				if (i+1 == args.Length) {
-					Console.WriteLine ("Usage: --edit path, where path is to the location of Monodoc-format XML documentation files.");
-					return 1; 
-				}
-				RootTree.UncompiledHelpSources.Add(args[i+1]);
-				i++;
-				break;
+			EditMerger e = new EditMerger (
+				GlobalChangeset.LoadFromFile (mergeConfigFile),
+				targetDirs
+			);
 
-			case "--remote-mode":
-				//In this mode, monodoc will accept urls on stdin
-				//Used for integeration with monodevelop
-				remote_mode = true;
-				break;
-				
-			case "--engine":
-				if (i + 1 == args.Length) {
-					Console.WriteLine ("Usage: --engine engine, where engine is the name of the browser engine to use (WebKit, GtkHtml, MonoWebBrowser, Gecko or another).");
-					return 1;
-				}
-
-				engine = args [i+1];
-				i++;
-				break;
-			default:
-				topic = args [i];
-				break;
-			}
-			
+			e.Merge ();
+			return 0;
 		}
 		
+		if (r != 0 || !show_gui)
+			return r;
+
 		SettingsHandler.CheckUpgrade ();
 		
 		Settings.RunningGUI = true;
 		Application.Init ();
-		Browser browser = new Browser (engine);
+		Browser browser = new Browser (basedir, sources, engine);
 		
 		if (topic != null)
 			browser.LoadUrl (topic);
@@ -156,6 +178,20 @@ class Driver {
 			in_thread.Abort ();						
 
 		return 0;
+	}
+
+	static void Error (string format, params object[] args)
+	{
+		Console.Error.Write("monodoc: ");
+		Console.Error.WriteLine (format, args);
+	}
+
+	public static RootTree LoadTree (string basedir, IEnumerable<string> sourcedirs)
+	{
+		var root = RootTree.LoadTree (basedir);
+		foreach (var s in sourcedirs)
+			root.AddSource (s);
+		return root;
 	}
 }
 
@@ -249,7 +285,7 @@ public class Browser {
 
 	public Capabilities capabilities;
 
-	public Browser (string engine)
+	public Browser (string basedir, IEnumerable<string> sources, string engine)
 	{
 		this.engine = engine;		
 		ui = new Glade.XML (null, "browser.glade", "window1", null);
@@ -284,7 +320,7 @@ public class Browser {
 		MainWindow.StyleSet += new StyleSetHandler (BarStyleSet);
 		BarStyleSet (null, null);
 
-		help_tree = RootTree.LoadTree ();
+		help_tree = Driver.LoadTree (basedir, sources);
 		tree_browser = new TreeBrowser (help_tree, reference_tree, this);
 		
 		// Bookmark Manager init;
@@ -423,7 +459,7 @@ public class Browser {
 		tabs_nb.CurrentPage = tabs_nb.PageNum (CurrentTab);
 		//Show root node
 		Node match;
-		string s = help_tree.RenderUrl ("root:", out match);
+		string s = Browser.GetHtml ("root:", null, help_tree, out match);
 		if (s != null){
 			Render (s, match, "root:");
 			CurrentTab.history.AppendHistory (new Browser.LinkPageVisit (this, "root:"));
@@ -596,7 +632,7 @@ public class Browser {
 		{
 			Node n;
 			
-			string res = browser.help_tree.RenderUrl (url, out n);
+			string res = Browser.GetHtml (url, null, browser.help_tree, out n);
 			browser.Render (res, n, url);
 		}
 	}
@@ -637,7 +673,7 @@ public class Browser {
 		
 		Console.Error.WriteLine ("Trying: {0}", url);
 		try {
-			string res = help_tree.RenderUrl (url, out node);
+			string res = Browser.GetHtml (url, null, help_tree, out node);
 			if (res != null){
 				Render (res, node, url);
 				CurrentTab.history.AppendHistory (new LinkPageVisit (this, url));
@@ -846,19 +882,7 @@ ExtLoop:
 		 if ((capabilities & Capabilities.Css) != 0)
 		 	HelpSource.use_css = false;
 		 
-		string url = CurrentUrl;
-		string html;
-		Node cur = CurrentTab.CurrentNode;
-		Node n; 
-
-		// deal with the two types of urls
-		if (cur.tree.HelpSource != null) {
-			html = cur.tree.HelpSource.GetText (url, out n);
-			if (html == null)
-				html = help_tree.RenderUrl (url, out n);
-		} else {
-			html = help_tree.RenderUrl (url, out n);
-		}
+		string html = GetHtml (CurrentUrl, CurrentTab.CurrentNode.tree.HelpSource, help_tree);
 
 		// sending Html to be printed. 
 		if (html != null)
@@ -866,6 +890,53 @@ ExtLoop:
 
 		if ((capabilities & Capabilities.Css) != 0)
 			HelpSource.use_css = true;
+	}
+
+	public static string GetHtml (string url, HelpSource help_source, RootTree help_tree)
+	{
+		Node _;
+		return GetHtml (url, help_source, help_tree, out _);
+	}
+
+	public static string GetHtml (string url, HelpSource help_source, RootTree help_tree, out Node match)
+	{
+		match = null;
+		string html_content = null;
+		if (help_source != null)
+			html_content = help_source.GetText (url, out match);
+		if (html_content == null && help_tree != null) {
+			html_content = help_tree.RenderUrl (url, out match);
+			if (html_content != null && match != null && match.tree != null)
+				help_source = match.tree.HelpSource;
+		}
+
+		if (html_content == null)
+			return null;
+
+		var html = new StringWriter ();
+		html.Write ("<html>\n");
+		html.Write ("  <head>\n");
+		html.Write ("    <title>");
+		html.Write (url);
+		html.Write ("</title>\n");
+
+		if (help_source != null && help_source.InlineCss != null) {
+			html.Write ("    <style type=\"text/css\">\n");
+			html.Write (help_source.InlineCss);
+			html.Write ("    </style>\n");
+		}
+		if (help_source != null && help_source.InlineJavaScript != null) {
+			html.Write ("    <script type=\"text/JavaScript\">\n");
+			html.Write (help_source.InlineJavaScript);
+			html.Write ("    </script>\n");
+		}
+
+		html.Write ("  </head>\n");
+		html.Write ("  <body>\n");
+		html.Write (html_content);
+		html.Write ("  </body>\n");
+		html.Write ("</html>");
+		return html.ToString ();
 	}
 
 	void OnCommentsActivate (object o, EventArgs args)
@@ -1850,15 +1921,7 @@ public class TreeBrowser {
 
 		public override void Go ()
 		{
-			string res;
-			Node x;
-			
-			// The root tree has no help source
-			if (n.tree.HelpSource != null)
-				res = n.tree.HelpSource.GetText (url, out x);
-			else
-				res = ((RootTree)n.tree).RenderUrl (url, out x);
-
+			string res = Browser.GetHtml (url, n.tree.HelpSource, browser.help_tree);
 			browser.Render (res, n, url);
 		}
 	}
@@ -1895,7 +1958,7 @@ public class TreeBrowser {
 				// Try the tree-based urls first.
 				//
 				
-				s = n.tree.HelpSource.GetText (url, out match);
+				s = Browser.GetHtml (url, n.tree.HelpSource, help_tree);
 				if (s != null){
 					((Browser)browser).Render (s, n, url);
 					browser.CurrentTab.history.AppendHistory (new NodePageVisit (browser, n, url));
@@ -1906,7 +1969,7 @@ public class TreeBrowser {
 			//
 			// Try the url resolver next
 			//
-			s = help_tree.RenderUrl (url, out match);
+			s = Browser.GetHtml (url, null, help_tree);
 			if (s != null){
 				((Browser)browser).Render (s, n, url);
 				browser.CurrentTab.history.AppendHistory (new Browser.LinkPageVisit (browser, url));
@@ -2366,6 +2429,8 @@ public class Tab : Notebook {
 
 		browser.capabilities = html.Capabilities;
 
+		HelpSource.FullHtml = false;
+		HelpSource.UseWebdocCache = true;
 		if ((html.Capabilities & Capabilities.Css) != 0)
 			HelpSource.use_css = true;
 

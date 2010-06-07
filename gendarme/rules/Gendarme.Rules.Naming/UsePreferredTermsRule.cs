@@ -41,9 +41,9 @@ using Gendarme.Framework.Rocks;
 namespace Gendarme.Rules.Naming {
 
 	/// <summary>
-	/// This rule ensure that identifiers such as assemblies, namespaces, types and members, 
-	/// use the terms suggested by the .NET framework guidelines to ensure uniformity across
-	/// all class libraries.
+	/// This rule ensures that identifiers such as assemblies, namespaces, types, and members, 
+	/// use the terms suggested by the .NET framework guidelines so that they are consistent
+	/// with other class libraries.
 	/// <list>
 	/// <item><description><c>Arent</c> should be replaced with <c>AreNot</c>;</description></item>
 	/// <item><description><c>Cancelled</c> should be replaced with <c>Canceled</c>;</description></item>
@@ -128,6 +128,9 @@ namespace Gendarme.Rules.Naming {
 			};
 		
 		// Reports a defect when 'name' contains a non-recommended term.
+		// * identifier: Metadata token for 'name' or null if it is a namespace.
+		// * name: Name to check.
+		// * severity: Severity for the defect to be reported (if any).
 		private void CheckIdentifier (IMetadataTokenProvider identifier, string name, Severity severity)
 		{
 			// scan for any obsolete terms

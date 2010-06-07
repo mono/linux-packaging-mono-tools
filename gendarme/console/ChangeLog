@@ -1,3 +1,35 @@
+2009-08-09  Jesse Jones  <jesjones@mindspring.com>
+
+	* ConsoleRunner.cs: Edited the --help text.
+
+2009-07-09  Jesse Jones  <jesjones@mindspring.com>
+
+	* ResultWriter.cs, TextResultWriter.cs, XmlResultWriter.cs, HtmlResultWriter.cs:
+	Marked finalize and Dispose methods as threaded.
+
+2009-03-19  Jesse Jones  <jesjones@mindspring.com>
+
+	* ResultWriter.cs: Throws ObjectDisposedException. Protected Dispose(bool)
+	from being called twice.
+
+2009-02-19  Cedric Vivier  <cedricv@neonux.com>
+
+	* ConsoleRunner.cs: Show defect count and hint about written reports (if any).
+
+2009-02-12  Cedric Vivier  <cedricv@neonux.com>
+
+	* gendarme.xsl: Use user-configured `sans' font and `em' units instead of
+	fixed `pt'. Use a monospace font for code-related text.
+
+2009-02-12  Cedric Vivier  <cedricv@neonux.com>
+
+	* ConsoleRunner.cs: Return 1 to shell if at least one defect has been found.
+
+2009-02-12  Cedric Vivier  <cedricv@neonux.com>
+
+	* ConsoleRunner.cs: Do not show stacktrace and invitation to report a bug
+	when there is an IOException (unless VerbosityLevel > 0)
+
 2008-12-23  Cedric Vivier  <cedricv@neonux.com>
 
 	* gendarme.xsl: Usability improvements to the html report.

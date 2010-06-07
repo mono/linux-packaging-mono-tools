@@ -41,13 +41,11 @@ using Gendarme.Framework.Rocks;
 namespace Gendarme.Rules.Performance {
 
 	/// <summary>
-	/// This rule detects when some code doesn't use the return value of a method call. 
-	/// Since any returned object potentially requires memory allocations this impacts 
-	/// performance. Furthermore this often indicates that the code might not be doing 
-	/// what is expected. This is seen frequently on <c>string</c> where people forgets 
-	/// their immutability. There are some special cases, e.g. <c>StringBuilder</c>, where 
-	/// some methods returns the current instance (to chain calls). The rule will ignore 
-	/// those well known cases. 
+	/// This rule fires if a method is called that returns a new instance but that instance
+	/// is not used. This is a performance problem because it is wasteful to create and
+	/// collect objects which are never actually used. It may also indicate a logic problem.
+	/// Note that this rule currently only checks methods within a small number of System
+	/// types.
 	/// </summary>
 	/// <example>
 	/// Bad example:
@@ -55,8 +53,8 @@ namespace Gendarme.Rules.Performance {
 	/// public void GetName ()
 	/// {
 	///	string name = Console.ReadLine ();
-	///	// a new trimmed string is created by never assigned to anything
-	///	// but name itself is unchanged
+	///	// This is a bug: strings are (mostly) immutable so Trim leaves
+	/// 	// name untouched and returns a new string.
 	///	name.Trim ();
 	///	Console.WriteLine ("Name: {0}", name);
 	/// }
@@ -74,8 +72,8 @@ namespace Gendarme.Rules.Performance {
 	/// </code>
 	/// </example>
 
-	[Problem ("The method ignores the result value from the specified call.")]
-	[Solution ("You shouldn't ignore the result value.")]
+	[Problem ("The method ignores the result value from a method call.")]
+	[Solution ("Don't ignore the result value.")]
 	[EngineDependency (typeof (OpCodeEngine))]
 	[FxCopCompatibility ("Microsoft.Usage", "CA1806:DoNotIgnoreMethodResults")]
 	public class DoNotIgnoreMethodResultRule : Rule, IMethodRule {

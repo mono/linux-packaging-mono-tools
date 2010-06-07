@@ -74,7 +74,21 @@ namespace  Mono.Profiler {
 		Dictionary<ulong,CallStack> perThreadStacks;
 		CallStack stack;
 		UnknownStatisticalHitsCollector unknownStatisticalHitsCollector;
+		GlobalMonitorStatistics globalMonitorStatistics;
 		
+		public GlobalMonitorStatistics GlobalMonitorStatistics {
+			get {
+				return globalMonitorStatistics;
+			}
+		}
+		
+		StackTrace.Factory stackTraceFactory;
+		public StackTrace[] RootFrames {
+			get {
+				return stackTraceFactory.RootFrames;
+			}
+		}
+
 		uint version;
 		public uint Version {
 			get {
@@ -225,12 +239,12 @@ namespace  Mono.Profiler {
 			UpdateCounterAndTime (endCounter, endTime);
 		}
 		
-		public override void ModuleLoaded (ulong threadId, ulong startCounter, ulong endCounter, string name, bool success) {}
-		public override void ModuleUnloaded (ulong threadId, ulong startCounter, ulong endCounter, string name) {}
-		public override void AssemblyLoaded (ulong threadId, ulong startCounter, ulong endCounter, string name, bool success) {}
-		public override void AssemblyUnloaded (ulong threadId, ulong startCounter, ulong endCounter, string name) {}
-		public override void ApplicationDomainLoaded (ulong threadId, ulong startCounter, ulong endCounter, string name, bool success) {}
-		public override void ApplicationDomainUnloaded (ulong threadId, ulong startCounter, ulong endCounter, string name) {}
+		public override void ModuleLoaded (ulong threadId, uint id, ulong startCounter, ulong endCounter, string name, bool success) {}
+		public override void ModuleUnloaded (ulong threadId, uint id, ulong startCounter, ulong endCounter, string name) {}
+		public override void AssemblyLoaded (ulong threadId, uint id, ulong startCounter, ulong endCounter, string name, bool success) {}
+		public override void AssemblyUnloaded (ulong threadId, uint id, ulong startCounter, ulong endCounter, string name) {}
+		public override void ApplicationDomainLoaded (ulong threadId, uint id, ulong startCounter, ulong endCounter, string name, bool success) {}
+		public override void ApplicationDomainUnloaded (ulong threadId, uint id, ulong startCounter, ulong endCounter, string name) {}
 		
 		public override void SetCurrentThread (ulong threadId) {
 			if (perThreadStacks.ContainsKey (threadId)) {
@@ -250,7 +264,7 @@ namespace  Mono.Profiler {
 			StackTrace trace;
 			
 			if (Directives.AllocationsHaveStackTrace) {
-				trace = StackTrace.NewStackTrace (stack);
+				trace = stackTraceFactory.NewStackTrace (stack);
 			} else {
 				trace = null;
 			}
@@ -265,6 +279,16 @@ namespace  Mono.Profiler {
 			RecordAllocation (c, objectId, size, caller, jitTime, trace);
 		}
 		
+		public override void MonitorEvent (MonitorEvent eventCode, LoadedClass c, ulong objectId, ulong counter) {
+			//Console.WriteLine ("MonitorEvent {0} class {1} object {2} counter {3}", eventCode, c.Name, objectId, counter);
+			
+			StackTrace trace = stackTraceFactory.NewStackTrace (stack);
+			if (trace == null ) {
+				trace = StackTrace.StackTraceUnavailable;
+			}
+			globalMonitorStatistics.HandleEvent (stack.ThreadId, eventCode, c, objectId, trace, counter);
+		}
+		
 		public override void Exception (LoadedClass c, ulong counter) {}
 		
 		public override void MethodEnter (LoadedMethod m, ulong counter) {
@@ -272,7 +296,7 @@ namespace  Mono.Profiler {
 		}
 		
 		public override void MethodExit (LoadedMethod m, ulong counter) {
-			stack.MethodExit (m, counter);
+			stack.MethodExit (stackTraceFactory, m, counter);
 		}
 		
 		public override void MethodJitStart (LoadedMethod m, ulong counter) {
@@ -282,7 +306,7 @@ namespace  Mono.Profiler {
 		
 		public override void MethodJitEnd (LoadedMethod m, ulong counter, bool success) {
 			m.JitClicks += (counter - m.StartJit);
-			stack.MethodJitEnd (m, counter);
+			stack.MethodJitEnd (stackTraceFactory, m, counter);
 		}
 		
 		public override void MethodFreed (LoadedMethod m, ulong counter) {}
@@ -293,30 +317,66 @@ namespace  Mono.Profiler {
 		
 		uint remainingCallersInChain;
 		IStatisticalHitItem lastCallee;
+		StatisticalHitItemTreeNode lastCalleeNode;
+		bool eventsArePartOfChain;
+		int currentChainIndex;
+		IStatisticalHitItem[] currentChain;
 		// Returns true if the hit must be counted (this is the first chain item)
 		bool HandleCallChain (IStatisticalHitItem caller) {
-			bool result;
-			
-			if (remainingCallersInChain > 0) {
-				remainingCallersInChain --;
+			if (eventsArePartOfChain) {
+				bool result;
+				
 				if (lastCallee != null) {
-					//Console.WriteLine ("HandleCallChain[{0}]  {1} on {2}", remainingCallersInChain, caller.Name, lastCallee.Name);
 					lastCallee.CallCounts.AddCaller (caller);
 					caller.CallCounts.AddCallee (lastCallee);
 				}
-				result = false;
+				
+				if (lastCalleeNode != null) {
+					lastCalleeNode = lastCalleeNode.AddChild (caller);
+				} else {
+					lastCalleeNode = statisticalItemsByCaller.AddChild (caller);
+				}
+				
+				currentChain [currentChainIndex] = caller;
+				currentChainIndex ++;
+				
+				if (remainingCallersInChain > 0) {
+					//Console.WriteLine ("HandleCallChain[{0}]  {1} on {2}", remainingCallersInChain, caller.Name, lastCallee.Name);
+					remainingCallersInChain --;
+					result = false;
+				} else {
+					//Console.WriteLine ("HandleCallChain[{0}] {1}", remainingCallersInChain, caller.Name);
+					result = true;
+					
+					StatisticalHitItemTreeNode currentNode = statisticalItemsByCallee;
+					while (currentChainIndex > 0) {
+						currentChainIndex --;
+						currentNode = currentNode.AddChild (currentChain [currentChainIndex]);
+					}
+					
+					eventsArePartOfChain = false;
+					Array.Clear (currentChain, 0, currentChain.Length);
+				}
+				
+				lastCallee = caller;
+				
+				return result;
 			} else {
-				//Console.WriteLine ("HandleCallChain[{0}] {1}", remainingCallersInChain, caller.Name);
-				result = true;
+				return true;
 			}
-			
-			lastCallee = caller;
-			
-			return result;
 		}
 		
 		public override void StatisticalCallChainStart (uint chainDepth) {
+			lastCallee = null;
+			lastCalleeNode = null;
 			remainingCallersInChain = chainDepth;
+			eventsArePartOfChain = true;
+			currentChainIndex = 0;
+			if (currentChain != null) {
+				Array.Clear (currentChain, 0, currentChain.Length);
+			} else {
+				currentChain = new IStatisticalHitItem [32];
+			}
 			//Console.WriteLine ("StatisticalCallChainStart ({0})", chainDepth);
 		}
 		
@@ -379,6 +439,19 @@ namespace  Mono.Profiler {
 				result [resultIndex] = unknownStatisticalHitsCollector;
 				
 				return result;
+			}
+		}
+		
+		StatisticalHitItemTreeNode statisticalItemsByCaller = new StatisticalHitItemTreeNode (null);
+		public StatisticalHitItemTreeNode[] StatisticalItemsByCaller {
+			get {
+				return statisticalItemsByCaller.Children;
+			}
+		}
+		StatisticalHitItemTreeNode statisticalItemsByCallee = new StatisticalHitItemTreeNode (null);
+		public StatisticalHitItemTreeNode[] StatisticalItemsByCallee {
+			get {
+				return statisticalItemsByCallee.Children;
 			}
 		}
 		
@@ -618,12 +691,14 @@ namespace  Mono.Profiler {
 		public ProfilerEventHandler () : base (new LoadedElementHandler<LoadedClass,LoadedMethod,UnmanagedFunctionFromRegion,UnmanagedFunctionFromID,ExecutableMemoryRegion,HeapObject,HeapSnapshot> (new LoadedElementFactory ())) {
 			perThreadStacks = new Dictionary<ulong,CallStack> ();
 			stack = null;
+			stackTraceFactory = new StackTrace.Factory ();
 			unknownStatisticalHitsCollector = new UnknownStatisticalHitsCollector ();
 			gcStatistics = new List<GcStatistics> ();
 			pendingGcStatistics = new List<GcStatistics> ();
 			currentGcStatistics = null;
 			allocationSummaries = new List<AllocationSummary> ();
 			currentAllocationSummary = null;
+			globalMonitorStatistics = new GlobalMonitorStatistics ();
 		}
 	}
 }

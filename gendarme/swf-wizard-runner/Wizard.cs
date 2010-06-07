@@ -37,14 +37,18 @@ using Gendarme.Framework;
 using Gendarme.Properties;
 
 using Mono.Cecil;
+using Mono.Cecil.Binary;
 
 namespace Gendarme {
 
 	public partial class Wizard : Form {
 
-		// used to call code asynchronously
+		// This is used for methods which we execute within a thread, but we don't
+		// execute the methods concurrently so we can use single thread.
+		[ThreadModel (ThreadModel.SingleThread)]
 		delegate void MethodInvoker ();
 
+		[ThreadModel (ThreadModel.SingleThread)]
 		sealed class AssemblyInfo {
 			private DateTime timestamp;
 			private AssemblyDefinition definition;
@@ -62,6 +66,7 @@ namespace Gendarme {
 
 		private const string BaseUrl = "http://www.mono-project.com/";
 		private const string DefaultUrl = BaseUrl + "Gendarme";
+		private const string BugzillaUrl = "http://bugzilla.novell.com";
 
 		static Process process;
 
@@ -104,6 +109,7 @@ namespace Gendarme {
 			UpdatePageUI ();
 		}
 
+		[ThreadModel (ThreadModel.SingleThread)]
 		static void EndCallback (IAsyncResult result)
 		{
 			(result.AsyncState as MethodInvoker).EndInvoke (result);
@@ -307,14 +313,24 @@ namespace Gendarme {
 			UpdatePageUI ();
 		}
 
+		[ThreadModel (ThreadModel.SingleThread)]
 		public void UpdateAssemblies ()
 		{
+			if (IsDisposed)
+				throw new ObjectDisposedException (GetType ().Name);
+			
 			foreach (KeyValuePair<string,AssemblyInfo> kvp in assemblies) {
 				DateTime last_write = File.GetLastWriteTimeUtc (kvp.Key);
 				if ((kvp.Value.Definition == null) || (kvp.Value.Timestamp < last_write)) {
 					AssemblyInfo a = kvp.Value;
 					a.Timestamp = last_write;
-					a.Definition = AssemblyFactory.GetAssembly (kvp.Key);
+					try {
+						a.Definition = AssemblyFactory.GetAssembly (kvp.Key);
+					}
+					catch (ImageFormatException) {
+						// continue loading & analyzing assemblies
+						// TODO: report as non-fatal warning
+					}
 				}
 			}
 		}
@@ -430,6 +446,7 @@ namespace Gendarme {
 			}
 		}
 
+		[ThreadModel (ThreadModel.SingleThread)]
 		private bool UpdateActiveRules ()
 		{
 			bool all_active = true;
@@ -530,12 +547,17 @@ namespace Gendarme {
 			Runner.Assemblies.Clear ();
 			foreach (KeyValuePair<string, AssemblyInfo> kvp in assemblies) {
 				// add assemblies references to runner
-				Runner.Assemblies.Add (kvp.Value.Definition);
+				AssemblyDefinition ad = kvp.Value.Definition;
+				// an invalid assembly (e.g. non-managed code) will be null at this stage
+				if (ad != null)
+					Runner.Assemblies.Add (ad);
 			}
 
 			progress_bar.Maximum = Runner.Assemblies.Count;
 		}
 
+		// TODO: Note that it isn't clear whether we can actually call gendarme from a thread...
+		[ThreadModel (ThreadModel.SingleThread)]
 		private void Analyze ()
 		{
 			counter = 0;
@@ -557,9 +579,8 @@ namespace Gendarme {
 			// activate rules based on user selection
 			UpdateActiveRules ();
 
-			Runner.Initialize ();
-			Runner.Run ();
-			Runner.TearDown ();
+			// Initialize / Run / TearDown
+			Runner.Execute ();
 
 			// reset rules as the user selected them (since some rules might have
 			// turned themselves off is they were not needed for the analysis) so
@@ -611,6 +632,16 @@ namespace Gendarme {
 				has_defects ? Runner.Defects.Count.ToString () : "no");
 			cancel_button.Text = "Close";
 			next_button.Enabled = false;
+
+			// display an error message and details if we encountered an exception during analysis
+			string error = Runner.Error;
+			bool visible = (error.Length > 0);
+			unexpected_error_label.Visible = visible;
+			copy_paste_label.Visible = visible;
+			bugzilla_linklabel.Text = BugzillaUrl;
+			bugzilla_linklabel.Visible = visible;
+			error_textbox.Text = error;
+			error_textbox.Visible = visible;
 		}
 
 		private static bool CouldCopyReport (ref string currentName, string fileName)
@@ -618,8 +649,15 @@ namespace Gendarme {
 			// if possible avoid re-creating the report (as it can 
 			// be a long operation) and simply copy the file
 			bool copy = (currentName != null);
-			if (copy)
-				File.Copy (currentName, fileName);
+			if (copy) {
+				try {
+					File.Copy (currentName, fileName);
+				}
+				catch (Exception) {
+					// too many things can go wrong when copying
+					copy = false;
+				}
+			}
 
 			currentName = fileName;
 			return copy;
@@ -670,6 +708,11 @@ namespace Gendarme {
 				}
 			}
 			Open (html_report_filename);
+		}
+
+		private void BugzillaLinkClick (object sender, LinkLabelLinkClickedEventArgs e)
+		{
+			Open (BugzillaUrl);
 		}
 
 		#endregion

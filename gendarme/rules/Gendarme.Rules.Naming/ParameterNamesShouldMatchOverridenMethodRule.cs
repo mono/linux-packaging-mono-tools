@@ -36,8 +36,11 @@ using Gendarme.Framework.Rocks;
 namespace Gendarme.Rules.Naming {
 
 	/// <summary>
-	/// This rule warns if an overriden method's parameter names do not match those of the 
-	/// base class or those of the implemented interface.
+	/// This rule warns if an overriden method's parameter names does not match those of the 
+	/// base class or those of the implemented interface. This can be confusing because it may
+	/// not always be clear that it is an override or implementation of an interface method. It
+	/// also makes it more difficult to use the method with languages that support named
+	/// parameters (like C# 4.0).
 	/// </summary>
 	/// <example>
 	/// Bad example:
@@ -70,7 +73,7 @@ namespace Gendarme.Rules.Naming {
 	/// </code>
 	/// </example>
 
-	[Problem ("This method overrides (or implement) an existing method but does not use the same parameter names as the original.")]
+	[Problem ("This method overrides (or implements) an existing method but does not use the same parameter names as the original.")]
 	[Solution ("Keep parameter names consistent when overriding a class or implementing an interface.")]
 	[FxCopCompatibility ("Microsoft.Naming", "CA1725:ParameterNamesShouldMatchBaseDeclaration")]
 	public class ParameterNamesShouldMatchOverriddenMethodRule : Rule, IMethodRule {

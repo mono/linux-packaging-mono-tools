@@ -1,3 +1,29 @@
+2009-07-17  Jesse Jones  <jesjones@mindspring.com>
+
+	* GetEntryAssemblyMayReturnNullRule.cs, DisableDebuggingCodeRule.cs: 
+	Rewrote descriptions.
+
+2009-07-01  Jesse Jones  <jesjones@mindspring.com>
+
+	* *Rule.cs: Edited most of the rule descriptions.
+
+2009-02-17  Jesse Jones  <jesjones@mindspring.com>
+
+	* OnlyUseDisposeForIDisposableTypesRule.cs, Makefile.am: 
+	Added new rule.
+
+2009-01-30  Jb Evain  <jbevain@novell.com>
+
+	* Makefile.am: add new DoNotUseEnumIsAssignableFrom rule and tests.
+
+2009-01-30  Jb Evain  <jbevain@novell.com>
+
+	* DoNotUseEnumIsAssignableFromRule.cs: add new rule.
+
+2009-01-20  Jesse Jones  <jesjones@mindspring.com>
+
+	* PreferSafeHandleRule.cs: Added.
+
 2008-12-23  Cedric Vivier  <cedricv@neonux.com>
 
 	* CloneMethodShouldNotReturnNull.cs:

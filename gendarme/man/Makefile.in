@@ -35,18 +35,19 @@ host_triplet = @host@
 target_triplet = @target@
 subdir = gendarme/man
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
-	$(srcdir)/gendarme.1.in ChangeLog
+	$(srcdir)/gendarme.1.in $(srcdir)/gendarme.5.in ChangeLog
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.in
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
-CONFIG_CLEAN_FILES = gendarme.1
+CONFIG_CLEAN_FILES = gendarme.1 gendarme.5
 SOURCES =
 DIST_SOURCES =
 man1dir = $(mandir)/man1
-am__installdirs = "$(DESTDIR)$(man1dir)" \
+am__installdirs = "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man5dir)" \
 	"$(DESTDIR)$(rules_documentationdir)"
+man5dir = $(mandir)/man5
 NROFF = nroff
 MANS = $(man_MANS)
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
@@ -112,6 +113,7 @@ LTLIBOBJS = @LTLIBOBJS@
 MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
 MCS = @MCS@
+MDOC = @MDOC@
 MKDIR_P = @MKDIR_P@
 MONODOC_CFLAGS = @MONODOC_CFLAGS@
 MONODOC_LIBS = @MONODOC_LIBS@
@@ -198,9 +200,9 @@ target_vendor = @target_vendor@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-man_MANS = gendarme.1
-EXTRA_DIST = gendarme.1.in gendarme.config gendarme.source
-DISTCLEANFILES = Makefile.in gendarme.1
+man_MANS = gendarme.1 gendarme.5
+EXTRA_DIST = gendarme.1.in gendarme.5.in gendarme.config gendarme.source
+DISTCLEANFILES = Makefile.in gendarme.1 gendarme.5
 CLEANFILES = gendarme.tree gendarme.zip
 rules_documentationdir = $(prefix)/lib/monodoc/sources
 rules_documentation_DATA = gendarme.source gendarme.tree gendarme.zip
@@ -237,6 +239,8 @@ $(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 gendarme.1: $(top_builddir)/config.status $(srcdir)/gendarme.1.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
+gendarme.5: $(top_builddir)/config.status $(srcdir)/gendarme.5.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 install-man1: $(man1_MANS) $(man_MANS)
 	@$(NORMAL_INSTALL)
@@ -282,6 +286,51 @@ uninstall-man1:
 	  inst=`echo $$inst | sed '$(transform)'`.$$ext; \
 	  echo " rm -f '$(DESTDIR)$(man1dir)/$$inst'"; \
 	  rm -f "$(DESTDIR)$(man1dir)/$$inst"; \
+	done
+install-man5: $(man5_MANS) $(man_MANS)
+	@$(NORMAL_INSTALL)
+	test -z "$(man5dir)" || $(MKDIR_P) "$(DESTDIR)$(man5dir)"
+	@list='$(man5_MANS) $(dist_man5_MANS) $(nodist_man5_MANS)'; \
+	l2='$(man_MANS) $(dist_man_MANS) $(nodist_man_MANS)'; \
+	for i in $$l2; do \
+	  case "$$i" in \
+	    *.5*) list="$$list $$i" ;; \
+	  esac; \
+	done; \
+	for i in $$list; do \
+	  if test -f $(srcdir)/$$i; then file=$(srcdir)/$$i; \
+	  else file=$$i; fi; \
+	  ext=`echo $$i | sed -e 's/^.*\\.//'`; \
+	  case "$$ext" in \
+	    5*) ;; \
+	    *) ext='5' ;; \
+	  esac; \
+	  inst=`echo $$i | sed -e 's/\\.[0-9a-z]*$$//'`; \
+	  inst=`echo $$inst | sed -e 's/^.*\///'`; \
+	  inst=`echo $$inst | sed '$(transform)'`.$$ext; \
+	  echo " $(INSTALL_DATA) '$$file' '$(DESTDIR)$(man5dir)/$$inst'"; \
+	  $(INSTALL_DATA) "$$file" "$(DESTDIR)$(man5dir)/$$inst"; \
+	done
+uninstall-man5:
+	@$(NORMAL_UNINSTALL)
+	@list='$(man5_MANS) $(dist_man5_MANS) $(nodist_man5_MANS)'; \
+	l2='$(man_MANS) $(dist_man_MANS) $(nodist_man_MANS)'; \
+	for i in $$l2; do \
+	  case "$$i" in \
+	    *.5*) list="$$list $$i" ;; \
+	  esac; \
+	done; \
+	for i in $$list; do \
+	  ext=`echo $$i | sed -e 's/^.*\\.//'`; \
+	  case "$$ext" in \
+	    5*) ;; \
+	    *) ext='5' ;; \
+	  esac; \
+	  inst=`echo $$i | sed -e 's/\\.[0-9a-z]*$$//'`; \
+	  inst=`echo $$inst | sed -e 's/^.*\///'`; \
+	  inst=`echo $$inst | sed '$(transform)'`.$$ext; \
+	  echo " rm -f '$(DESTDIR)$(man5dir)/$$inst'"; \
+	  rm -f "$(DESTDIR)$(man5dir)/$$inst"; \
 	done
 install-rules_documentationDATA: $(rules_documentation_DATA)
 	@$(NORMAL_INSTALL)
@@ -337,7 +386,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(MANS) $(DATA)
 installdirs:
-	for dir in "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(rules_documentationdir)"; do \
+	for dir in "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man5dir)" "$(DESTDIR)$(rules_documentationdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -394,7 +443,7 @@ install-html: install-html-am
 
 install-info: install-info-am
 
-install-man: install-man1
+install-man: install-man1 install-man5
 
 install-pdf: install-pdf-am
 
@@ -420,7 +469,7 @@ ps-am:
 
 uninstall-am: uninstall-man uninstall-rules_documentationDATA
 
-uninstall-man: uninstall-man1
+uninstall-man: uninstall-man1 uninstall-man5
 
 .MAKE: install-am install-strip
 
@@ -429,12 +478,13 @@ uninstall-man: uninstall-man1
 	install install-am install-data install-data-am install-dvi \
 	install-dvi-am install-exec install-exec-am install-html \
 	install-html-am install-info install-info-am install-man \
-	install-man1 install-pdf install-pdf-am install-ps \
-	install-ps-am install-rules_documentationDATA install-strip \
-	installcheck installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-generic pdf \
-	pdf-am ps ps-am uninstall uninstall-am uninstall-man \
-	uninstall-man1 uninstall-rules_documentationDATA
+	install-man1 install-man5 install-pdf install-pdf-am \
+	install-ps install-ps-am install-rules_documentationDATA \
+	install-strip installcheck installcheck-am installdirs \
+	maintainer-clean maintainer-clean-generic mostlyclean \
+	mostlyclean-generic pdf pdf-am ps ps-am uninstall uninstall-am \
+	uninstall-man uninstall-man1 uninstall-man5 \
+	uninstall-rules_documentationDATA
 
 
 all: gendarme.tree gendarme.zip

@@ -36,9 +36,10 @@ using Gendarme.Framework.Rocks;
 namespace Gendarme.Rules.Design {
 
 	/// <summary>
-	/// This rule checks for indexer properties that use more than one index on visible types.
-	/// Such indexers are often confusing to use (e.g. index orders) and are better 
-	/// represented by a method.
+	/// This rule checks for externally visible indexer properties which have more
+	/// than one index argument. These can be confusing to some developers and
+	/// IDEs with auto-complete don't always handle them as well as methods so
+	/// it can be hard to know which argument is which. 
 	/// </summary>
 	/// <example>
 	/// Bad example:
@@ -61,8 +62,8 @@ namespace Gendarme.Rules.Design {
 	/// </example>
 	/// <remarks>This rule is available since Gendarme 2.0</remarks>
 
-	[Problem ("This indexer use multiple indexes and this limit its usability.")]
-	[Solution ("Convert this indexer into a method.")]
+	[Problem ("This indexer use multiple indexes which can impair its usability.")]
+	[Solution ("Consider converting the indexer into a method.")]
 	[FxCopCompatibility ("Microsoft.Design", "CA1023:IndexersShouldNotBeMultidimensional")]
 	public class AvoidMultidimensionalIndexerRule : Rule, IMethodRule {
 

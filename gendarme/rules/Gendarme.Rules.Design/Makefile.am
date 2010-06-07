@@ -37,11 +37,13 @@ rules_sources =  \
 	OverrideEqualsMethodRule.cs \
 	PreferEventsOverMethodsRule.cs \
 	PreferIntegerOrStringForIndexersRule.cs \
+	PreferXmlAbstractionsRule.cs \
 	ProvideAlternativeNamesForOperatorOverloadsRule.cs \
 	TypesShouldBeInsideNamespacesRule.cs \
 	TypesWithDisposableFieldsShouldBeDisposableRule.cs \
 	TypesWithNativeFieldsShouldBeDisposableRule.cs \
 	UseFlagsAttributeRule.cs \
+	UseCorrectDisposeSignaturesRule.cs \
 	UsingCloneWithoutImplementingICloneableRule.cs
 
 tests_sources = \
@@ -79,9 +81,11 @@ tests_sources = \
 	OverrideEqualsMethodTest.cs \
 	PreferEventsOverMethodsTest.cs \
 	PreferIntegerOrStringForIndexersTest.cs \
+	PreferXmlAbstractionsTest.cs \
 	ProvideAlternativeNamesForOperatorOverloadsTest.cs \
 	TypesShouldBeInsideNamespacesTest.cs \
 	TypesWithDisposableFieldsShouldBeDisposableTest.cs \
 	TypesWithNativeFieldsShouldBeDisposableTest.cs \
 	UseFlagsAttributeTest.cs \
+	UseCorrectDisposeSignaturesTest.cs \
 	UsingCloneWithoutImplementingICloneableTest.cs

@@ -1,6 +1,6 @@
-AC_INIT([mono-tools], [2.4.3])
+AC_INIT([mono-tools], [2.6.2])
 AC_CONFIG_SRCDIR([README])
-AM_INIT_AUTOMAKE([tar-ustar])
+AM_INIT_AUTOMAKE([tar-ustar -Wno-portability])
 AC_CANONICAL_SYSTEM
 AM_MAINTAINER_MODE
 
@@ -40,6 +40,8 @@ AC_SUBST(NUNIT_LIBS)
 
 PKG_CHECK_MODULES(MONODOC, monodoc)
 AC_SUBST(MONODOC_LIBS)
+AC_PATH_PROG(MDOC, mdoc, no)
+AC_SUBST(MDOC)
 
 PKG_CHECK_MODULES(GTK_SHARP, gtk-sharp-2.0 glade-sharp-2.0 gnome-sharp-2.0 gconf-sharp-2.0)
 #PKG_CHECK_MODULES(GTK_SHARP, gtk-sharp glade-sharp gconf-sharp)
@@ -132,7 +134,7 @@ dnl
 if pkg-config --modversion cecil>/dev/null; then
 AC_MSG_RESULT("Found cecil.pc")
 else
-AC_MSG_ERROR([You are missing Cecil (cecil.pc for packageconfig) required for gui-compare])
+AC_MSG_ERROR([You are missing Cecil (cecil.pc for packageconfig) required for gui-compare and minvoke])
 fi
 
 CECIL_ASM=`pkg-config --variable=Libraries cecil`
@@ -170,6 +172,8 @@ gsharp/gsharp
 gsharp/gsharp.exe.config
 gui-compare/Makefile
 gui-compare/gui-compare
+minvoke/Makefile
+minvoke/minvoke
 mperfmon/Makefile
 mperfmon/mperfmon
 docbrowser/Makefile
@@ -196,6 +200,7 @@ gendarme/gendarme
 gendarme/gendarme-wizard
 gendarme/man/Makefile
 gendarme/man/gendarme.1
+gendarme/man/gendarme.5
 gendarme/console/Makefile
 gendarme/console/gendarme.exe.config
 gendarme/framework/Makefile
@@ -246,6 +251,9 @@ Mono.Profiler/heap-snapshot-viewer/Makefile
 Mono.Profiler/profiler-decoder-library/Makefile
 Mono.Profiler/profiler-file-decoder/mprof-decoder
 Mono.Profiler/heap-snapshot-explorer/Makefile
+Mono.Profiler/Mono.Profiler.Widgets/Makefile
+Mono.Profiler/mprof-gui/Makefile
+Mono.Profiler/mprof-gui/emveepee
 webdoc/Makefile
 ])
 
@@ -262,4 +270,3 @@ echo "      NOTE: if any of the above say 'no' you may install the"
 echo "            corresponding development packages for them, rerun"
 echo "            autogen.sh to include them in the build."
 echo ""
-

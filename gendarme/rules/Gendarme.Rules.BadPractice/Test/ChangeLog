@@ -1,3 +1,16 @@
+2009-02-17  Jesse Jones  <jesjones@mindspring.com>
+
+	* OnlyUseDisposeForIDisposableTypesTest.cs: Added new rule.
+
+2009-01-30  Jb Evain  <jbevain@novell.com>
+
+	* DoNotUseEnumIsAssignableFromTest.cs: add tests for
+	DoNotUseEnumIsAssignableFromRule.
+
+2009-01-20  Jesse Jones  <jesjones@mindspring.com>
+
+	* PreferSafeHandleTest.cs: Added.
+
 2008-11-20  Sebastien Pouliot  <sebastien@ximian.com>
 
 	* CloneMethodShouldNotReturnNullTest.cs: Adjust fixture since the

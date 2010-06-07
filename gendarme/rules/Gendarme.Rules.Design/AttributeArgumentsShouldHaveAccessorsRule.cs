@@ -35,8 +35,9 @@ using Gendarme.Framework.Rocks;
 namespace Gendarme.Rules.Design {
 
 	/// <summary>
-	/// This rule ensure that all parameters passed to an <c>Attribute</c> constructor must 
-	/// be visible through properties with properly cased names.
+	/// This rule fires if a parameter to an <c>Attribute</c> constructor is not exposed
+	/// using a properly cased property. This is a problem because it is generally not useful
+	/// to set state within an attribute without providing a way to get at that state.
 	/// </summary>
 	/// <example>
 	/// Bad example:
@@ -90,8 +91,8 @@ namespace Gendarme.Rules.Design {
 	/// </code>
 	/// </example>
 
-	[Problem ("All parameter values passed to this type constructors should be visible through read-only properties.")]
-	[Solution ("Add the missing properties getters to this type.")]
+	[Problem ("All parameter values passed to this type's constructors should be visible through read-only properties.")]
+	[Solution ("Add the missing property getters to the type.")]
 	[FxCopCompatibility ("Microsoft.Design", "CA1019:DefineAccessorsForAttributeArguments")]
 	public class AttributeArgumentsShouldHaveAccessorsRule : Rule, ITypeRule {
 

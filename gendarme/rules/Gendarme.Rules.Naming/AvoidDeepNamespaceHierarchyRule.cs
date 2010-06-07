@@ -27,6 +27,7 @@
 //
 
 using System;
+using System.ComponentModel;
 
 using Mono.Cecil;
 
@@ -37,10 +38,10 @@ using Gendarme.Framework.Helpers;
 namespace Gendarme.Rules.Naming {
 
 	/// <summary>
-	/// This rule check the depth of the namespace declared inside an assembly. It will
-	/// warn if the depth is greater then four (default value) unless the fifth (or the
-	/// next) part is one of the specialized name that the framework recommands or an
-	/// named like an internal namespace (something not meant to be seen outside the assembly).
+	/// This rule checks for deeply nested namespaces within an assembly. It will
+	/// warn if the depth is greater than four (default value) unless the fifth (or the
+	/// next) part is one of the specialized name that the framework recommends or a
+	/// name like an internal namespace (something not meant to be seen outside the assembly).
 	/// <list>
 	/// <item><term>Design</term><description>Namespace that provides design-time
 	/// support for its base namespace.</description></item>
@@ -83,12 +84,17 @@ namespace Gendarme.Rules.Naming {
 	/// </example>
 
 	[Problem ("The depth of the namespace hierarchy is getting out of control.")]
-	[Solution ("Try to keep the depth below 4, with an additional one for specialization (e.g. Design, Interop, Permissions)")]
+	[Solution ("Try to keep the depth below 4, with an additional one for specialization (e.g. Design, Interop, Permissions).")]
 	[EngineDependency (typeof (NamespaceEngine))]
 	public class AvoidDeepNamespaceHierarchyRule : Rule, IAssemblyRule {
 
-		private int max_depth = 4; // default value
+		private const int DefaultMaxDepth = 4;
+		private int max_depth = DefaultMaxDepth;
 
+		/// <summary>The depth at which namespaces may be nested without triggering a defect.</summary>
+		/// <remarks>Defaults to 4.</remarks>
+		[DefaultValue (DefaultMaxDepth)]
+		[Description ("The depth at which namespaces may be nested without triggering a defect.")]
 		public int MaxDepth {
 			get { return max_depth; }
 			set {

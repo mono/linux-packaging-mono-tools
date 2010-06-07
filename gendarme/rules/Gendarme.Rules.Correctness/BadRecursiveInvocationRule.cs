@@ -42,9 +42,9 @@ using Gendarme.Framework.Rocks;
 namespace Gendarme.Rules.Correctness {
 
 	/// <summary>
-	/// This rule catches a common mistake in programs when a method or property invokes 
-	/// itself recursively in a suspicious way. Usually the developer forgot to return 
-	/// a variable, or call a <c>base</c> method.
+	/// This rule checks for a few common scenarios where a method may be infinitely
+	/// recursive. For example, getter properties which call themselves or methods
+	/// with no conditional code which call themselves (instead of the base method).
 	/// </summary>
 	/// <example>
 	/// Bad example:
@@ -132,11 +132,10 @@ namespace Gendarme.Rules.Correctness {
 		private static bool CheckForEndlessRecursion (MethodDefinition method, int index)
 		{
 			int pcount = method.Parameters.Count;
-			if (index <= pcount)
-				return false;
-
 			if (!method.HasThis)
 				pcount--;
+			if (index <= pcount)
+				return false;
 
 			for (int i = pcount; i >= 0; i--) {
 				if (!CheckParams (method, ref index, i))

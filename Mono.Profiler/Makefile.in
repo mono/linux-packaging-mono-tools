@@ -53,8 +53,7 @@ RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
   distclean-recursive maintainer-clean-recursive
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = profiler-decoder-library profiler-file-decoder \
-	heap-snapshot-explorer heap-snapshot-viewer
+DIST_SUBDIRS = $(SUBDIRS)
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
@@ -110,6 +109,7 @@ LTLIBOBJS = @LTLIBOBJS@
 MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
 MCS = @MCS@
+MDOC = @MDOC@
 MKDIR_P = @MKDIR_P@
 MONODOC_CFLAGS = @MONODOC_CFLAGS@
 MONODOC_LIBS = @MONODOC_LIBS@
@@ -196,10 +196,8 @@ target_vendor = @target_vendor@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-
-#Warning: This is an automatically generated file, do not edit!
-@ENABLE_DEBUG_TRUE@SUBDIRS = profiler-decoder-library profiler-file-decoder heap-snapshot-explorer heap-snapshot-viewer
-@ENABLE_RELEASE_TRUE@SUBDIRS = profiler-decoder-library profiler-file-decoder heap-snapshot-explorer heap-snapshot-viewer
+SUBDIRS = profiler-decoder-library profiler-file-decoder heap-snapshot-explorer heap-snapshot-viewer Mono.Profiler.Widgets mprof-gui
+EXTRA_DIST = Mono.Profiler.sln
 all: all-recursive
 
 .SUFFIXES:

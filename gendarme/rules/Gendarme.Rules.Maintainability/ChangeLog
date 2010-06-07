@@ -1,3 +1,18 @@
+2009-08-13  Jesse Jones  <jesjones@mindspring.com>
+
+	* AvoidLackOfCohesionOfMethodsRule.cs, ConsiderUsingStopwatchRule.cs, 
+	AvoidDeepInheritanceTreeRule.cs, AvoidComplexMethodsRule.cs: 
+	Edited the rule descriptions.
+
+2009-07-04  Jesse Jones  <jesjones@mindspring.com>
+
+	* *Rule.cs: Edited most of the rule descriptions.
+
+2009-01-28  Jb Evain  <jbevain@novell.com>
+
+	* AvoidUnnecessarySpecializationRule.cs:
+		in GetBaseImplementor: handle types with a null BaseType.
+
 2008-12-30  Sebastien Pouliot  <sebastien@ximian.com>
 
 	* AvoidUnnecessarySpecializationRule.cs: Move some checks before

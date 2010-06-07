@@ -36,13 +36,20 @@ using Mono.Cecil;
 namespace Gendarme.Rules.Design {
 
 	/// <summary>
-	/// The rule inspects all events inside every type and verify if they all have correct
-	/// signatures.
+	/// This rule will fire if an event is declared with a signature which does not match
+	/// the .NET guidelines. The return type of the event should be void (because there
+	/// is no good way to handle return values if multiple delegates are attached to the
+	/// event). And the event should take two arguments. The first should be of type
+	/// <c>System.Object</c> and be named &apos;sender&apos;. The second should be of type 
+	/// <c>System.EventArgs</c> (or a subclass) and named &apos;e&apos;. This helps tools
+	/// such as visual designers identify the delegates and methods which may be
+	/// attached to events. Note that .NET 2.0 added a generic <c>System.EventHandler</c>
+	/// type which can be used to easily create events with the correct signature.
 	/// </summary>
 	/// <example>
 	/// Bad example:
 	/// <code>
-	/// // the second parameter, inheriting from System.EventArgs, is missing
+	/// // the second parameter (which should be System.EventArgs or a derived class) is missing
 	/// delegate void MyDelegate (int sender);
 	/// 
 	/// class Bad {
@@ -70,8 +77,8 @@ namespace Gendarme.Rules.Design {
 	/// </example>
 	/// <remarks>This rule is available since Gendarme 2.2</remarks>
 
-	[Problem ("The delegate which handles the event haven't the correct signature.")]
-	[Solution ("You should correct the signature, return type, parameter types or parameter names.")]
+	[Problem ("The event has an incorrect signature.")]
+	[Solution ("You should correct the return type, parameter types, or parameter names.")]
 	[FxCopCompatibility ("Microsoft.Design", "CA1009:DeclareEventHandlersCorrectly")]
 	public class DeclareEventHandlersCorrectlyRule : Rule, ITypeRule {
 		static IList<TypeReference> valid_event_handler_types = new List<TypeReference> ();

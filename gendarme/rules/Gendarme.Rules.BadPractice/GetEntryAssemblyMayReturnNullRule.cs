@@ -40,9 +40,9 @@ using Gendarme.Framework.Rocks;
 namespace Gendarme.Rules.BadPractice {
 
 	/// <summary>
-	/// This rule warns when an assembly without an entry point (i.e. an EXE) is calling 
-	/// <c>Assembly.GetEntryAssembly()</c>. This call is problematic since it will always 
-	/// return <c>null</c> when called outside the root (main) application domain. This may 
+	/// This rule warns when an assembly without an entry point (i.e. a dll or library) calls 
+	/// <c>Assembly.GetEntryAssembly ()</c>. This call is problematic since it will always 
+	/// return <c>null</c> when called from outside the root (main) application domain. This may 
 	/// become a problem inside libraries that can be used, for example, inside ASP.NET
 	/// applications.
 	/// </summary>
@@ -65,7 +65,7 @@ namespace Gendarme.Rules.BadPractice {
 	/// </code>
 	/// </example>
 
-	[Problem ("This method calls Assembly.GetEntryAssembly which may returns null if not called from the root application domain.")]
+	[Problem ("This method calls Assembly.GetEntryAssembly which may return null if not called from the root application domain.")]
 	[Solution ("Avoid depending on Assembly.GetEntryAssembly inside reusable code.")]
 	[EngineDependency (typeof (OpCodeEngine))]
 	public class GetEntryAssemblyMayReturnNullRule : Rule, IMethodRule {
