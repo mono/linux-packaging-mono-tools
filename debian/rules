@@ -82,17 +82,16 @@ binary-arch:
 binary: binary-indep
 
 get-orig-source:
-	[ -d ../tarballs ] || mkdir ../tarballs
 	uscan \
 		--package $(DEB_SOURCE_NAME) \
 		--watchfile $(DEBIAN_DIR)/watch \
 		--upstream-version $(VERSION) \
 		--download-version $(VERSION) \
-		--destdir ../tarballs \
+		--destdir . \
 		--force-download \
 		--rename
-	bzcat ../tarballs/$(DEB_SOURCE_NAME)_$(VERSION).orig.tar.bz2 | \
-		gzip -9fn -c - > ../tarballs/$(DEB_SOURCE_NAME)_$(VERSION).orig.tar.gz
-	rm ../tarballs/$(DEB_SOURCE_NAME)_$(VERSION).orig.tar.bz2
+	bzcat ./$(DEB_SOURCE_NAME)_$(VERSION).orig.tar.bz2 | \
+		gzip -9fn -c - > ./$(DEB_SOURCE_NAME)_$(VERSION).orig.tar.gz
+	rm ./$(DEB_SOURCE_NAME)_$(VERSION).orig.tar.bz2
 
 .PHONY: build clean clean-patched binary-indep binary install
