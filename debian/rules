@@ -58,6 +58,8 @@ binary-indep: build install
 	# fix upstream file permissions
 	find debian/monodoc-http/usr/*/monodoc/web -type f -exec chmod 644 {} \;
 	find debian/monodoc-http/usr/*/monodoc/web -type d -exec chmod 755 {} \;
+	rm debian/monodoc-http/usr/lib/monodoc/web/xtree/xmlextras.js
+	ln -s /usr/share/javascript/xmlextras/xmlextras.js debian/monodoc-http/usr/lib/monodoc/web/xtree/xmlextras.js
 	# remove directories moved to /usr/share/
 	#find debian/monodoc-http/usr/lib/monodoc/web -type d -name "images" -o -name "xtree" | xargs rm -rf
 	dh_installchangelogs ChangeLog

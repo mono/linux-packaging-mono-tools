@@ -83,6 +83,7 @@ Architecture: all
 Depends: monodoc-manual,
  ${cli:Depends},
  ${cli:XspServer2},
+ libjs-xmlextras,
  monodoc-base
 Recommends: lynx | www-browser
 Description: MonoDoc http based viewer
