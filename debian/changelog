@@ -7,6 +7,10 @@ mono-tools (2.6.2-1) UNRELEASED; urgency=low
     + Explicitly use DebSrc 1.0
   * debian/patches/00-fix_build_system.patch:
     + Refresh (mostly rendered irrelevant upstream)
+  * debian/control,
+    debian/mono-profiler.install:
+    + Remove reference to dead .desktop files, add reference to
+      emveepee tool
 
  -- Jo Shields <directhex@apebox.org>  Mon, 07 Jun 2010 20:14:57 +0100
 

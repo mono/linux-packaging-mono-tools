@@ -74,6 +74,7 @@ Description: Mono profiler
  This package contains utilities for profiling Mono CLI assemblies:
    - mprof-decoder
    - mprof-heap-viewer
+   - emveepee
 
 Package: monodoc-http
 Provides: monodoc-viewer
