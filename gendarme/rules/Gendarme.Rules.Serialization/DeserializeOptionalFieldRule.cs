@@ -34,9 +34,12 @@ using Gendarme.Framework.Rocks;
 namespace Gendarme.Rules.Serialization {
 
 	/// <summary>
-	/// This rule checks for types that have field(s) marked with <c>[OptionalField]</c>. 
-	/// Such types should take care of re-computing the value(s) when the data is deserialized 
-	/// using the <c>[OnDeserialized]</c> or <c>[OnDeserializing]</c> attributes on a method.
+	/// This rule will fire if a type has fields marked with <c>[OptionalField]</c>, but does
+	/// not have methods decorated with the <c>[OnDeserialized]</c> or <c>[OnDeserializing]</c> 
+	/// attributes. This is a problem because the binary deserializer does not actually construct
+	/// objects (it uses <c>System.Runtime.Serialization.FormatterServices.GetUninitializedObject</c>
+	/// instead). So, if binary deserialization is used the optional field(s) will be zeroed instead 
+	/// of properly initialized.
 	/// This rule only applies to assemblies compiled with the .NET framework version 2.0 
 	/// (or later).
 	/// </summary>
@@ -55,19 +58,18 @@ namespace Gendarme.Rules.Serialization {
 	/// <code>
 	/// [Serializable]
 	/// public class ClassWithOptionalField {
+	/// 	// Normally the (compiler generated) default constructor will
+	/// 	// initialize this. The default constructor will be called by the
+	/// 	// XML and Soap deserializers, but not the binary serializer.
 	/// 	[OptionalField]
 	/// 	private int optional = 1;
 	/// 	
-	/// 	[OnDeserialized]
-	/// 	private void Deserialized (StreamingContext context)
-	/// 	{
-	/// 		optional = 0;
-	/// 	}
-	/// 	
+	/// 	// This will be called immediately after the object is
+	/// 	// deserialized. 
 	/// 	[OnDeserializing]
 	/// 	private void OnDeserializing (StreamingContext context)
 	/// 	{
-	/// 		optional = 0;
+	/// 		optional = 1;
 	/// 	}
 	/// }
 	/// </code>

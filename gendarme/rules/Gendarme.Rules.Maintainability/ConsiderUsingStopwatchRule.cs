@@ -43,9 +43,10 @@ namespace Gendarme.Rules.Maintainability {
 	/// <summary>
 	/// This rule checks methods for cases where a <c>System.Diagnostics.Stopwatch</c> could be
 	/// used instead of using <c>System.DateTime</c> to compute the time required for an action.
-	/// This does not affect execution nor (much) performance but it improves source 
-	/// code readability. This rule only applies to assemblies compiled with the 
-	/// .NET framework version 2.0 (or later).
+	/// Stopwatch is preferred because it better expresses the intent of the code and because (on
+	/// some platforms at least) StopWatch is accurate to roughly the microsecond whereas 
+	/// DateTime.Now is only accurate to 16 milliseconds or so. This rule only applies to assemblies
+	/// compiled with the .NET framework version 2.0 (or later).
 	/// </summary>
 	/// <example>
 	/// Bad example:
@@ -71,7 +72,7 @@ namespace Gendarme.Rules.Maintainability {
 	/// </example>
 	/// <remarks>This rule is available since Gendarme 2.0</remarks>
 
-	[Problem ("This method uses difference between two DateTime.Now calls to retrieve processing time. Developer's intent may not be very clear.")]
+	[Problem ("This method uses the difference between two DateTime.Now calls to retrieve processing time. The developer's intent may not be very clear.")]
 	[Solution ("Use the System.Diagnostics.Stopwatch type to improve code readability.")]
 	[EngineDependency (typeof (OpCodeEngine))]
 	public class ConsiderUsingStopwatchRule : Rule, IMethodRule {

@@ -1,7 +1,82 @@
-2009-02-17  Jb Evain  <jbevain@novell.com>
+2009-07-15  Jb Evain  <jbevain@novell.com>
+
+	* InfoManager.cs: add a Silverlight 3.0 profile.
+
+2009-06-10  Marek Safar <marek.safar@gmail.com>
+
+	* Metadata.cs, CecilMetadata.cs, InfoManager.cs, CompareContext.cs,
+	  MasterMetadata.cs, Masterinfo.cs: Some work on generic type
+	  parameter comparison and sealed/abstract/static type modifiers.
+
+2009-06-03  Marek Safar <marek.safar@gmail.com>
+
+	* InfoManager.cs: Added 4.0 profile assemblies. Look for assemblies
+	in MONO_PATH when specified.
+
+2009-06-03  Jb Evain  <jbevain@novell.com>
+
+	* InfoManager.cs: refactor the code to retrieve masterinfos
+	considering.
+
+2009-04-30  Rodrigo Kumpera <rkumpera@novell.com>
+
+	* gtk-gui/GuiCompare.CustomCompare.cs: Make custom compares
+	work again.
+
+2009-04-20  Rolf Bjarne Kvinge  <RKvinge@novell.com>
+
+	* CecilMetadata.cs: GetLiteralValue: don't crash on null
+	literal values.
+
+2009-04-08 Gonzalo Paniagua Javier <gonzalo@novell.com>
+
+	* Comparison.cs: added a Reset() so we're able to recalculate the
+	counts after modifying the tree.
+
+2009-04-07  Rolf Bjarne Kvinge  <RKvinge@novell.com>
+
+	* InfoManager.cs: Look up the Moonlight assemblies in the 
+	correct plugin directory.
+
+2009-04-06 Gonzalo Paniagua Javier <gonzalo@novell.com>
+
+	* Comparison.cs: add properties used by the DB backend of the web
+	application.
+
+2009-04-02 Gonzalo Paniagua Javier <gonzalo@novell.com>
+
+	* CompareContext.cs:
+	* MasterMetadata.cs: deal with errors loading the masterinfo file or
+	any other by raising the Error event and calling Finish.
+
+2009-04-02  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* InfoManager.cs: Look up the Moonlight assemblies in the plugin
+	directory.
+
+2009-02-26  Marek Habersack  <mhabersack@novell.com>
+
+	* Comparison.cs: better handling of links generation for
+	comparison types other than method, attribute and delegate.
+
+2009-02-25  Marek Habersack  <mhabersack@novell.com>
+
+	* MainWindow.cs, CecilMetadata.cs, Metadata.cs, CompareContext.cs,
+	Comparison.cs: added support for MSDN documentation URLs attached
+	to the tree nodes. URLs can be opened in the user's browser by
+	double-clicking on the nodes which, when selected, show an MSDN
+	URL in the status bar.
+	Added a legend.
+
+2009-01-29  Jb Evain  <jbevain@novell.com>
 
 	* Makefile.am: reference directly cecil from the gac as gendarme
 	does instead of copying it locally.
+
+2009-01-28  Jb Evain  <jbevain@novell.com>
+
+	* AssemblyResolver.cs, CecilMetadata.cs: use directly the new
+	Resolve methods that Cecil now provides.
 
 2009-01-06  Jb Evain  <jbevain@novell.com>
 

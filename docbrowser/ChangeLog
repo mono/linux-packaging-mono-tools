@@ -3,13 +3,54 @@
 	* WebKitHtmlRender.cs: WebKit (1.1.15+) now raises NavigationRequested
 	events for initial loads from html, with about:blank uri. We only
 	want to deal with user-generated navigation events, so ignore these.
-	[backported from r143994]
 
-2009-01-29  Andreia Gaita <shana@jitted.com>
+2009-09-29  Jonathan Pryor  <jpryor@novell.com>
+
+	* browser.cs: The make-index, make-search-index, and merge-changes
+	  options shouldn't display the GUI.
+
+2009-08-13  Jonathan Pryor  <jpryor@novell.com>
+
+	* browser.cs: Rename --docdir to --docrootdir.  Add --docdir option
+	  which will read .source files from the specified directory.
+
+2009-08-13  Jonathan Pryor  <jpryor@novell.com>
+
+	* browser.cs: Provide more accurate help for --engine.
+
+2009-08-13  Jonathan Pryor  <jpryor@novell.com>
+
+	* Makefile.am: Use Mono.Options for option parsing.
+	* browser.cs: Use Mono.Options for option parsing (yay consistency;
+	  --engine=ENGINE will actually work).  Add --docdir=DIR parameter to
+	  load documentation from the specified directory.
+
+2009-04-25  Jonathan Pryor  <jpryor@novell.com>
+
+	* browser.cs: Browser.GetHtml() needs to cope with
+	  RootTree.RenderUrl() returning a null match node, which can happen
+	  because an EcmaUncompiledHelpSource always sets the match node to
+	  null, but will return a non-null string.  Fixes #505476.
+
+2009-04-30  Marek Habersack  <mhabersack@novell.com>
+
+	* browser.cs: NodePageVisit.Go () - it seems n.tree is almost
+	never a RootTree, so the cast to that type caused monodoc to throw
+	invalid cast exception and bail out. The fix is to use
+	browser.help_tree instead of n.tree.
+
+2009-04-25  Jonathan Pryor  <jpryor@novell.com>
+
+	* browser.cs: Enable use of the webdoc cache, if present.  This
+	  requires writing the HTML header (style & script information)
+	  instead of letting monodoc.dll generate this, as the cache doesn't
+	  contain <style/> and <script/>.
+
+2009-01-29  Andreia Gaita <shana@jitted.com> 
 
 	* MonoWebBrowserHtmlRender.cs: remove first load logic, there is no first
 	load anymore.
-	[Backported from r124896. Fixes #468694]
+	[Fixes #468694]
 
 2008-11-13  Andreia Gaita <shana@jitted.com> 
 

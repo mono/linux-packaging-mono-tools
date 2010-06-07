@@ -27,6 +27,7 @@
 //
 
 using System;
+using System.ComponentModel;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -38,18 +39,23 @@ namespace Gendarme.Rules.Performance {
 
 	/// <summary>
 	/// This rule warns when the number of local variables exceed a maximum value (default is
-	/// 64). Having a huge amount of local variables makes it hard to generate code that 
-	/// perform well and, likely, makes the code harder to understand.
+	/// 64). Having a large amount of local variables makes it hard to generate code that 
+	/// performs well and, likely, makes the code harder to understand.
 	/// </summary>
 	/// <remarks>This rule is available since Gendarme 2.0</remarks>
 
-	[Problem ("The number of local variables is too large to allow the JIT to properly allocate registers.")]
-	[Solution ("Refactor your code to reduce the number of variables or split the variables into several methods.")]
+	[Problem ("The number of local variables is so large that the JIT will be unable to properly allocate registers.")]
+	[Solution ("Refactor your code to reduce the number of variables or split the method into several methods.")]
 	[FxCopCompatibility ("Microsoft.Performance", "CA1809:AvoidExcessiveLocals")]
 	public class AvoidLargeNumberOfLocalVariablesRule : Rule, IMethodRule {
 
-		private int max_variables = 64;
+		private const int DefaultMaxVariables = 64;
+		private int max_variables = DefaultMaxVariables;
 
+		/// <summary>The maximum number of local variables which methods may have without a defect being reported.</summary>
+		/// <remarks>Defaults to 64.</remarks>
+		[DefaultValue (DefaultMaxVariables)]
+		[Description ("The maximum number of local variables which methods may have without a defect being reported.")]
 		public int MaximumVariables {
 			get { return max_variables; }
 			set { max_variables = value; }

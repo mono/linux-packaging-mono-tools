@@ -37,57 +37,78 @@ using Gendarme.Framework.Helpers;
 using Gendarme.Framework.Rocks;
 
 namespace Gendarme.Rules.Performance {
-	
+
 	/// <summary>
-	/// This rule catches a common problem when a type has a finalizer (called a destructor in C#)
-	/// and implements <c>System.IDisposable</c>. In this case the <c>Dispose</c> method should 
-	/// call <c>System.GC.SuppressFinalize</c> to avoid the finalizer to be, needlessly, called.
+	/// This rule will fire if a type implements <c>System.IDisposable</c> and has a finalizer
+	/// (called a destructor in C#), but the Dispose method does not call <c>System.GC.SuppressFinalize</c>.
+	/// Failing to do this should not cause properly written code to fail, but it does place a non-trivial
+	/// amount of extra pressure on the garbage collector and on the finalizer thread.
 	/// </summary>
 	/// <example>
 	/// Bad example:
 	/// <code>
-	/// class Test: SomeClass, IDisposable {
-	///	~Test ()
-	///	{
-	///		if (ptr != IntPtr.Zero) {
-	///			Free (ptr);
-	///		}
-	///	}
-	///	
-	///	public void Dispose ()
-	///	{
-	///		if (ptr != IntPtr.Zero) {
-	///			Free (ptr);
-	///		}
-	///	}
+	/// class BadClass : IDisposable {
+	/// 	~BadClass ()
+	/// 	{
+	/// 		Dispose (false);
+	/// 	}
+	/// 	
+	/// 	public void Dispose ()
+	/// 	{
+	/// 		// GC.SuppressFinalize is missing so the finalizer will be called
+	/// 		// which puts needless extra pressure on the garbage collector.
+	/// 		Dispose (true);
+	/// 	}
+	/// 	
+	/// 	private void Dispose (bool disposing)
+	/// 	{
+	/// 		if (ptr != IntPtr.Zero) {
+	/// 			Free (ptr);
+	/// 			ptr = IntPtr.Zero;
+	/// 		}
+	/// 	}
+	/// 	
+	/// 	[DllImport ("somelib")]
+	/// 	private static extern void Free (IntPtr ptr);
+	/// 	
+	/// 	private IntPtr ptr;
 	/// }
 	/// </code>
 	/// </example>
 	/// <example>
 	/// Good example:
 	/// <code>
-	/// class Test: SomeClass, IDisposable {
-	///	~Test ()
-	///	{
-	///		if (ptr != IntPtr.Zero) {
-	///			Free (ptr);
-	///		}
-	///	}
-	///	
-	///	public void Dispose ()
-	///	{
-	///		if (ptr != IntPtr.Zero) {
-	///			Free (ptr);
-	///		}
-	///		GC.SuppressFinalize (this);
-	///	}
+	/// class GoodClass : IDisposable {
+	/// 	~GoodClass ()
+	/// 	{
+	/// 		Dispose (false);
+	/// 	}
+	/// 	
+	/// 	public void Dispose ()
+	/// 	{
+	/// 		Dispose (true);
+	/// 		GC.SuppressFinalize (this);
+	/// 	}
+	/// 	
+	/// 	private void Dispose (bool disposing)
+	/// 	{
+	/// 		if (ptr != IntPtr.Zero) {
+	/// 			Free (ptr);
+	/// 			ptr = IntPtr.Zero;
+	/// 		}
+	/// 	}
+	/// 	
+	/// 	[DllImport ("somelib")]
+	/// 	private static extern void Free (IntPtr ptr);
+	/// 	
+	/// 	private IntPtr ptr;
 	/// }
 	/// </code>
 	/// </example>
 	/// <remarks>Prior to Gendarme 2.2 this rule was named IDisposableWithDestructorWithoutSuppressFinalizeRule</remarks>
 
-	[Problem ("The type has a finalizer and implements IDisposable. However it doesn't call System.GC.SuppressFinalize inside Dispose.")]
-	[Solution ("Add a call to GC.SuppressFinalize inside your Dispose method.s")]
+	[Problem ("The type has a finalizer and implements IDisposable, but Dispose does not call System.GC.SuppressFinalize.")]
+	[Solution ("Add a call to GC.SuppressFinalize inside your Dispose method.")]
 	[EngineDependency (typeof (OpCodeEngine))]
 	public class UseSuppressFinalizeOnIDisposableTypeWithFinalizerRule : Rule, ITypeRule {
 

@@ -1,6 +1,54 @@
+2009-08-19  Massimiliano Mantione <massi@ximian.com>
+	* Reader.cs:
+	Return null when file ends without an EndBlock, instead of throwing
+	an exception.  This supports intermediate parsing of log files
+	during suspend/resume operations.
+
+2009-07-15  Mike Kestner <mkestner@novell.com>
+	* Reader.cs: add a Close method to explicitly close the stream.
+
+2009-06-30  Massimiliano Mantione <massi@ximian.com>
+	* BaseTypes.cs, Decoder.cs:
+	Added flags that state what kind of profile data has been processed.
+
+2009-06-24  Massimiliano Mantione <massi@ximian.com>
+	* ObjectModel.cs, EventProcessor.cs:
+	Build direct and reverse call trees for statistical events.
+
+2009-06-18  Massimiliano Mantione <massi@ximian.com>
+	* BaseTypes.cs, Decoder.cs, ObjectModel.cs, EventProcessor.cs:
+	Added assembly information to classes and wrapper flag to methods.
+
+2009-06-12  Massimiliano Mantione <massi@ximian.com>
+	* EventProcessor.cs, ObjectModel.cs (StackTrace): Got rid of static
+	fields when handling call stack creation, and introduced a proper
+	factory instead.
+
+2009-06-12  Massimiliano Mantione <massi@ximian.com>
+	* ObjectModel.cs (CallStack.MethodExit and CallStack.PopMethod):
+	properly merged the fix for call stack execution time attribution.
+
+2009-06-12  Massimiliano Mantione <massi@ximian.com>
+	* ObjectModel.cs: added method execution time accounting on
+	individual stack frames in the call tree.
+
+2009-06-09  Mike Kestner <mkestner@novell.com>
+	* ObjectModel.cs: commit Massi's calls StackTrace logging.
+
+2009-05-21  Mike Kestner <mkestner@novell.com>
+	* *: replace MD 1.0 solution files with 2.0 msbuild files, and turn
+	on makefile synchronization instead of generated makefiles.
+
+2009-04-06  Massimiliano Mantione <massi@ximian.com>
+	* BaseTypes.cs, Decoder.cs, ObjectModel.cs, EventProcessor.cs:
+	Added support for monitor profiling.
+
 2009-03-17  Massimiliano Mantione <massi@ximian.com>
-	* ObjectModel.cs: backport small fixes from trunk (make it like
-	r129643).
+	* ObjectModel.cs: In "IHeapItemSetStatisticsSubject.Description"
+	implementations return the full method name.
+
+2009-03-16  Massimiliano Mantione <massi@ximian.com>
+	* ObjectModel.cs: fixed description string of "referenced by" subset.
 
 2009-01-17  Massimiliano Mantione <massi@ximian.com>
 	* BaseTypes.cs: Added "Region" property to IExecutableMemoryRegion, so

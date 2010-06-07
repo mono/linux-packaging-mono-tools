@@ -217,9 +217,9 @@ namespace  Mono.Profiler {
 			}
 		}
 		
-		public static readonly LoadedClass LoadedClassUnavailable = new LoadedClass (0, "(CLASS UNAVAILABLE)", 0);
+		public static readonly LoadedClass LoadedClassUnavailable = new LoadedClass (0, LoadedAssembly.Unavailable, "(CLASS UNAVAILABLE)", 0);
 		
-		public LoadedClass (uint id, string name, uint size): base (id, name, size) {
+		public LoadedClass (uint id, LoadedAssembly assembly, string name, uint size): base (id, assembly, name, size) {
 			allocatedBytes = 0;
 			currentlyAllocatedBytes = 0;
 			allocationsPerMethod = null;
@@ -258,6 +258,75 @@ namespace  Mono.Profiler {
 			}
 		}
 		
+		ulong clicks;
+		public ulong Clicks {
+			get {
+				return clicks;
+			}
+		}
+		uint calls;
+		public ulong Calls {
+			get {
+				return calls;
+			}
+		}
+		
+		public void ResetCalls () {
+			calls = 0;
+			clicks = 0;
+		}
+		public void RegisterCall (ulong clicks) {
+			this.clicks += clicks;
+			calls ++;
+		}
+		
+		static StackTrace[] EmptyCalledFrames = new StackTrace [0];
+		List<StackTrace> calledFrames;
+		public StackTrace[] CalledFrames {
+			get {
+				if (calledFrames != null) {
+					StackTrace[] result = calledFrames.ToArray ();
+					Array.Sort (result, CompareByClicks);
+					Array.Reverse (result);
+					return result;
+				} else {
+					return EmptyCalledFrames;
+				}
+			}
+		}
+		void AddCalledFrame (StackTrace calledFrame) {
+			if (calledFrames == null) {
+				calledFrames = new List<StackTrace> ();
+			}
+			calledFrames.Add (calledFrame);
+		}
+		
+		public static Comparison<StackTrace> CompareByClicks = delegate (StackTrace a, StackTrace b) {
+			return a.Clicks.CompareTo (b.Clicks);
+		};
+		public static Comparison<StackTrace> CompareByCalls = delegate (StackTrace a, StackTrace b) {
+			return a.Calls.CompareTo (b.Calls);
+		};
+		
+		public void Write (TextWriter writer, int depth, string indentationString) {
+			writer.Write ("CallStack of id ");
+			writer.Write (id);
+			writer.Write ('\n');
+			
+			StackTrace currentFrame = this;
+			while (currentFrame != null) {
+				StackTrace nextFrame = currentFrame.Caller;
+				for (int i = 0; i < depth; i++) {
+					writer.Write (indentationString);
+				}
+				writer.Write (currentFrame.TopMethod.Name);
+				if (nextFrame != null) {
+					writer.Write ('\n');
+				}
+				currentFrame = nextFrame;
+			}
+		}
+		
 		public string FullDescription {
 			get {
 				System.Text.StringBuilder sb = new System.Text.StringBuilder ();
@@ -287,13 +356,20 @@ namespace  Mono.Profiler {
 			}
 		}
 		
-		StackTrace (LoadedMethod topMethod, StackTrace caller, bool methodIsBeingJitted) {
+		public static readonly StackTrace StackTraceUnavailable = new StackTrace (CallStack.StackFrame.StackFrameUnavailable.Method, null, false, 0);
+		
+		StackTrace (LoadedMethod topMethod, StackTrace caller, bool methodIsBeingJitted, uint id) {
+			this.clicks = 0;
+			this.calls = 0;
+			this.calledFrames = null;
 			this.topMethod = topMethod;
 			this.caller = caller;
+			if (caller != null) {
+				caller.AddCalledFrame (this);
+			}
 			this.methodIsBeingJitted = methodIsBeingJitted;
 			this.level = caller != null ? caller.level + 1 : 1;
-			this.id = nextFreeId;
-			nextFreeId ++;
+			this.id = id;
 		}
 		
 		bool MatchesCallStack (CallStack.StackFrame stack) {
@@ -317,59 +393,75 @@ namespace  Mono.Profiler {
 			}
 		}
 		
-		internal static StackTrace NewStackTrace (CallStack stack) {
-			return NewStackTrace (stack.StackTop);
-		}
-		
-		static uint nextFreeId;
-		static Dictionary<uint,List<StackTrace>> [] tracesByLevel;
-		public static readonly StackTrace StackTraceUnavailable;
-		static StackTrace () {
-			nextFreeId = 0;
-			tracesByLevel = new Dictionary<uint,List<StackTrace>> [64];
-			StackTraceUnavailable = NewStackTrace (CallStack.StackFrame.StackFrameUnavailable);
-		}
-		
-		static StackTrace NewStackTrace (CallStack.StackFrame frame) {
-			if (frame == null) {
-				return null;
-			}
-			
-			if (frame.Level >= (uint) tracesByLevel.Length) {
-				Dictionary<uint,List<StackTrace>> [] newTracesByLevel = new Dictionary<uint,List<StackTrace>> [frame.Level * 2];
-				Array.Copy (tracesByLevel, newTracesByLevel, tracesByLevel.Length);
-				tracesByLevel = newTracesByLevel;
-			}
-			
-			Dictionary<uint,List<StackTrace>> tracesByMethod = tracesByLevel [frame.Level];
-			if (tracesByLevel [frame.Level] == null) {
-				tracesByMethod = new Dictionary<uint,List<StackTrace>> ();
-				tracesByLevel [frame.Level] = tracesByMethod;
-			}
-			
-			List<StackTrace> traces;
-			if (tracesByMethod.ContainsKey (frame.Method.ID)) {
-				traces = tracesByMethod [frame.Method.ID];
-			} else {
-				traces = new List<StackTrace> ();
-				tracesByMethod [frame.Method.ID] = traces;
-			}
-			
-			foreach (StackTrace trace in traces) {
-				if (trace.MatchesCallStack (frame)) {
-					return trace;
+		internal class Factory {
+			List<StackTrace> rootFrames;
+			public StackTrace[] RootFrames {
+				get {
+					StackTrace[] result = rootFrames.ToArray ();
+					Array.Sort (result, StackTrace.CompareByClicks);
+					Array.Reverse (result);
+					return result;
 				}
 			}
+			uint nextFreeId;
+			Dictionary<uint,List<StackTrace>> [] tracesByLevel;
 			
-			StackTrace callerTrace = NewStackTrace (frame.Caller);
-			StackTrace result = new StackTrace (frame.Method, callerTrace, frame.IsBeingJitted);
-			traces.Add (result);
-			return result;
+			public Factory () {
+				rootFrames = new List<StackTrace> ();
+				// Important: StackTrace.StackTraceUnavailable gets id 0, which must be unique
+				nextFreeId = 1;
+				tracesByLevel = new Dictionary<uint,List<StackTrace>> [64];
+			}
+			
+			public StackTrace NewStackTrace (CallStack.StackFrame frame) {
+				if (frame == null) {
+					return null;
+				}
+				
+				if (frame.Level >= (uint) tracesByLevel.Length) {
+					Dictionary<uint,List<StackTrace>> [] newTracesByLevel = new Dictionary<uint,List<StackTrace>> [frame.Level * 2];
+					Array.Copy (tracesByLevel, newTracesByLevel, tracesByLevel.Length);
+					tracesByLevel = newTracesByLevel;
+				}
+				
+				Dictionary<uint,List<StackTrace>> tracesByMethod = tracesByLevel [frame.Level];
+				if (tracesByLevel [frame.Level] == null) {
+					tracesByMethod = new Dictionary<uint,List<StackTrace>> ();
+					tracesByLevel [frame.Level] = tracesByMethod;
+				}
+				
+				List<StackTrace> traces;
+				if (tracesByMethod.ContainsKey (frame.Method.ID)) {
+					traces = tracesByMethod [frame.Method.ID];
+				} else {
+					traces = new List<StackTrace> ();
+					tracesByMethod [frame.Method.ID] = traces;
+				}
+				
+				foreach (StackTrace trace in traces) {
+					if (trace.MatchesCallStack (frame)) {
+						return trace;
+					}
+				}
+				
+				StackTrace callerTrace = NewStackTrace (frame.Caller);
+				StackTrace result = new StackTrace (frame.Method, callerTrace, frame.IsBeingJitted, nextFreeId);
+				nextFreeId ++;
+				traces.Add (result);
+				if (callerTrace == null) {
+					rootFrames.Add (result);
+				}
+				return result;
+			}
+			
+			public StackTrace NewStackTrace (CallStack stack) {
+				return NewStackTrace (stack.StackTop);
+			}
 		}
 	}
 	
 	class CallStack {
-		internal class StackFrame {
+		public class StackFrame {
 			LoadedMethod method;
 			public LoadedMethod Method {
 				get {
@@ -468,7 +560,7 @@ namespace  Mono.Profiler {
 			}
 		}
 		
-		void PopMethod (LoadedMethod method, ulong counter, bool isBeingJitted) {
+		void PopMethod (StackTrace.Factory stackTraceFactory, LoadedMethod method, ulong counter, bool isBeingJitted) {
 			while (stackTop != null) {
 				LoadedMethod topMethod = stackTop.Method;
 				bool topMethodIsBeingJitted = stackTop.IsBeingJitted;
@@ -476,7 +568,13 @@ namespace  Mono.Profiler {
 				LoadedMethod callerMethod = (callerFrame != null)? callerFrame.Method : null;
 				
 				if (! topMethodIsBeingJitted) {
-					topMethod.MethodCalled (counter - stackTop.StartCounter, callerMethod);
+					ulong delta = counter - stackTop.StartCounter;
+					
+					topMethod.MethodCalled (delta, callerMethod);
+					StackTrace trace = stackTraceFactory.NewStackTrace (this);
+					if (trace != null) {
+						trace.RegisterCall (delta);
+					}
 				}
 				
 				StackFrame.FreeFrame (stackTop);
@@ -490,18 +588,18 @@ namespace  Mono.Profiler {
 		internal void MethodEnter (LoadedMethod method, ulong counter) {
 			stackTop = StackFrame.FrameFactory (method, counter, false, stackTop);
 		}
-		internal void MethodExit (LoadedMethod method, ulong counter) {
-			PopMethod (method, counter, false);
+		internal void MethodExit (StackTrace.Factory stackTraceFactory, LoadedMethod method, ulong counter) {
+			PopMethod (stackTraceFactory, method, counter, false);
 		}
-		internal void TopMethodExit (ulong counter) {
-			MethodExit (stackTop.Method, counter);
+		internal void TopMethodExit (StackTrace.Factory stackTraceFactory, ulong counter) {
+			MethodExit (stackTraceFactory, stackTop.Method, counter);
 		}
 		
 		internal void MethodJitStart (LoadedMethod method, ulong counter) {
 			stackTop = StackFrame.FrameFactory (method, counter, true, stackTop);
 		}
-		internal void MethodJitEnd (LoadedMethod method, ulong counter) {
-			PopMethod (method, counter, true);
+		internal void MethodJitEnd (StackTrace.Factory stackTraceFactory, LoadedMethod method, ulong counter) {
+			PopMethod (stackTraceFactory, method, counter, true);
 		}
 		
 		internal void AdjustStack (uint lastValidFrame, uint topSectionSize, StackSectionElement<LoadedClass,LoadedMethod>[] topSection) {
@@ -629,6 +727,95 @@ namespace  Mono.Profiler {
 		uint StatisticalHits {get;}
 		bool HasCallCounts {get;}
 		StatisticalHitItemCallCounts CallCounts {get;}
+	}
+	
+	public class StatisticalHitItemTreeNode {
+		IStatisticalHitItem item;
+		public IStatisticalHitItem Item {
+			get {
+				return item;
+			}
+		}
+		
+		public string Name {
+			get {
+				return item.Name;
+			}
+		}
+		
+		uint hitCount;
+		void IncrementHitCount () {
+			hitCount ++;
+		}
+		public uint HitCount {
+			get {
+				return hitCount;
+			}
+		}
+		
+		public static Comparison<StatisticalHitItemTreeNode> CompareByHitCount = delegate (StatisticalHitItemTreeNode a, StatisticalHitItemTreeNode b) {
+			int result = b.HitCount.CompareTo (a.HitCount);
+			if (result == 0) {
+				result = a.Name.CompareTo (b.Name);
+			}
+			return result;
+		};
+		
+		
+		Dictionary<string,StatisticalHitItemTreeNode> children;
+		static StatisticalHitItemTreeNode[] emptyChildren = new StatisticalHitItemTreeNode [0];
+		public int ChildrenCount {
+			get {
+				return (children != null) ? children.Count : 0;
+			}
+		}
+		public StatisticalHitItemTreeNode[] Children {
+			get {
+				if (children != null) {
+					StatisticalHitItemTreeNode[] result = new StatisticalHitItemTreeNode [children.Count];
+					int resultIndex = 0;
+					foreach (StatisticalHitItemTreeNode child in children.Values) {
+						result [resultIndex] = child;
+						resultIndex ++;
+					}
+					Array.Sort (result, CompareByHitCount);
+					return result;
+				} else {
+					return emptyChildren;
+				}
+			}
+		}
+		
+		public StatisticalHitItemTreeNode AddChild (IStatisticalHitItem childItem) {
+			if (children == null) {
+				children = new Dictionary<string, StatisticalHitItemTreeNode> ();
+			}
+			StatisticalHitItemTreeNode child;
+			if (children.ContainsKey (childItem.Name)) {
+				child = children [childItem.Name];
+			} else {
+				child = new StatisticalHitItemTreeNode (childItem);
+				children [childItem.Name] = child;
+			}
+			child.IncrementHitCount ();
+			return child;
+		}
+		
+		public void PrintTree (TextWriter writer, uint fatherHits, int level) {
+			for (int i = 0; i < level; i++) {
+				writer.Write ("    ");
+			}
+			writer.WriteLine ("{0,5:F2}% ({1}) {2}", ((((double) HitCount) / fatherHits) * 100), HitCount, Name);
+			foreach (StatisticalHitItemTreeNode child in Children) {
+				child.PrintTree (writer, HitCount, level + 1);
+			}
+		}
+		
+		public StatisticalHitItemTreeNode (IStatisticalHitItem item) {
+			this.item = item;
+			this.hitCount = 0;
+			this.children = null;
+		}
 	}
 	
 	public class LoadedMethod : BaseLoadedMethod<LoadedClass>, IStatisticalHitItem, IHeapItemSetStatisticsSubject {
@@ -835,10 +1022,10 @@ namespace  Mono.Profiler {
 			calledClicks += clicks;
 		}
 		
-		public static readonly LoadedMethod LoadedMethodUnavailable = new LoadedMethod (0, LoadedClass.LoadedClassUnavailable, "(METHOD UNAVAILABLE)");
-		public static readonly LoadedMethod LoadedMethodForStackTraceUnavailable = new LoadedMethod (0, LoadedClass.LoadedClassUnavailable, "(CALL STACK UNAVAILABLE)");
+		public static readonly LoadedMethod LoadedMethodUnavailable = new LoadedMethod (0, LoadedClass.LoadedClassUnavailable, false, "(METHOD UNAVAILABLE)");
+		public static readonly LoadedMethod LoadedMethodForStackTraceUnavailable = new LoadedMethod (0, LoadedClass.LoadedClassUnavailable, false, "(CALL STACK UNAVAILABLE)");
 		
-		public LoadedMethod (uint id, LoadedClass c, string name): base (id, c, name) {
+		public LoadedMethod (uint id, LoadedClass c, bool isWrapper, string name): base (id, c, isWrapper, name) {
 			clicks = 0;
 			calledClicks = 0;
 			jitClicks = 0;
@@ -1827,11 +2014,14 @@ namespace  Mono.Profiler {
 			}
 		}
 		
-		public LoadedClass NewClass (uint id, string name, uint size) {
-			return new LoadedClass (id, name, size);
+		public LoadedAssembly NewAssembly (uint id, string name, string baseName, uint major, uint minor, uint build, uint revision, string culture, string publicKeyToken, bool retargetable) {
+			return new LoadedAssembly (id, name, baseName, major, minor, build, revision, culture, publicKeyToken, retargetable);
 		}
-		public LoadedMethod NewMethod (uint id, LoadedClass c, string name) {
-			return new LoadedMethod (id, c, name);
+		public LoadedClass NewClass (uint id, LoadedAssembly assembly,  string name, uint size) {
+			return new LoadedClass (id, assembly, name, size);
+		}
+		public LoadedMethod NewMethod (uint id, LoadedClass c, bool isWrapper, string name) {
+			return new LoadedMethod (id, c, isWrapper, name);
 		}
 		public ExecutableMemoryRegion NewExecutableMemoryRegion (uint id, string fileName, uint fileOffset, ulong startAddress, ulong endAddress) {
 			return new ExecutableMemoryRegion (id, fileName, fileOffset, startAddress, endAddress);
@@ -1846,6 +2036,576 @@ namespace  Mono.Profiler {
 	
 	public class AllocationSummary : BaseAllocationSummary<LoadedClass> {
 		public AllocationSummary (uint collection, ulong startCounter, DateTime startTime) : base (collection, startCounter, startTime) {
+		}
+	}
+	
+	public interface MonitorAggregatedDataHandler {
+		ulong TicksContended {get;}
+		void AddTicksContended (ulong increment);
+		ulong ContentionCount {get;}
+		void IncrementContentionCount ();
+		ulong FailCount {get;}
+		void IncrementFailCount ();
+		void Reset ();
+		
+		void WriteName (TextWriter writer, int depth);
+		void WriteIndividualStatistics (TextWriter writer, MonitorAggregatedDataHandler owner, ProfilerEventHandler processor, int depth);
+		void WriteFullStatistics (TextWriter writer, MonitorAggregatedDataHandler owner, ProfilerEventHandler processor, int depth);
+	}
+	
+	public interface MonitorContainerDataHandler : MonitorAggregatedDataHandler {
+		MonitorAggregatedDataHandler[] ComponentData {get;}
+	}
+	
+	public struct MonitorAggregatedData {
+		ulong ticksContended;
+		public ulong TicksContended {
+			get {
+				return ticksContended;
+			}
+		}
+		public void AddTicksContended (ulong increment) {
+			ticksContended += increment;
+		}
+		
+		uint contentionCount;
+		public ulong ContentionCount {
+			get {
+				return contentionCount;
+			}
+		}
+		public void IncrementContentionCount () {
+			contentionCount ++;
+		}
+		
+		uint failCount;
+		public ulong FailCount {
+			get {
+				return failCount;
+			}
+		}
+		public void IncrementFailCount () {
+			failCount ++;
+		}
+		
+		public void Reset () {
+			ticksContended = 0;
+			contentionCount = 0;
+			failCount = 0;
+		}
+	}
+	
+	public abstract class BaseMonitorStatisticsCollector : MonitorAggregatedDataHandler {
+		protected MonitorAggregatedData data;
+		
+		public ulong TicksContended {
+			get {
+				return data.TicksContended;
+			}
+		}
+		public abstract void AddTicksContended (ulong increment);
+		public ulong ContentionCount {
+			get {
+				return data.ContentionCount;
+			}
+		}
+		public abstract void IncrementContentionCount ();
+		public ulong FailCount {
+			get {
+				return data.FailCount;
+			}
+		}
+		public abstract void IncrementFailCount ();
+		public abstract void Reset ();
+		
+		public abstract void WriteName (TextWriter writer, int depth);
+		
+		protected static readonly string IndentationString = "        ";
+		protected void WriteIndentation (TextWriter writer, int depth) {
+			for (int i = 0; i < depth; i++) {
+				writer.Write (IndentationString);
+			}
+		}
+		public void WriteIndividualStatistics (TextWriter writer, MonitorAggregatedDataHandler owner, ProfilerEventHandler processor, int depth) {
+			if (owner == null) {
+				owner = this;
+			}
+			
+			WriteIndentation (writer, depth);
+			
+			//double secondsContended = processor.ClicksToSeconds (TicksContended);
+			//double ownerSecondsContended = processor.ClicksToSeconds (owner.TicksContended);
+			writer.Write ("{0,5:F2}% ({1:F6} ticks) contention time ({2} contentions, {3} failures) in ",
+			              //(secondsContended / ownerSecondsContended) * 100.0,
+			              (((double) TicksContended) / owner.TicksContended) * 100.0,
+			              //secondsContended,
+			              TicksContended,
+			              ContentionCount,
+			              FailCount);
+			WriteName (writer, depth);
+			writer.WriteLine ();
+		}
+		public abstract void WriteFullStatistics (TextWriter writer, MonitorAggregatedDataHandler owner, ProfilerEventHandler processor, int depth);
+		
+		protected static void WriteComponentStatistics (TextWriter writer, MonitorAggregatedDataHandler owner, MonitorAggregatedDataHandler[] components, ProfilerEventHandler processor, int depth) {
+			foreach (MonitorAggregatedDataHandler component in components) {
+				component.WriteFullStatistics (writer, owner, processor, depth + 1);
+			}
+		}
+		protected static void WriteSimpleContainerComponentStatistics (TextWriter writer, MonitorContainerDataHandler container, ProfilerEventHandler processor, int depth) {
+			WriteComponentStatistics (writer, container, container.ComponentData, processor, depth);
+		}
+		protected static void WriteSimpleContainerFullStatistics (TextWriter writer, MonitorAggregatedDataHandler owner, MonitorContainerDataHandler container, ProfilerEventHandler processor, int depth) {
+			container.WriteIndividualStatistics (writer, owner, processor, depth);
+			WriteComponentStatistics (writer, container, container.ComponentData, processor, depth);
+		}
+		
+		public static Comparison<MonitorAggregatedDataHandler> CompareStatistics = delegate (MonitorAggregatedDataHandler a, MonitorAggregatedDataHandler b) {
+			int result = b.TicksContended.CompareTo (a.TicksContended);
+			if (result != 0) {
+				return result;
+			} else {
+				return b.ContentionCount.CompareTo (a.ContentionCount);
+			}
+		};
+	}
+	
+	public abstract class SimpleMonitorStatistics : BaseMonitorStatisticsCollector {
+		public override void AddTicksContended (ulong increment) {
+			data.AddTicksContended (increment);
+		}
+		public override void IncrementContentionCount () {
+			data.IncrementContentionCount ();
+		}
+		public override void IncrementFailCount () {
+			data.IncrementFailCount ();
+		}
+		public override void Reset () {
+			data.Reset ();
+		}
+	}
+	
+	public class GlobalMonitorStatistics : SimpleMonitorStatistics, MonitorContainerDataHandler {
+		Dictionary<uint,MonitorStatisticsByClass> statistics;
+		public MonitorStatisticsByClass[] Statistics {
+			get {
+				MonitorStatisticsByClass[] result = new MonitorStatisticsByClass [statistics.Count];
+				statistics.Values.CopyTo (result, 0);
+				Array.Sort (result, CompareStatistics);
+				return result;
+			}
+		}
+		public MonitorAggregatedDataHandler[] ComponentData {
+			get {
+				return Statistics;
+			}
+		}
+		
+		public void HandleEvent (ulong threadId, MonitorEvent eventCode, LoadedClass c, ulong objectId, StackTrace trace, ulong counter) {
+			MonitorStatisticsByClass target;
+			if (! statistics.ContainsKey (c.ID)) {
+				target = new MonitorStatisticsByClass (this, c);
+				statistics [c.ID] = target;
+			} else {
+				target = statistics [c.ID];
+			}
+			
+			target.HandleEvent (threadId, eventCode, objectId, trace, counter);
+		}
+		
+		public string Name {
+			get {
+				return "Global statistics";
+			}
+		}
+		
+		public override void WriteName (TextWriter writer, int depth) {
+			writer.Write (Name);
+		}
+		
+		public override void WriteFullStatistics (TextWriter writer, MonitorAggregatedDataHandler owner, ProfilerEventHandler processor, int depth) {
+			WriteSimpleContainerFullStatistics (writer, owner, this, processor, depth);
+		}
+		
+		public void WriteStatistics (TextWriter writer, ProfilerEventHandler processor) {
+			WriteFullStatistics (writer, this, processor, 0);
+		}
+		
+		public bool ContainsData {
+			get {
+				return statistics.Count > 0;
+			}
+		}
+		
+		public GlobalMonitorStatistics () {
+			statistics = new Dictionary<uint,MonitorStatisticsByClass> ();
+		}
+	}
+	
+	public abstract class DependentMonitorStatistics<MS> : BaseMonitorStatisticsCollector where MS : MonitorAggregatedDataHandler {
+		MS owner;
+		public MS Owner {
+			get {
+				return owner;
+			}
+		}
+		
+		public override void AddTicksContended (ulong increment) {
+			data.AddTicksContended (increment);
+			owner.AddTicksContended (increment);
+		}
+		public override void IncrementContentionCount () {
+			data.IncrementContentionCount ();
+			owner.IncrementContentionCount ();
+		}
+		public override void IncrementFailCount () {
+			data.IncrementFailCount ();
+			owner.IncrementFailCount ();
+		}
+		public override void Reset () {
+			data.Reset ();
+			owner.Reset ();
+		}
+		
+		protected DependentMonitorStatistics (MS owner) {
+			this.owner = owner;
+		}
+	}
+	
+	public class MonitorStatisticsByCallerPerClass : SimpleMonitorStatistics, MonitorContainerDataHandler {
+		LoadedMethod caller;
+		public LoadedMethod Caller {
+			get {
+				return caller;
+			}
+		}
+		
+		Dictionary<uint,MonitorStatisticsByCallStack<MonitorStatisticsByCallerPerClass>> statistics;
+		public MonitorStatisticsByCallStack<MonitorStatisticsByCallerPerClass>[] Statistics {
+			get {
+				MonitorStatisticsByCallStack<MonitorStatisticsByCallerPerClass>[] result = new MonitorStatisticsByCallStack<MonitorStatisticsByCallerPerClass> [statistics.Count];
+				statistics.Values.CopyTo (result, 0);
+				Array.Sort (result, CompareStatistics);
+				return result;
+			}
+		}
+		public MonitorAggregatedDataHandler[] ComponentData {
+			get {
+				return Statistics;
+			}
+		}
+		
+		public MonitorStatisticsByCallStack<MonitorStatisticsByCallerPerClass> HandleEvent (MonitorEvent eventCode, StackTrace trace) {
+			MonitorStatisticsByCallStack<MonitorStatisticsByCallerPerClass> target;
+			if (! statistics.ContainsKey (trace.ID)) {
+				target = new MonitorStatisticsByCallStack<MonitorStatisticsByCallerPerClass> (this, trace);
+				statistics [trace.ID] = target;
+			} else {
+				target = statistics [trace.ID];
+			}
+			
+			target.HandleEvent (eventCode);
+			
+			return target;
+		}
+		
+		public string Name {
+			get {
+				return caller.Class.Name + "." + caller.Name;
+			}
+		}
+		
+		public override void WriteName (TextWriter writer, int depth) {
+			writer.Write (Name);
+		}
+		
+		public override void WriteFullStatistics (TextWriter writer, MonitorAggregatedDataHandler owner, ProfilerEventHandler processor, int depth) {
+			WriteSimpleContainerFullStatistics (writer, owner, this, processor, depth);
+		}
+		
+		public MonitorStatisticsByCallerPerClass (LoadedMethod caller) {
+			this.caller = caller;
+			statistics = new Dictionary<uint,MonitorStatisticsByCallStack<MonitorStatisticsByCallerPerClass>> ();
+		}
+	}
+	
+	public class MonitorStatisticsByClass : DependentMonitorStatistics<GlobalMonitorStatistics>, MonitorContainerDataHandler {
+		LoadedClass c;
+		public LoadedClass Class {
+			get {
+				return c;
+			}
+		}
+		
+		Dictionary<ulong,MonitorStatistics> statistics;
+		public MonitorStatistics[] Statistics {
+			get {
+				MonitorStatistics[] result = new MonitorStatistics [statistics.Count];
+				statistics.Values.CopyTo (result, 0);
+				Array.Sort (result, CompareStatistics);
+				return result;
+			}
+		}
+		public MonitorAggregatedDataHandler[] ComponentData {
+			get {
+				return Statistics;
+			}
+		}
+		
+		Dictionary<uint,MonitorStatisticsByCallerPerClass> statisticsByCaller;
+		public MonitorStatisticsByCallerPerClass[] StatisticsByCaller {
+			get {
+				MonitorStatisticsByCallerPerClass[] result = new MonitorStatisticsByCallerPerClass [statisticsByCaller.Count];
+				statisticsByCaller.Values.CopyTo (result, 0);
+				Array.Sort (result, CompareStatistics);
+				return result;
+			}
+		}
+		public MonitorAggregatedDataHandler[] ComponentDataByCaller {
+			get {
+				return StatisticsByCaller;
+			}
+		}
+		
+		public void HandleEvent (ulong threadId, MonitorEvent eventCode, ulong objectId, StackTrace trace, ulong counter) {
+			MonitorStatisticsByCallerPerClass callerPerClassTarget;
+			if (statisticsByCaller.ContainsKey (trace.TopMethod.ID)) {
+				callerPerClassTarget = statisticsByCaller [trace.TopMethod.ID];
+			} else {
+				callerPerClassTarget = new MonitorStatisticsByCallerPerClass (trace.TopMethod);
+				statisticsByCaller [trace.TopMethod.ID] = callerPerClassTarget;
+			}
+			MonitorStatisticsByCallStack<MonitorStatisticsByCallerPerClass> tracePerClassDestination = callerPerClassTarget.HandleEvent (eventCode, trace);
+			
+			MonitorStatistics target;
+			if (statistics.ContainsKey (objectId)) {
+				target = statistics [objectId];
+			} else {
+				target = new MonitorStatistics (this, objectId);
+				statistics [objectId] = target;
+			}
+			
+			target.HandleEvent (threadId, eventCode, trace, counter, tracePerClassDestination);
+		}
+		
+		public string Name {
+			get {
+				return c.Name;
+			}
+		}
+		
+		public override void WriteName (TextWriter writer, int depth) {
+			writer.Write (Name);
+		}
+		
+		public override void WriteFullStatistics (TextWriter writer, MonitorAggregatedDataHandler owner, ProfilerEventHandler processor, int depth) {
+			WriteIndividualStatistics (writer, owner, processor, depth);
+			
+			WriteIndentation (writer, depth + 1);
+			writer.WriteLine ("Statistics by caller:");
+			WriteComponentStatistics (writer, this, ComponentDataByCaller, processor, depth + 1);
+			
+			WriteIndentation (writer, depth + 1);
+			writer.WriteLine ("Statistics by monitor:");
+			WriteComponentStatistics (writer, this, ComponentData, processor, depth + 1);
+		}
+		
+		public MonitorStatisticsByClass (GlobalMonitorStatistics gms, LoadedClass c) : base (gms) {
+			this.c = c;
+			statistics = new Dictionary<ulong,MonitorStatistics> ();
+			statisticsByCaller = new Dictionary<uint,MonitorStatisticsByCallerPerClass> ();
+		}
+	}
+	
+	public class MonitorStatistics : DependentMonitorStatistics<MonitorStatisticsByClass>, MonitorContainerDataHandler {
+		struct ThreadState {
+			public ulong lastCounterValue;
+			//public bool isPerformingRetry;
+		}
+		
+		ThreadState currentThreadState;
+		ulong currentThreadId;
+		Dictionary<ulong,ThreadState> threadStates;
+		
+		void SetCurrentThread (ulong threadId) {
+			if (currentThreadId != threadId) {
+				threadStates [currentThreadId] = currentThreadState;
+				if (! threadStates.ContainsKey (threadId)) {
+					threadStates [threadId] = new ThreadState ();
+				}
+				currentThreadState = threadStates [threadId];
+				currentThreadId = threadId;
+			}
+		}
+		
+		public void HandleEvent (ulong threadId, MonitorEvent eventCode, StackTrace trace, ulong counter, MonitorStatisticsByCallStack<MonitorStatisticsByCallerPerClass> tracePerClassDestination) {
+			uint methodId = trace.TopMethod.ID;
+			MonitorStatisticsByCaller target;
+			if (! statistics.ContainsKey (methodId)) {
+				target = new MonitorStatisticsByCaller (this, trace.TopMethod);
+				statistics [methodId] = target;
+			} else {
+				target = statistics [methodId];
+			}
+			
+			MonitorStatisticsByCallStack<MonitorStatisticsByCaller> destination = target.HandleEvent (eventCode, trace);
+			
+			SetCurrentThread (threadId);
+			
+			switch (eventCode) {
+			case MonitorEvent.CONTENTION:
+				tracePerClassDestination.IncrementContentionCount ();
+				destination.IncrementContentionCount ();
+				currentThreadState.lastCounterValue = counter;
+				break;
+			case MonitorEvent.DONE:
+				tracePerClassDestination.AddTicksContended (counter - currentThreadState.lastCounterValue);
+				destination.AddTicksContended (counter - currentThreadState.lastCounterValue);
+				currentThreadState.lastCounterValue = counter;
+				break;
+			case MonitorEvent.FAIL:
+				tracePerClassDestination.AddTicksContended (counter - currentThreadState.lastCounterValue);
+				destination.AddTicksContended (counter - currentThreadState.lastCounterValue);
+				currentThreadState.lastCounterValue = counter;
+				
+				tracePerClassDestination.IncrementFailCount ();
+				destination.IncrementFailCount ();
+				break;
+			default:
+				throw new Exception (String.Format ("Invalid MonitorEvent code {0}", eventCode));
+			}
+		}
+		
+		ulong objectId;
+		public ulong ObjectId {
+			get {
+				return objectId;
+			}
+		}
+		
+		Dictionary<uint,MonitorStatisticsByCaller> statistics;
+		public MonitorStatisticsByCaller[] Statistics {
+			get {
+				MonitorStatisticsByCaller[] result = new MonitorStatisticsByCaller [statistics.Count];
+				statistics.Values.CopyTo (result, 0);
+				Array.Sort (result, CompareStatistics);
+				return result;
+			}
+		}
+		public MonitorAggregatedDataHandler[] ComponentData {
+			get {
+				return Statistics;
+			}
+		}
+		
+		public string Name {
+			get {
+				return "object " + ObjectId;
+			}
+		}
+		
+		public override void WriteName (TextWriter writer, int depth) {
+			writer.Write (Name);
+		}
+		
+		public override void WriteFullStatistics (TextWriter writer, MonitorAggregatedDataHandler owner, ProfilerEventHandler processor, int depth) {
+			WriteSimpleContainerFullStatistics (writer, owner, this, processor, depth);
+		}
+		
+		public MonitorStatistics (MonitorStatisticsByClass msbc, ulong objectId) : base (msbc) {
+			this.objectId = objectId;
+			currentThreadState.lastCounterValue = 0;
+			currentThreadId = 0;
+			threadStates = new Dictionary<ulong,ThreadState> ();
+			threadStates [0] = new ThreadState ();
+			statistics = new Dictionary<uint,MonitorStatisticsByCaller> ();
+		}
+	}
+	
+	public class MonitorStatisticsByCaller : DependentMonitorStatistics<MonitorStatistics>, MonitorContainerDataHandler {
+		LoadedMethod caller;
+		public LoadedMethod Caller {
+			get {
+				return caller;
+			}
+		}
+		
+		Dictionary<uint,MonitorStatisticsByCallStack<MonitorStatisticsByCaller>> statistics;
+		public MonitorStatisticsByCallStack<MonitorStatisticsByCaller>[] Statistics {
+			get {
+				MonitorStatisticsByCallStack<MonitorStatisticsByCaller>[] result = new MonitorStatisticsByCallStack<MonitorStatisticsByCaller> [statistics.Count];
+				statistics.Values.CopyTo (result, 0);
+				Array.Sort (result, CompareStatistics);
+				return result;
+			}
+		}
+		public MonitorAggregatedDataHandler[] ComponentData {
+			get {
+				return Statistics;
+			}
+		}
+		
+		public MonitorStatisticsByCallStack<MonitorStatisticsByCaller> HandleEvent (MonitorEvent eventCode, StackTrace trace) {
+			MonitorStatisticsByCallStack<MonitorStatisticsByCaller> target;
+			if (! statistics.ContainsKey (trace.ID)) {
+				target = new MonitorStatisticsByCallStack<MonitorStatisticsByCaller> (this, trace);
+				statistics [trace.ID] = target;
+			} else {
+				target = statistics [trace.ID];
+			}
+			
+			target.HandleEvent (eventCode);
+			
+			return target;
+		}
+		
+		public string Name {
+			get {
+				return caller.Class.Name + "." + caller.Name;
+			}
+		}
+		
+		public override void WriteName (TextWriter writer, int depth) {
+			writer.Write (Name);
+		}
+		
+		public override void WriteFullStatistics (TextWriter writer, MonitorAggregatedDataHandler owner, ProfilerEventHandler processor, int depth) {
+			WriteSimpleContainerFullStatistics (writer, owner, this, processor, depth);
+		}
+		
+		public MonitorStatisticsByCaller (MonitorStatistics ms, LoadedMethod caller) : base (ms) {
+			this.caller = caller;
+			statistics = new Dictionary<uint,MonitorStatisticsByCallStack<MonitorStatisticsByCaller>> ();
+		}
+	}
+	
+	public class MonitorStatisticsByCallStack<C> : DependentMonitorStatistics<C> where C : MonitorContainerDataHandler {
+		StackTrace trace;
+		public StackTrace Trace {
+			get {
+				return trace;
+			}
+		}
+		
+		public void HandleEvent (MonitorEvent eventCode) {
+		}
+		
+		public string Name {
+			get {
+				return trace.FullDescription;
+			}
+		}
+		
+		public override void WriteName (TextWriter writer, int depth) {
+			trace.Write (writer, depth + 2, IndentationString);
+		}
+		
+		public override void WriteFullStatistics (TextWriter writer, MonitorAggregatedDataHandler owner, ProfilerEventHandler processor, int depth) {
+			WriteIndividualStatistics (writer, owner, processor, depth);
+		}
+		
+		public MonitorStatisticsByCallStack (C owner, StackTrace trace) : base (owner) {
+			this.trace = trace;
 		}
 	}
 }

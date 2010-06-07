@@ -34,10 +34,10 @@ using Gendarme.Framework.Rocks;
 namespace Gendarme.Rules.Naming {
 
 	/// <summary>
-	/// This rule checks for enumerations that contains values named <c>reserved</c>. This
-	/// practice, often seen in C/C++ application, is not needed in .NET since adding new
-	/// values is not a breaking change. However renaming a <c>reserved</c> value to a new
-	/// name would be a breaking change.
+	/// This rule checks for enumerations that contain values named <c>reserved</c>. This
+	/// practice, often seen in C/C++ sources, is not needed in .NET since adding new
+	/// values will not normally break binary compatibility. However renaming a <c>reserved</c> 
+	/// enum value can since there is no way to prevent people from using the old value.
 	/// </summary>
 	/// <example>
 	/// Bad example:
@@ -56,13 +56,15 @@ namespace Gendarme.Rules.Naming {
 	/// public enum Answer {
 	///	Yes,
 	///	No
-	///	// we can add Maybe anytime without causing a breaking change
+	///	// we can add Maybe here without causing a breaking change
+	///	// (but note that we may break code if we change the values of
+	///	// existing enumerations)
 	/// }
 	/// </code>
 	/// </example>
 
 	[Problem ("This type is an enumeration that contains value(s) named 'reserved'.")]
-	[Solution ("The 'reserved' value should be removed since there is no need to reserve enums values.")]
+	[Solution ("The 'reserved' value should be removed since there is no need to reserve enum values.")]
 	[FxCopCompatibility ("Microsoft.Naming", "CA1700:DoNotNameEnumValuesReserved")]
 	public class DoNotUseReservedInEnumValueNamesRule : Rule, ITypeRule {
 

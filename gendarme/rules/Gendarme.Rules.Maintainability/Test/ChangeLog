@@ -1,7 +1,6 @@
 2009-02-15  Sebastien Pouliot  <sebastien@ximian.com>
 
-	* AvoidAlwaysNullFieldTest.cs: Fixtures must be public
-	* Tests.Rules.Maintainability.csproj: Add AvoidAlwaysNullFieldTest.cs
+	* AvoidAlwaysNullFieldTest.cs: TestFixture must be public
 
 2008-13-10  Jesse Jones  <jesjones@mindspring.com>
 

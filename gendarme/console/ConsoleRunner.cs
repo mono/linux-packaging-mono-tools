@@ -278,7 +278,8 @@ namespace Gendarme {
 					writer.Report ();
 				}
 			}
-			return 0;
+
+			return (byte) ((0 == Defects.Count) ? 0 : 1);
 		}
 
 		byte Execute (string [] args)
@@ -324,17 +325,31 @@ namespace Gendarme {
 				TearDown ();
 
 				return Report ();
-			}
-			catch (Exception e) {
-				Console.WriteLine ();
-				Console.WriteLine ("An uncaught exception occured. Please fill a bug report at https://bugzilla.novell.com/");
-				if (CurrentRule != null)
-					Console.WriteLine ("Rule:\t{0}", CurrentRule);
-				if (CurrentTarget != null)
-					Console.WriteLine ("Target:\t{0}", CurrentTarget);
-				Console.WriteLine ("Stack trace: {0}", e);
+
+			} catch (IOException e) {
+				if (0 == VerbosityLevel) {
+					Console.Error.WriteLine ("ERROR: {0}", e.Message);
+					return 2;
+				} else {
+					WriteUnhandledExceptionMessage (e);
+					return 4;
+				}
+
+			} catch (Exception e) {
+				WriteUnhandledExceptionMessage (e);
 				return 4;
 			}
+		}
+
+		private void WriteUnhandledExceptionMessage (Exception e)
+		{
+			Console.WriteLine ();
+			Console.WriteLine ("An uncaught exception occured. Please fill a bug report at https://bugzilla.novell.com/");
+			if (CurrentRule != null)
+				Console.WriteLine ("Rule:\t{0}", CurrentRule);
+			if (CurrentTarget != null)
+				Console.WriteLine ("Target:\t{0}", CurrentTarget);
+			Console.WriteLine ("Stack trace: {0}", e);
 		}
 
 		private Stopwatch total = new Stopwatch ();
@@ -386,6 +401,22 @@ namespace Gendarme {
 				else
 					Console.WriteLine ("{0} assemblies processed in {1}.",
 						Assemblies.Count, TimeToString (total.Elapsed));
+
+				string hint = string.Empty;
+				if (null != log_file || null != xml_file || null != html_file) {
+					List<string> files = new List<string> (new string [] { log_file, xml_file, html_file });
+					files.RemoveAll (string.IsNullOrEmpty);
+					hint = string.Format ("Report{0} written to: {1}.",
+						(files.Count > 1) ? "s": string.Empty,
+						string.Join (",", files.Select (file => string.Format ("`{0}'", file)).ToArray ()));
+				}
+
+				if (Defects.Count == 0)
+					Console.WriteLine ("No defect found. {0}", hint);
+				else if (Defects.Count == 1)
+					Console.WriteLine ("One defect found. {0}", hint);
+				else
+					Console.WriteLine ("{0} defects found. {1}", Defects.Count, hint);
 			}
 		}
 
@@ -440,12 +471,12 @@ namespace Gendarme {
 		{
 			Console.WriteLine ("Usage: gendarme [--config file] [--set ruleset] [--{log|xml|html} file] assemblies");
 			Console.WriteLine ("Where");
-			Console.WriteLine ("  --config file\t\tSpecify the configuration file. Default is 'rules.xml'.");
-			Console.WriteLine ("  --set ruleset\t\tSpecify the set of rules to verify. Default is '*'.");
-			Console.WriteLine ("  --log file\t\tSave the text output to the specified file.");
-			Console.WriteLine ("  --xml file\t\tSave the output, as XML, to the specified file.");
-			Console.WriteLine ("  --html file\t\tSave the output, as HTML, to the specified file.");
-			Console.WriteLine ("  --ignore file\t\tDo not report defects specified inside the file.");
+			Console.WriteLine ("  --config file\t\tSpecify the rule sets and rule settings. Default is 'rules.xml'.");
+			Console.WriteLine ("  --set ruleset\t\tSpecify a rule set from configfile. Default is 'default'.");
+			Console.WriteLine ("  --log file\t\tSave the report to the specified file.");
+			Console.WriteLine ("  --xml file\t\tSave the report, as XML, to the specified file.");
+			Console.WriteLine ("  --html file\t\tSave the report, as HTML, to the specified file.");
+			Console.WriteLine ("  --ignore file\t\tDo not report defects listed in the specified file.");
 			Console.WriteLine ("  --limit N\t\tStop reporting after N defects are found.");
 			Console.WriteLine ("  --severity [all | [[audit | low | medium | high | critical][+|-]]],...");
 			Console.WriteLine ("\t\t\tFilter defects for the specified severity levels.");
@@ -453,8 +484,8 @@ namespace Gendarme {
 			Console.WriteLine ("  --confidence [all | [[low | normal | high | total][+|-]],...");
 			Console.WriteLine ("\t\t\tFilter defects for the specified confidence levels.");
 			Console.WriteLine ("\t\t\tDefault is 'normal+'");
-			Console.WriteLine ("  --quiet\t\tDisplay minimal output (results) from the runner.");
-			Console.WriteLine ("  --v\t\t\tEnable debugging output (can be used multiple times).");
+			Console.WriteLine ("  --quiet\t\tUsed to disable progress and other information which is normally written to stdout.");
+			Console.WriteLine ("  --v\t\t\tWhen present additional progress information is written to stdout (can be used multiple times).");
 			Console.WriteLine ("  assemblies\t\tSpecify the assemblies to verify.");
 			Console.WriteLine ();
 		}

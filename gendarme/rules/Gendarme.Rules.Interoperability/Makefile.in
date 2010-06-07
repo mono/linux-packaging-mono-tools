@@ -124,6 +124,7 @@ LTLIBOBJS = @LTLIBOBJS@
 MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
 MCS = @MCS@
+MDOC = @MDOC@
 MKDIR_P = @MKDIR_P@
 MONODOC_CFLAGS = @MONODOC_CFLAGS@
 MONODOC_LIBS = @MONODOC_LIBS@
@@ -246,6 +247,7 @@ rules_doc = $(rules_doc_zip) $(rules_doc_source) $(rules_doc_tree)
 generated_doc = doc/generated/index.xml
 tests_build_sources = $(addprefix $(srcdir)/Test/, $(tests_sources))
 rules_sources = \
+	DelegatesPassedToNativeCodeMustIncludeExceptionHandlingRule.cs \
 	DoNotCastIntPtrToInt32Rule.cs \
 	GetLastErrorMustBeCalledRightAfterPInvokeRule.cs \
 	MarshalBooleansInPInvokeDeclarationsRule.cs \
@@ -259,7 +261,8 @@ tests_sources = \
 	MarshalBooleansInPInvokeDeclarationsTest.cs \
 	MarshalStringsInPInvokeDeclarationsTest.cs \
 	PInvokeShouldNotBeVisibleTest.cs \
-	UseManagedAlternativesToPInvokeTest.cs
+	UseManagedAlternativesToPInvokeTest.cs	\
+	DelegatesPassedToNativeCodeMustIncludeExceptionHandlingTest.cs
 
 all: all-recursive
 
@@ -635,6 +638,7 @@ self-test: $(rules_dll)
 $(generated_doc): $(rules_dll)
 	mkdir -p doc
 	mdoc update -i $(rules_dll).doc -o doc/generated $(rules_dll)
+	touch $(generated_doc)
 
 $(rules_doc_zip): $(generated_doc)
 	mdoc assemble -f ecma -o doc/$(prefixed_rules_category) doc/generated 

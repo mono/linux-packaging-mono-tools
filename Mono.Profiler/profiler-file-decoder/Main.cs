@@ -113,6 +113,18 @@ namespace Mono.Profiler
 			
 		}
 		
+		static void PrintExecutionTimeByCallStack (TextWriter writer, ProfilerEventHandler data, StackTrace stackFrame, double callerSeconds, int indentationLevel) {
+			for (int i = 0; i < indentationLevel; i++) {
+				writer.Write ("    ");
+			}
+			LoadedMethod currentMethod = stackFrame.TopMethod;
+			double currentSeconds = data.ClicksToSeconds (stackFrame.Clicks);
+			writer.WriteLine ("{0,5:F2}% ({1:F6}s, {2} calls) {3}.{4}", ((currentSeconds / callerSeconds) * 100), currentSeconds, stackFrame.Calls, currentMethod.Class.Name, currentMethod.Name);
+			foreach (StackTrace calledFrame in stackFrame.CalledFrames) {
+				PrintExecutionTimeByCallStack (writer, data, calledFrame, currentSeconds, indentationLevel + 1);
+			}
+		}
+		
 		static void PrintData (TextWriter writer, ProfilerEventHandler data) {
 			LoadedClass[] classes = data.LoadedElements.Classes;
 			LoadedMethod[] methods = data.LoadedElements.Methods;
@@ -159,6 +171,12 @@ namespace Mono.Profiler
 								}
 							}
 						}
+					}
+					
+					PrintSeparator (writer);
+					writer.WriteLine ("Reporting execution time by stack frame");
+					foreach (StackTrace rootFrame in data.RootFrames) {
+						PrintExecutionTimeByCallStack (writer, data, rootFrame, data.ClicksToSeconds (totalExecutionClicks), 0);
 					}
 				} else {
 					writer.WriteLine ("No execution time reported (on {0} methods)", methods.Length);
@@ -216,6 +234,12 @@ namespace Mono.Profiler
 				} else {
 					writer.WriteLine ("No statistical hits reported (on {0} items)", statisticalHitItems.Length);
 				}
+			}
+			
+			if (data.GlobalMonitorStatistics.ContainsData) {
+				PrintSeparator (writer);
+				writer.WriteLine ("Reporting monitor statistics.");
+				data.GlobalMonitorStatistics.WriteStatistics (writer, data);
 			}
 			
 			ProfilerEventHandler.GcStatistics[] gcStatistics = data.GarbageCollectioncStatistics;

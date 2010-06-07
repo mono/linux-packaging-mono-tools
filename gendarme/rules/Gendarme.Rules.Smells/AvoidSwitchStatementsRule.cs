@@ -33,13 +33,29 @@ using Gendarme.Framework;
 using Gendarme.Framework.Rocks;
 
 namespace Gendarme.Rules.Smells { 
-	
+
+	// TODO: The text in this rule completely confuses me. Is is saying that
+	// all switch statements should be avoided? How exactly do switch statements
+	// lead to code duplication? As far as I can tell, this isn't true at all: switch
+	// statements don't promote code duplication more than any other construct.
+	//
+	// The only real problem with switch statements I am aware of is that they
+	// are sometimes used to dispatch on types which is a bad idea because
+	// virtual methods are normally better for that. The end of the summary
+	// seems to address this but in a rather confusing way. The best way to
+	// clarify the problem IMO is to talk about the Open/Closed Principle.
+	//	
+	// In addition this rule looks like it will fire for every single switch statement
+	// in the assembly. The majority of switch statements are going to be fine
+	// so the summary and solution text need to make it very clear that the code
+	// may be perfectly fine.
+		
 	/// <summary>
-	/// This rule avoids the Switch Statements smell.  This kind of smell
-	/// could lead your code to duplication, because the same switch could
-	/// be repeated in various places of your program.  Also, if you will
-	/// need to do a little change, you should change every switch
-	/// statement, the OO way is do it with polymorphism.
+	/// This rule checks for the Switch Statements smell.  This can
+	/// lead to code duplication, because the same switch could
+	/// be repeated in various places in your program.  Also, if
+	/// need to do a little change, you may have to change every switch
+	/// statement. The preferred way to do this is with virtual methods and polymorphism.
 	/// </summary>
 	/// <example>
 	/// Bad example:
@@ -47,16 +63,19 @@ namespace Gendarme.Rules.Smells {
 	/// int balance = 0;
 	/// foreach (Movie movie in movies) {
 	/// 	switch (movie.GetTypeCode ()) {
-	/// 	case MovieType.OldMovie:
-	/// 		balance += movie.DaysRented * movie.Price / 2;
-	/// 		break
-	/// 	case MovieType.ChildMovie:
-	/// 		//its an special bargain !!
-	/// 		balance += movie.Price;
-	/// 		break;
-	/// 	case MovieType.NewMovie:
-	/// 		balance += (movie.DaysRented + 1) * movie.Price;
-	/// 		break:
+	///	 	case MovieType.OldMovie: {
+	/// 			balance += movie.DaysRented * movie.Price / 2;
+	/// 			break;
+	///	 	}
+	/// 		case MovieType.ChildMovie: {
+	///	 		//its an special bargain !!
+	/// 			balance += movie.Price;
+	/// 			break;
+	///		}
+	///		case MovieType.NewMovie: {
+	///			balance += (movie.DaysRented + 1) * movie.Price;
+	///			break:
+	///		}
 	/// 	}
 	/// }
 	/// </code>
@@ -68,24 +87,28 @@ namespace Gendarme.Rules.Smells {
 	///	abstract int GetPrice ();
 	/// }
 	/// class OldMovie : Movie {
-	///	public override int GetPrice () {
+	///	public override int GetPrice ()
+	///	{
 	///		return DaysRented * Price / 2;
 	///	}
 	/// }
 	/// class ChildMovie : Movie {
-	///	public override int GetPrice () {
+	///	public override int GetPrice ()
+	///	{
 	///		return movie.Price;
 	///	}
 	/// }
 	/// class NewMovie : Movie {
-	///	public override int GetPrice () {
+	///	public override int GetPrice ()
+	///	{
 	///		return (DaysRented + 1) * Price;
 	///	}
 	/// }
 	///
 	/// int balance = 0;
-	/// foreach (Movie movie in movies)  
+	/// foreach (Movie movie in movies) {
 	/// 	balance += movie.GetPrice ()
+	/// }
 	/// </code>
 	/// </example>
 	/// <remarks>This rule is available since Gendarme 2.4</remarks>

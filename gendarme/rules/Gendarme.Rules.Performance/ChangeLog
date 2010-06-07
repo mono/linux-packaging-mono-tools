@@ -1,8 +1,31 @@
-2009-03-23  Daniel Nauck  <dna@mono-project.de>
+2009-08-16  Jesse Jones  <jesjones@mindspring.com>
 
-        * PreferLiteralOverInitOnlyFieldsRule.cs: Fixed "good example" 
-	documentation.
-	[Backport]
+	* AvoidLargeNumberOfLocalVariablesRule.cs, 
+	IDisposableWithDestructorWithoutSuppressFinalizeRule, 
+	AvoidLargeStructureRule.cs, DontIgnoreMethodResultRule.cs, 
+	AvoidUnusedParametersRule.cs, AvoidUnsealedConcreteAttributesRule.cs, 
+	PreferCharOverloadRule.cs: Edited descriptions.
+
+2009-07-08  Jesse Jones  <jesjones@mindspring.com>
+
+	* CompareWithStringEmptyEfficientlyRule.cs: Use .NET instead of
+	.Net in a doc comment.
+
+2009-07-05  Jesse Jones  <jesjones@mindspring.com>
+
+	* *Rule.cs: Edited most of the rule descriptions.
+
+2009-05-14  Jb Evain  <jbevain@novell.com>
+
+	* AvoidMethodWithLargeMaximumStackSize.cs: new rule.
+
+2009-03-20  Daniel Nauck  <dna@mono-project.de>
+
+	* PreferLiteralOverInitOnlyFieldsRule.cs: Fixed "good example" documentation.
+
+2009-01-27  Jesse Jones  <jesjones@mindspring.com> 
+
+	* ReviewLinqMethodRule.cs, Makefile.am: Added new rule.
 
 2008-12-24  Sebastien Pouliot  <sebastien@ximian.com> 
 

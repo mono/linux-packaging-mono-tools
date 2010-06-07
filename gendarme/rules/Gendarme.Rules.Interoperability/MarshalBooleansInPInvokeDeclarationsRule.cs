@@ -36,23 +36,24 @@ namespace Gendarme.Rules.Interoperability {
 
 	/// <summary>
 	/// This rule warns the developer if a <code>[MarshalAs]</code> attribute has not been 
-	/// specified for boolean parameters of a P/Invoke method. The size of boolean types vary
-	/// across language (e.g. 4 bytes for language treating it as an integer, 1 byte in C++ 
-	/// <c>bool</c>). By default the CLR will marshal <b>System.Boolean</b> as a 32 bits value 
-	/// (<c>UnmanagedType.Bool</c>) like the Win32 API <b>BOOL</b> use. But, for clarity, 
+	/// specified for boolean parameters of a P/Invoke method. The size of boolean types varies
+	/// across language (e.g. the C++ <c>bool</c> type is four bytes on some platforms and
+	/// one byte on others). By default the CLR will marshal <b>System.Boolean</b> as a 32 bit value 
+	/// (<c>UnmanagedType.Bool</c>) like the Win32 API <b>BOOL</b> uses. But, for clarity, 
 	/// you should always specify the correct value.
 	/// </summary>
 	/// <example>
 	/// Bad example:
 	/// <code>
 	/// // bad assuming the last parameter is a single byte being mapped to a bool
+	/// [DllImport ("liberty")]
 	/// private static extern bool Bad (bool b1, ref bool b2);
 	/// </code>
 	/// </example>
 	/// <example>
 	/// Good example:
 	/// <code>
-	/// [DllImport ("liberty.so")]
+	/// [DllImport ("liberty")]
 	/// [return: MarshalAs (UnmanagedType.Bool)]
 	/// private static extern bool Good ([MarshalAs (UnmanagedType.Bool)] bool b1, [MarshalAs (UnmanagedType.U1)] ref bool b2);
 	/// </code>
