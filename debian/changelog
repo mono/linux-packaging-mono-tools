@@ -18,6 +18,8 @@ mono-tools (2.6.2-1) UNRELEASED; urgency=low
     debian/control:
     + Use xmlextras.js from libjs-xmlextras, not the bundled copy
       (Closes: #584471)
+  * debian/control:
+    + Bump build-dep to Mono 2.6.3
 
  -- Jo Shields <directhex@apebox.org>  Mon, 07 Jun 2010 20:14:57 +0100
 
