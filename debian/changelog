@@ -11,6 +11,9 @@ mono-tools (2.6.2-1) UNRELEASED; urgency=low
     debian/mono-profiler.install:
     + Remove reference to dead .desktop files, add reference to
       emveepee tool
+  * debian/control,
+    debian/mono-tools-devel.install:
+    + Add minvoke to mono-tools-devel
 
  -- Jo Shields <directhex@apebox.org>  Mon, 07 Jun 2010 20:14:57 +0100
 

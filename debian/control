@@ -53,6 +53,7 @@ Depends: ${cli:Depends}
 Description: Various development tools for mono
  This package contains various development tools for use with Mono:
   - create-native-map
+  - minvoke
 
 Package: gendarme
 Architecture: all
