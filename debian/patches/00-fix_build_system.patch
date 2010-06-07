@@ -1,5 +1,7 @@
---- mono-tools-2.0.orig/configure.in
-+++ mono-tools-2.0/configure.in
+Index: mono-tools.git/configure.in
+===================================================================
+--- mono-tools.git.orig/configure.in	2010-06-07 20:19:05.000000000 +0100
++++ mono-tools.git/configure.in	2010-06-07 20:23:30.000000000 +0100
 @@ -7,8 +7,8 @@
  AC_PROG_INSTALL
  
@@ -11,83 +13,10 @@
  AC_PATH_PROG(RUNTIME, mono, no)
  AC_PATH_PROG(GACUTIL, gacutil, no)
  
---- mono-tools-2.0.orig/Mono.Profiler/profiler-file-decoder/Makefile.am
-+++ mono-tools-2.0/Mono.Profiler/profiler-file-decoder/Makefile.am
-@@ -4,7 +4,7 @@
- # Warning: This is an automatically generated file, do not edit!
- 
- if ENABLE_DEBUG
--ASSEMBLY_COMPILER_COMMAND = gmcs
-+ASSEMBLY_COMPILER_COMMAND = mono-csc
- ASSEMBLY_COMPILER_FLAGS =  -noconfig -codepage:utf8 -warn:4 -optimize+ -debug -define:DEBUG
- ASSEMBLY = bin/Debug/mprof-decoder.exe
- ASSEMBLY_MDB = $(ASSEMBLY).mdb
-@@ -25,7 +25,7 @@
- endif
- 
- if ENABLE_RELEASE
--ASSEMBLY_COMPILER_COMMAND = gmcs
-+ASSEMBLY_COMPILER_COMMAND = mono-csc
- ASSEMBLY_COMPILER_FLAGS =  -noconfig -codepage:utf8 -warn:4 -optimize+
- ASSEMBLY = bin/Release/mprof-decoder.exe
- ASSEMBLY_MDB = 
---- mono-tools-2.0.orig/Mono.Profiler/profiler-decoder-library/Makefile.am
-+++ mono-tools-2.0/Mono.Profiler/profiler-decoder-library/Makefile.am
-@@ -4,7 +4,7 @@
- # Warning: This is an automatically generated file, do not edit!
- 
- if ENABLE_DEBUG
--ASSEMBLY_COMPILER_COMMAND = gmcs
-+ASSEMBLY_COMPILER_COMMAND = mono-csc
- ASSEMBLY_COMPILER_FLAGS =  -noconfig -codepage:utf8 -warn:4 -optimize+ -debug -define:DEBUG
- ASSEMBLY = bin/Debug/mprof-decoder-library.dll
- ASSEMBLY_MDB = $(ASSEMBLY).mdb
-@@ -18,7 +18,7 @@
- endif
- 
- if ENABLE_RELEASE
--ASSEMBLY_COMPILER_COMMAND = gmcs
-+ASSEMBLY_COMPILER_COMMAND = mono-csc
- ASSEMBLY_COMPILER_FLAGS =  -noconfig -codepage:utf8 -warn:4 -optimize+
- ASSEMBLY = bin/Release/profiler-decoder-library.dll
- ASSEMBLY_MDB = 
---- mono-tools-2.0.orig/Mono.Profiler/heap-snapshot-explorer/Makefile.am
-+++ mono-tools-2.0/Mono.Profiler/heap-snapshot-explorer/Makefile.am
-@@ -4,7 +4,7 @@
- # Warning: This is an automatically generated file, do not edit!
- 
- if ENABLE_DEBUG
--ASSEMBLY_COMPILER_COMMAND = gmcs
-+ASSEMBLY_COMPILER_COMMAND = mono-csc
- ASSEMBLY_COMPILER_FLAGS =  -noconfig -codepage:utf8 -warn:4 -optimize+ -debug "-define:DEBUG"
- 
- ASSEMBLY = bin/Debug/mprof-heap-snapshot-explorer.dll
-@@ -25,7 +25,7 @@
- endif
- 
- if ENABLE_RELEASE
--ASSEMBLY_COMPILER_COMMAND = gmcs
-+ASSEMBLY_COMPILER_COMMAND = mono-csc
- ASSEMBLY_COMPILER_FLAGS =  -noconfig -codepage:utf8 -warn:4 -optimize+
- ASSEMBLY = bin/Release/heap-snapshot-explorer.dll
- ASSEMBLY_MDB = 
---- mono-tools-2.0.orig/Mono.Profiler/heap-snapshot-viewer/Makefile.am
-+++ mono-tools-2.0/Mono.Profiler/heap-snapshot-viewer/Makefile.am
-@@ -4,7 +4,7 @@
- # Warning: This is an automatically generated file, do not edit!
- 
- if ENABLE_DEBUG
--ASSEMBLY_COMPILER_COMMAND = gmcs
-+ASSEMBLY_COMPILER_COMMAND = mono-csc
- ASSEMBLY_COMPILER_FLAGS =  -noconfig -codepage:utf8 -warn:4 -optimize+ -debug "-define:DEBUG"
- 
- ASSEMBLY = bin/Debug/mprof-heap-viewer.exe
-@@ -33,7 +33,7 @@
- endif
- 
- if ENABLE_RELEASE
--ASSEMBLY_COMPILER_COMMAND = gmcs
-+ASSEMBLY_COMPILER_COMMAND = mono-csc
- ASSEMBLY_COMPILER_FLAGS =  -noconfig -codepage:utf8 -warn:4 -optimize+
- ASSEMBLY = bin/Release/mprof-heap-viewer.exe
- ASSEMBLY_MDB = 
+Index: mono-tools.git/Mono.Profiler/compile
+===================================================================
+--- mono-tools.git.orig/Mono.Profiler/compile	2010-06-07 20:25:43.000000000 +0100
++++ mono-tools.git/Mono.Profiler/compile	2010-06-07 20:25:50.000000000 +0100
+@@ -1 +1 @@
+-gmcs -debug -out:profiler-decoder.exe profiler-decoder-library/*.cs profiler-file-decoder/*.cs
++mono-csc -debug -out:profiler-decoder.exe profiler-decoder-library/*.cs profiler-file-decoder/*.cs
