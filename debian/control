@@ -27,7 +27,7 @@ Package: monodoc-browser
 Provides: monodoc-viewer
 Replaces: monodoc-base (<< 1.1.9)
 Architecture: all
-Depends: ${cli:Depends}, monodoc-manual
+Depends: ${cli:Depends}, monodoc-manual, ${misc:Depends}
 Description: MonoDoc GTK+ based viewer
  The MonoDoc Project is the documentation framework of the Mono project which
  provides detailed API documentation for all Mono components and the Mono CLI
@@ -37,7 +37,7 @@ Description: MonoDoc GTK+ based viewer
 
 Package: mono-tools-gui
 Architecture: all
-Depends: ${cli:Depends}
+Depends: ${cli:Depends}, ${misc:Depends}
 Replaces: gnunit (<< 1.2.1)
 Description: Various GUI tools for mono
  This package contains various GUI tools for use with Mono:
@@ -49,7 +49,7 @@ Description: Various GUI tools for mono
 
 Package: mono-tools-devel
 Architecture: all
-Depends: ${cli:Depends}
+Depends: ${cli:Depends}, ${misc:Depends}
 Description: Various development tools for mono
  This package contains various development tools for use with Mono:
   - create-native-map
@@ -57,7 +57,7 @@ Description: Various development tools for mono
 
 Package: gendarme
 Architecture: all
-Depends: ${cli:Depends}
+Depends: ${cli:Depends}, ${misc:Depends}
 Replaces: mono-tools-devel (<< 2.0)
 Conflicts: mono-tools-devel (<< 2.0)
 Homepage: http://www.mono-project.com/Gendarme
@@ -70,7 +70,7 @@ Description: extensible rule-based checker for CLI assemblies
 
 Package: mono-profiler
 Architecture: all
-Depends: ${cli:Depends}
+Depends: ${cli:Depends}, ${misc:Depends}
 Description: Mono profiler
  This package contains utilities for profiling Mono CLI assemblies:
    - mprof-decoder
@@ -82,6 +82,7 @@ Provides: monodoc-viewer
 Architecture: all
 Depends: monodoc-manual,
  ${cli:Depends},
+ ${misc:Depends},
  ${cli:XspServer2},
  libjs-xmlextras,
  monodoc-base
