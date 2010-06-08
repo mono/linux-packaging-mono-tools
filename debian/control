@@ -70,7 +70,7 @@ Description: extensible rule-based checker for CLI assemblies
 
 Package: mono-profiler
 Architecture: all
-Depends: ${cli:Depends}, ${misc:Depends}
+Depends: libmono-profiler, ${cli:Depends}, ${misc:Depends}
 Description: Mono profiler
  This package contains utilities for profiling Mono CLI assemblies:
    - mprof-decoder

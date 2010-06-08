@@ -3,6 +3,9 @@ mono-tools (2.6.2-2) UNRELEASED; urgency=low
   * debian/control:
     + Add ${misc:Depends} liberally, due to debhelper recommendation
     + No-change bump to Standards 3.8.4
+    + Add a manual dep on libmono-profiler to mono-profiler. This is
+      not picked up by dh_clideps because it's not P/Invoked by the
+      profiler apps - it's dlopened by the Mono runtime itself
 
  -- Jo Shields <directhex@apebox.org>  Tue, 08 Jun 2010 12:26:20 +0100
 
