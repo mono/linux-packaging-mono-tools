@@ -1014,6 +1014,7 @@ namespace Test.Rules.Smells {
 		}
 	}
 
+	[TestFixture]
 	public class AvoidLongMethodsTest : MethodRuleTestFixture<AvoidLongMethodsRule> {
 
 		public void LongMethod () 
@@ -1371,7 +1372,7 @@ namespace Test.Rules.Smells {
 		public void FixtureSetUp ()
 		{
 			AssemblyDefinition assembly = DefinitionLoader.GetAssemblyDefinition<AvoidLongMethodsTest> ();
-			if (!assembly.MainModule.HasDebuggingInformation ())
+			if (!assembly.MainModule.HasSymbols)
 				Assert.Ignore ("Debugging symbols non-available to compute SLOC.");
 		}
 	}

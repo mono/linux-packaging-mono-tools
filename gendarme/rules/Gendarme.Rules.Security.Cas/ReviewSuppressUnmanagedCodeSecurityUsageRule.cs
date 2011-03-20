@@ -53,7 +53,7 @@ namespace Gendarme.Rules.Security.Cas {
 
 	[Problem ("This type or method is decorated with [SuppressUnmanagedCodeSecurity] which reduce the number of security checks done when unmanaged code is called.")]
 	[Solution ("Ensure that use of this attribute does not compromise the security of the application.")]
-	[FxCopCompatibility ("Microsoft.Security", "CA1021:ReviewSuppressUnmanagedCodeSecurityUsage")]
+	[FxCopCompatibility ("Microsoft.Security", "CA2118:ReviewSuppressUnmanagedCodeSecurityUsage")]
 	public class ReviewSuppressUnmanagedCodeSecurityUsageRule : Rule, ITypeRule, IMethodRule {
 
 		private const string SUCS = "System.Security.SuppressUnmanagedCodeSecurityAttribute";
@@ -65,8 +65,8 @@ namespace Gendarme.Rules.Security.Cas {
 			// if the module does not reference [SuppressUnmanagedCodeSecurityAttribute]
 			// then it's not being used inside it
 			Runner.AnalyzeModule += delegate (object o, RunnerEventArgs e) {
-				Active = (e.CurrentAssembly.Name.Name == Constants.Corlib
-					|| e.CurrentModule.TypeReferences.ContainsType (SUCS));
+				Active = (e.CurrentAssembly.Name.Name == "mscorlib"
+					|| e.CurrentModule.HasTypeReference (SUCS));
 			};
 		}
 

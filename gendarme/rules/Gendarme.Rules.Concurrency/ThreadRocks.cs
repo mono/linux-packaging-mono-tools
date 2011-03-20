@@ -1,10 +1,12 @@
 //
-// Gendarme.Rules.Concurrency.Rocks
+// Gendarme.Rules.Concurrency.ThreadRocks
 //
 // Authors:
 //	Jesse Jones <jesjones@mindspring.com>
+//	Sebastien Pouliot  <sebastien@ximian.com>
 //
 // Copyright (C) 2009 Jesse Jones
+// Copyright (C) 2010 Novell, Inc (http://www.novell.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the
@@ -26,131 +28,140 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
+using Gendarme.Framework;
 using Gendarme.Framework.Helpers;
 using Gendarme.Framework.Rocks;
 using Mono.Cecil;
 using System;
+using System.Collections;
+using System.Collections.Generic;
 
 namespace Gendarme.Rules.Concurrency {
 	
 	internal static class ThreadRocks {
-		
-		public static ThreadModelAttribute ThreadingModel (this TypeReference tr)
+
+		public static bool AllowsEveryCaller (this ThreadModel self)
 		{
-			ThreadModelAttribute model;
-			
-			TypeDefinition type = tr.Resolve ();
+			return ((self & ThreadModel.AllowEveryCaller) == ThreadModel.AllowEveryCaller);
+		}
+
+		public static bool Is (this ThreadModel self, ThreadModel model)
+		{
+			// since ThreadModel.MainThread == 0 we cannot do bitwise ops
+			// but we need to keep this "as is" for backward compatibility
+			return ((self & ~ThreadModel.AllowEveryCaller) == model);
+		}
+
+		public static ThreadModel ThreadingModel (this TypeReference type)
+		{
 			while (type != null) {
-				model = TryGetThreadingModel (type.CustomAttributes);
-				if (model != null)
-					return model;
-					
+				if (type.IsDefinition) {
+					ThreadModel? model = TryGetThreadingModel ((TypeDefinition) type);
+					if (model != null)
+						return model.Value;
+				}
+
 				// If the type is not decorated then we'll assume that the type is main 
 				// thread unless it's a System/Mono type.
 				if (ThreadedNamespace (type.Namespace))
-					return new ThreadModelAttribute (ThreadModel.Concurrent);
+					return ThreadModel.Concurrent;
 					
-				type = type.DeclaringType != null ? type.DeclaringType.Resolve () : null;
+				type = type.DeclaringType;
 			}
 			
-			return new ThreadModelAttribute (ThreadModel.MainThread);
+			return ThreadModel.MainThread;
 		}
 		
-		public static ThreadModelAttribute ThreadingModel (this MethodDefinition method)
+		static ThreadModel? Lookup<TDefinition> (MemberReference method, IEnumerable<TDefinition> collection)
+			where TDefinition : IMemberDefinition
 		{
-			ThreadModelAttribute model;
-			
+			string name = method.Name;
+			// Need the offset for explicit interface implementations.
+			int offset = Math.Max (name.LastIndexOf ('.'), 0);
+			offset = name.IndexOf ('_', offset) + 1;
+
+			foreach (IMemberDefinition member in collection) {
+				string member_name = member.Name;
+				if (String.CompareOrdinal (name, offset, member_name, 0, member_name.Length) == 0)
+					return TryGetThreadingModel (member);
+			}
+			return null;
+		}
+
+		public static ThreadModel ThreadingModel (this MethodDefinition method)
+		{
 			// Check the method first so it overrides whatever was used on the type.
-			model = TryGetThreadingModel (method.CustomAttributes);
+			ThreadModel? model = TryGetThreadingModel (method);
 			if (model != null)
-				return model;
+				return model.Value;
 			
 			// If it's a property we need to check the property as well.
 			if (method.IsProperty ()) {
-				string name = GetNameSuffix (method);
-				PropertyDefinition [] props = method.DeclaringType.Properties.GetProperties (name);
-				if (props.Length == 1) {				// FIXME: we won't get the property if it is an explicit implementation
-					model = TryGetThreadingModel (props [0].CustomAttributes);
-					if (model != null)
-						return model;
-				}
+				// FIXME: we won't get the property if it is an explicit implementation
+				model = Lookup (method, method.DeclaringType.Properties);
+				if (model != null)
+					return model.Value;
 			}
 			
 			// If it's a event we need to check the event as well.
 			if (method.IsAddOn || method.IsRemoveOn || method.IsFire) {
-				string name = GetNameSuffix (method);
-				EventDefinition evt = method.DeclaringType.Events.GetEvent (name);
-				
-				model = TryGetThreadingModel (evt.CustomAttributes);
+				model = Lookup (method, method.DeclaringType.Events);
 				if (model != null)
-					return model;
+					return model.Value;
 			}
 			
 			// Check the type.
 			model = ThreadingModel (method.DeclaringType);
 			
 			if (method.IsConstructor && method.IsStatic) {
-				if (model.Model == ThreadModel.Concurrent || model.Model == ThreadModel.Serializable) {
-					return new ThreadModelAttribute (ThreadModel.SingleThread);
+				if (model == ThreadModel.Concurrent || model == ThreadModel.Serializable) {
+					return ThreadModel.SingleThread;
 				}
 				
 			} else if (method.IsStatic) {
-				if (model.Model == ThreadModel.Serializable && !method.Name.StartsWith ("op_")) {
-					return new ThreadModelAttribute (ThreadModel.MainThread);
+				if (model == ThreadModel.Serializable && !method.Name.StartsWith ("op_")) {
+					return ThreadModel.MainThread;
 				}
 			}
 			
-			return model;
+			return model.Value;
 		}
 		
 		// Returns true if the namespace is one for which we consider all the types thread safe.
 		public static bool ThreadedNamespace (string ns)
 		{
-			if (ns == "System" || ns.StartsWith ("System."))
+			if (ns == "System" || ns.StartsWith ("System.", StringComparison.Ordinal))
 				return true;
-				
-			if (ns == "Mono" || ns.StartsWith ("Mono."))
+
+			if (ns == "Mono" || ns.StartsWith ("Mono.", StringComparison.Ordinal))
 				return true;
 			
 			return false;
 		}
 		
 		#region Private Methods
-		private static ThreadModelAttribute TryGetThreadingModel (CustomAttributeCollection attrs)
+		private static ThreadModel? TryGetThreadingModel (ICustomAttributeProvider provider)
 		{
-			foreach (CustomAttribute attr in attrs) {
-				if (attr.Constructor.DeclaringType.Name == "ThreadModelAttribute") {
-					attr.Resolve ();
-					
-					if (attr.ConstructorParameters.Count == 1) {
-						if (attr.ConstructorParameters [0] is int) {
-							ThreadModel value = (ThreadModel) (int) attr.ConstructorParameters [0];
-							return new ThreadModelAttribute (value);
+			if (!provider.HasCustomAttributes)
+				return null;
+
+			foreach (CustomAttribute attr in provider.CustomAttributes) {
+				// ThreadModelAttribute ctor has a single parameter, skip param-less attributes
+				if (!attr.HasConstructorArguments)
+					continue;
+				if (attr.AttributeType.Name != "ThreadModelAttribute")
+					continue;
+
+				IList<CustomAttributeArgument> cp = attr.ConstructorArguments;
+				if ((cp.Count == 1) && (cp [0].Value is int))
+					return (ThreadModel) (int) cp [0].Value;
 						
-						} else {
-							throw new ArgumentException ("There should be a single ThreadModelAttribute ctor taking an (Int32) ThreadModel enum argument.");
-						}
-					
-					} else {
-						throw new ArgumentException ("There should be a single ThreadModelAttribute ctor taking an (Int32) ThreadModel enum argument.");
-					}
-				}
+				throw new ArgumentException ("There should be a single ThreadModelAttribute ctor taking an (Int32) ThreadModel enum argument.");
 			}
 			
 			return null;
 		}
-		
-		private static string GetNameSuffix (MethodDefinition method)
-		{
-			string name = method.Name;
-			
-			// Need the offset for explicit interface implementations.
-			int offset = Math.Max (name.LastIndexOf ('.'), 0);
-			int i = name.IndexOf ('_', offset);
-			System.Diagnostics.Debug.Assert (i > 0, "didn't find a '_' in " + name);
-			
-			return name.Substring (i + 1);
-		}
+
 		#endregion
 	}
 }

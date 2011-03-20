@@ -37,7 +37,6 @@ namespace Gendarme.Framework {
 	abstract public class Rule : IRule {
 
 		private bool active = true;
-		private IRunner runner;
 		private string name;
 		private string full_name;
 		private string problem;
@@ -60,7 +59,8 @@ namespace Gendarme.Framework {
 		/// outside the rule, like the list of assemblies being analyzed.
 		/// </summary>
 		public IRunner Runner {
-			get { return runner; }
+			get;
+			private set;
 		}
 
 		/// <summary>
@@ -95,9 +95,9 @@ namespace Gendarme.Framework {
 			}
 		}
 
-		private object GetCustomAttribute (Type type)
+		private object GetCustomAttribute (Type t)
 		{
-			object [] attributes = Type.GetCustomAttributes (type, true);
+			object [] attributes = Type.GetCustomAttributes (t, true);
 			if (attributes.Length == 0)
 				return null;
 			return attributes [0];
@@ -138,14 +138,14 @@ namespace Gendarme.Framework {
 			get {
 				if (uri == null) {
 					object [] attributes = Type.GetCustomAttributes (typeof (DocumentationUriAttribute), true);
-					string url;
 					if (attributes.Length == 0) {
-						url = String.Format (CultureInfo.InvariantCulture, 
-							"http://www.mono-project.com/{0}#{1}", Type.Namespace, Name);
+						string url = String.Format (CultureInfo.InvariantCulture, 
+							"https://github.com/spouliot/gendarme/wiki/{0}.{1}({2})",
+							type.Namespace, Name, "2.10");
+						uri = new Uri (url);
 					} else {
-						url = (attributes [0] as DocumentationUriAttribute).DocumentationUri;
+						uri = (attributes [0] as DocumentationUriAttribute).DocumentationUri;
 					}
-					uri = new Uri (url);
 				}
 				return uri;
 			}
@@ -162,7 +162,7 @@ namespace Gendarme.Framework {
 			if (runner == null)
 				throw new ArgumentNullException ("runner");
 
-			this.runner = runner;
+			Runner = runner;
 
 			// read attribute only once (e.g. the wizard can initialize multiple times)
 			if (engine_dependencies == null)

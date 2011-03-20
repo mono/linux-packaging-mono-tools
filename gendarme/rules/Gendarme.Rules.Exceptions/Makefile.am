@@ -8,17 +8,12 @@ rules_sources =  \
 	DoNotThrowReservedExceptionRule.cs \
 	DontSwallowErrorsCatchingNonspecificExceptionsRule.cs \
 	ExceptionShouldBeVisibleRule.cs \
-	Impl/ExceptionBlockParser.cs \
 	Impl/ExecutionBlock.cs \
 	Impl/ExecutionPath.cs \
 	Impl/ExecutionPathFactory.cs \
-	Impl/SEHCatchBlock.cs \
-	Impl/SEHGuardedBlock.cs \
-	Impl/SEHHandlerBlock.cs \
 	InstantiateArgumentExceptionCorrectlyRule.cs \
 	MissingExceptionConstructorsRule.cs \
 	NewExceptionRule.cs \
-	SEHHandlerType.cs \
 	UseObjectDisposedExceptionRule.cs
 
 tests_sources = \

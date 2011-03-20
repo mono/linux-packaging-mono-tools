@@ -4,7 +4,7 @@
 // Authors:
 //	Sebastien Pouliot <sebastien@ximian.com>
 //
-// Copyright (C) 2008 Novell, Inc (http://www.novell.com)
+// Copyright (C) 2008-2011 Novell, Inc (http://www.novell.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -58,7 +58,7 @@ namespace Gendarme.Framework {
 		private IMetadataTokenProvider currentTarget;
 		private IIgnoreList ignoreList;
 		private int defectCountBeforeCheck;
-		private bool tearing_down;
+		private object [] engine_dependencies;
 
 		public event EventHandler<RunnerEventArgs> AnalyzeAssembly;
 		public event EventHandler<RunnerEventArgs> AnalyzeModule;
@@ -75,7 +75,7 @@ namespace Gendarme.Framework {
 			set { currentTarget = value; }
 		}
 
-		protected IIgnoreList IgnoreList {
+		public IIgnoreList IgnoreList {
 			get {
 				if (ignoreList == null)
 					throw new InvalidOperationException ("No IgnoreList has been set for this runner.");
@@ -122,7 +122,7 @@ namespace Gendarme.Framework {
 		public EngineController Engines { 
 			get {
 				if (ec == null)
-					ec = new EngineController ();
+					ec = new EngineController (this);
 				return ec;
 			}
 		}
@@ -137,11 +137,12 @@ namespace Gendarme.Framework {
 			AnalyzeType = null;
 			AnalyzeMethod = null;
 
-			AssemblyResolver.Resolver.AssemblyCache.Clear ();
+			AssemblyResolver resolver = AssemblyResolver.Resolver;
+			resolver.AssemblyCache.Clear ();
 
 			foreach (AssemblyDefinition assembly in assemblies) {
 				assembly.MainModule.LoadDebuggingSymbols ();
-				AssemblyResolver.Resolver.CacheAssembly (assembly);
+				resolver.CacheAssembly (assembly);
 			}
 
 			foreach (Rule rule in rules) {
@@ -160,6 +161,14 @@ namespace Gendarme.Framework {
 				}
 			}
 
+			engine_dependencies = GetType ().GetCustomAttributes (typeof (EngineDependencyAttribute), true);
+			if (engine_dependencies.Length > 0) {
+				// subscribe to each engine the rule depends on
+				foreach (EngineDependencyAttribute eda in engine_dependencies) {
+					Engines.Subscribe (eda.EngineType);
+				}
+			}
+		
 			Engines.Build (assemblies);
 
 			assembly_rules = rules.OfType<IAssemblyRule> ();
@@ -167,9 +176,13 @@ namespace Gendarme.Framework {
 			method_rules = rules.OfType<IMethodRule> ();
 		}
 
-		private bool Filter (Severity severity, Confidence confidence)
+		private bool Filter (Severity severity, Confidence confidence, IMetadataTokenProvider location)
 		{
-			return (SeverityBitmask.Get (severity) && ConfidenceBitmask.Get (confidence));
+			if (!SeverityBitmask.Get (severity) || !ConfidenceBitmask.Get (confidence))
+				return false;
+			// for Assembly | Type | Methods we can ignore before executing the rule
+			// but for others (e.g. Parameters, Fields...) we can only ignore the results
+			return !IgnoreList.IsIgnored (currentRule, location);
 		}
 
 		public virtual void Report (Defect defect)
@@ -177,22 +190,11 @@ namespace Gendarme.Framework {
 			if (defect == null)
 				throw new ArgumentNullException ("defect");
 
-			if (!Filter (defect.Severity, defect.Confidence))
+			if (!Filter (defect.Severity, defect.Confidence, defect.Location))
 				return;
 				
-			if (tearing_down) {
-				if (IgnoreList.IsIgnored (defect.Rule, defect.Target as MethodDefinition)) {
-					return;
-				}
-				
-				if (IgnoreList.IsIgnored (defect.Rule, defect.Target as TypeDefinition)) {
-					return;
-				}
-				
-				if (IgnoreList.IsIgnored (defect.Rule, defect.Target as AssemblyDefinition)) {
-					return;
-				}
-			}
+			if (IgnoreList.IsIgnored (defect.Rule, defect.Target))
+				return;
 
 			defect_list.Add (defect);
 		}
@@ -200,9 +202,9 @@ namespace Gendarme.Framework {
 		public void Report (IMetadataTokenProvider metadata, Severity severity, Confidence confidence)
 		{
 			// check here to avoid creating the Defect object
-			if (!Filter (severity, confidence))
+			if (!Filter (severity, confidence, metadata))
 				return;
-				
+
 			Defect defect = new Defect (currentRule, currentTarget, metadata, severity, confidence);
 			Report (defect);
 		}
@@ -210,7 +212,7 @@ namespace Gendarme.Framework {
 		public void Report (IMetadataTokenProvider metadata, Severity severity, Confidence confidence, string message)
 		{
 			// check here to avoid creating the Defect object
-			if (!Filter (severity, confidence))
+			if (!Filter (severity, confidence, metadata))
 				return;
 
 			Defect defect = new Defect (currentRule, currentTarget, metadata, severity, confidence, message);
@@ -220,7 +222,7 @@ namespace Gendarme.Framework {
 		public void Report (MethodDefinition method, Instruction ins, Severity severity, Confidence confidence)
 		{
 			// check here to avoid creating the Defect object
-			if (!Filter (severity, confidence))
+			if (!Filter (severity, confidence, method))
 				return;
 
 			Defect defect = new Defect (currentRule, currentTarget, method, ins, severity, confidence);
@@ -230,7 +232,7 @@ namespace Gendarme.Framework {
 		public void Report (MethodDefinition method, Instruction ins, Severity severity, Confidence confidence, string message)
 		{
 			// check here to avoid creating the Defect object
-			if (!Filter (severity, confidence))
+			if (!Filter (severity, confidence, method))
 				return;
 
 			Defect defect = new Defect (currentRule, currentTarget, method, ins, severity, confidence, message);
@@ -373,12 +375,12 @@ namespace Gendarme.Framework {
 					runner_args.CurrentModule = module;
 					OnModule (runner_args);
 
-					foreach (TypeDefinition type in module.Types) {
+					foreach (TypeDefinition type in module.GetAllTypes ()) {
 						currentTarget = (IMetadataTokenProvider) type;
 						runner_args.CurrentType = type;
 						OnType (runner_args);
 
-						foreach (MethodDefinition method in type.AllMethods()) {
+						foreach (MethodDefinition method in type.Methods) {
 							currentTarget = (IMetadataTokenProvider) method;
 							runner_args.CurrentMethod = method;
 							OnMethod (runner_args);
@@ -394,14 +396,19 @@ namespace Gendarme.Framework {
 		public virtual void TearDown ()
 		{
 			// last chance to report defects
-			tearing_down = true;
 			foreach (Rule rule in rules) {
 				currentRule = rule;
 				rule.TearDown ();
 			}
 
 			currentRule = null;
-			Engines.TearDown ();
+
+			if ((engine_dependencies != null) && (engine_dependencies.Length >= 0)) {
+				foreach (EngineDependencyAttribute eda in engine_dependencies)
+					ec.Unsubscribe (eda.EngineType);
+			}
+
+			ec.TearDown ();
 		}
 
 		// This is for unit tests.

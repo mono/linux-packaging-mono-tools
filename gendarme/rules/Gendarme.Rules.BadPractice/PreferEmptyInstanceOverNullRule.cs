@@ -129,7 +129,10 @@ namespace Gendarme.Rules.BadPractice {
 	[Solution ("Return an empty instance instead of null.")]
 	public class PreferEmptyInstanceOverNullRule : ReturnNullRule, IMethodRule {
 
-		TypeReference returnType;
+		TypeReference return_type;
+		bool string_return_type;
+		bool array_return_type;
+		bool ienumerable_return_type;
 
 		public override RuleResult CheckMethod (MethodDefinition method)
 		{
@@ -142,29 +145,30 @@ namespace Gendarme.Rules.BadPractice {
 				return RuleResult.DoesNotApply;
 
 			//only apply to methods returning string, array, or IEnumerable-impl
-			returnType = method.ReturnType.ReturnType;
-			if (returnType.FullName != "System.String"
-				&& !returnType.IsArray ()
-				&& !returnType.Implements ("System.Collections.IEnumerable")) {
+			return_type = method.ReturnType;
+			string_return_type = (return_type.FullName == "System.String");
+			array_return_type = return_type.IsArray;
+			ienumerable_return_type = return_type.Implements ("System.Collections.IEnumerable");
+
+			if (!string_return_type && !array_return_type && !ienumerable_return_type)
 				return RuleResult.DoesNotApply;
-			}
 
 			return base.CheckMethod (method);
 		}
 
 		protected override void Report (MethodDefinition method, Instruction ins)
 		{
-			string msg = string.Format ("Replace null with {0}.", GetReturnTypeSuggestion ());
+			string msg = string.Format ("Replace null with {0}.", SuggestReturnType ());
 			Runner.Report (method, ins, method.IsVisible () ? Severity.Medium : Severity.Low, Confidence.Normal, msg);
 		}
 
-		string GetReturnTypeSuggestion ()
+		string SuggestReturnType ()
 		{
-			if (returnType.FullName == "System.String")
+			if (string_return_type)
 				return "string.Empty";
-			else if (returnType.IsArray ())
-				return string.Format ("an empty {0} array", returnType.Name);
-			else if (returnType.FullName.StartsWith ("System.Collections.Generic.IEnumerable"))
+			else if (array_return_type)
+				return string.Format ("an empty {0} array", return_type.Name);
+			else if (ienumerable_return_type)
 				return "yield break (or equivalent)";
 			return "an empty collection";
 		}

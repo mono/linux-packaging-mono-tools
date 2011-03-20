@@ -28,6 +28,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -103,8 +104,8 @@ namespace Gendarme.Rules.Performance {
 		static void AddType (HashSet<TypeReference> typeset, TypeReference type)
 		{
 			// we're interested in the array element type, not the array itself
-			if (type.IsArray ())
-				type = type.GetOriginalType ();
+			if (type.IsArray)
+				type = type.GetElementType ();
 
 			// only keep stuff from this assembly, which means we have a TypeDefinition (not a TypeReference)
 			// and types that are not visible outside the assembly (since this is what we check for)
@@ -123,13 +124,13 @@ namespace Gendarme.Rules.Performance {
 						AddType (typeset, t);
 				}
 			}
-			if (type.HasConstructors) {
-				foreach (MethodDefinition ctor in type.Constructors)
-					ProcessMethod (ctor, typeset);
-			}
 			if (type.HasMethods) {
 				foreach (MethodDefinition method in type.Methods)
 					ProcessMethod (method, typeset);
+			}
+			if (type.HasNestedTypes) {
+				foreach (TypeDefinition nested in type.NestedTypes)
+					ProcessType (nested, typeset);
 			}
 		}
 
@@ -137,14 +138,14 @@ namespace Gendarme.Rules.Performance {
 		{
 			// this is needed in case we return an enum, a struct or something mapped
 			// to p/invoke (i.e. no ctor called). We also need to check for arrays.
-			TypeReference t = method.ReturnType.ReturnType;
+			TypeReference t = method.ReturnType;
 			AddType (typeset, t);
 
 			if (method.HasParameters) {
 				// an "out" from a p/invoke must be flagged
 				foreach (ParameterDefinition parameter in method.Parameters) {
 					// we don't want the reference (&) on the type
-					t = parameter.ParameterType.GetOriginalType ();
+					t = parameter.ParameterType.GetElementType ();
 					AddType (typeset, t);
 				}
 			}
@@ -152,14 +153,17 @@ namespace Gendarme.Rules.Performance {
 			if (!method.HasBody)
 				return;
 
-			// add every type of variables we use
-			foreach (VariableDefinition variable in method.Body.Variables) {
-				t = variable.VariableType;
-				AddType (typeset, t);
+			MethodBody body = method.Body;
+			if (body.HasVariables) {
+				// add every type of variables we use
+				foreach (VariableDefinition variable in body.Variables) {
+					t = variable.VariableType;
+					AddType (typeset, t);
+				}
 			}
 
 			// add every type we create or refer to (e.g. loading fields from an enum)
-			foreach (Instruction ins in method.Body.Instructions) {
+			foreach (Instruction ins in body.Instructions) {
 				if (ins.Operand == null)
 					continue;
 
@@ -167,8 +171,10 @@ namespace Gendarme.Rules.Performance {
 				if (t == null) {
 					MethodReference m = ins.Operand as MethodReference;
 					if (m != null) {
-						GenericInstanceType generic = (m.DeclaringType as GenericInstanceType);
-						t = (generic == null) ? m.DeclaringType : generic.GetOriginalType ();
+						t = m.DeclaringType;
+						GenericInstanceType generic = (t as GenericInstanceType);
+						if (generic != null)
+							t = generic.GetElementType ();
 					} else {
 						FieldReference f = ins.Operand as FieldReference;
 						if (f != null)
@@ -183,10 +189,20 @@ namespace Gendarme.Rules.Performance {
 
 		static bool HasSinglePrivateConstructor (TypeDefinition type)
 		{
-			if (!type.HasConstructors || (type.Constructors.Count != 1))
+			if (!type.HasMethods)
 				return false;
 
-			var constructor = type.Constructors [0];
+			MethodDefinition constructor = null;
+			foreach (MethodDefinition method in type.Methods) {
+				if (!method.IsConstructor)
+					continue;
+				if (constructor != null)
+					return false; // more than one ctor
+				constructor = method;
+			}
+
+			if (constructor == null)
+				return false;
 
 			return (constructor.IsPrivate && !constructor.HasParameters);
 		}
@@ -202,15 +218,19 @@ namespace Gendarme.Rules.Performance {
 			if (type.IsSealed && HasSinglePrivateConstructor (type))
 				return RuleResult.DoesNotApply;
 
+			// used for documentation purpose by monodoc
+			if (type.Name == "NamespaceDoc")
+				return RuleResult.DoesNotApply;
+
 			// rule applies
 
 			// if the type holds the Main entry point then it is considered useful
-			MethodDefinition entry_point = type.Module.Assembly.EntryPoint;
+			AssemblyDefinition assembly = type.Module.Assembly;
+			MethodDefinition entry_point = assembly.EntryPoint;
 			if ((entry_point != null) && (entry_point.DeclaringType == type))
 				return RuleResult.Success;
 
 			// create a cache of all type instantiation inside this
-			AssemblyDefinition assembly = type.Module.Assembly;
 			CacheInstantiationFromAssembly (assembly);
 
 			HashSet<TypeReference> typeset = null;
@@ -220,7 +240,7 @@ namespace Gendarme.Rules.Performance {
 			// if we can't find the non-public type being used in the assembly then the rule fails
 			if (typeset == null || !typeset.Contains (type)) {
 				// base confidence on whether the internals are visible or not
-				Confidence c = type.Module.Assembly.HasAttribute ("System.Runtime.CompilerServices.InternalsVisibleToAttribute") ? 
+				Confidence c = assembly.HasAttribute ("System.Runtime.CompilerServices.InternalsVisibleToAttribute") ? 
 					Confidence.Low : Confidence.Normal;
 				Runner.Report (type, Severity.High, c);
 				return RuleResult.Failure;

@@ -26,6 +26,8 @@
 //
 
 using System;
+using System.Collections;
+using System.Collections.Generic;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -41,6 +43,8 @@ namespace Gendarme.Framework.Engines {
 	/// </summary>
 	public class OpCodeEngine : Engine {
 
+		static Dictionary<MethodDefinition, OpCodeBitmask> bitmasks = new Dictionary<MethodDefinition, OpCodeBitmask> ();
+
 		public OpCodeEngine ()
 		{
 		}
@@ -54,27 +58,27 @@ namespace Gendarme.Framework.Engines {
 		void OnMethodBody (object sender, EngineEventArgs e)
 		{
 			MethodBody body = (sender as MethodBody);
-			IAnnotationProvider ap = (body.Method as IAnnotationProvider);
+			MethodDefinition method = body.Method;
 			// some runners, like the wizard, can run this engine several times
 			// and, in this case, the result won't change
-			if (ap.Annotations.Contains ("OPCODEBITMASK"))
+			if (bitmasks.ContainsKey (method))
 				return;
 
 			OpCodeBitmask mask = new OpCodeBitmask ();
 			foreach (Instruction ins in body.Instructions) {
 				mask.Set (ins.OpCode.Code);
 			}
-			ap.Annotations.Add ("OPCODEBITMASK", mask);
+			bitmasks.Add (method, mask);
 		}
 
 		// service offered by the engine
 
-		static public OpCodeBitmask GetBitmask (MethodDefinition method)
+		public static OpCodeBitmask GetBitmask (MethodDefinition method)
 		{
-			IAnnotationProvider ap = (method as IAnnotationProvider);
-			OpCodeBitmask result = (OpCodeBitmask) ap.Annotations ["OPCODEBITMASK"];
-			if (result == null)
+			OpCodeBitmask result;
+			if (!bitmasks.TryGetValue (method, out result))
 				return OpCodeBitmask.All;
+
 			return result;
 		}
 	}

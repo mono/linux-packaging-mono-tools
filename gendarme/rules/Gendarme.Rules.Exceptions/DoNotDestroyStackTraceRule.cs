@@ -74,39 +74,42 @@ namespace Gendarme.Rules.Exceptions {
 	[FxCopCompatibility ("Microsoft.Usage", "CA2200:RethrowToPreserveStackDetails")]
 	public class DoNotDestroyStackTraceRule : Rule, IMethodRule {
 
-		private List<ExecutionPathCollection> executionPaths = new List<ExecutionPathCollection> ();
 		private List<int> warned_offsets_in_method = new List<int> ();
 
 		public RuleResult CheckMethod (MethodDefinition method)
 		{
-			// rule only applies to methods with IL
+			// rule only applies to methods with IL and exceptions handlers
 			if (!method.HasBody)
+				return RuleResult.DoesNotApply;
+
+			MethodBody body = method.Body;
+			if (!body.HasExceptionHandlers)
 				return RuleResult.DoesNotApply;
 
 			// and when the IL contains a Throw instruction (Rethrow is fine)
 			if (!OpCodeEngine.GetBitmask (method).Get (Code.Throw))
 				return RuleResult.DoesNotApply;
 
-			executionPaths.Clear ();
+			warned_offsets_in_method.Clear ();
 			ExecutionPathFactory epf = new ExecutionPathFactory ();
-			foreach (SEHGuardedBlock guardedBlock in ExceptionBlockParser.GetExceptionBlocks (method)) {
-				foreach (SEHHandlerBlock handlerBlock in guardedBlock.SEHHandlerBlocks) {
-					if (handlerBlock is SEHCatchBlock) {
-						executionPaths.AddRange (epf.CreatePaths (handlerBlock.Start, handlerBlock.End));
-					}
+
+			foreach (ExceptionHandler eh in body.ExceptionHandlers) {
+				if (eh.HandlerType != ExceptionHandlerType.Catch)
+					continue;
+
+				var list = epf.CreatePaths (eh.HandlerStart, eh.HandlerEnd);
+				if (list.Count == 0) {
+					Runner.Report (method, eh.HandlerStart, Severity.Medium, Confidence.Normal, "Handler too complex for analysis");
+				}  else {
+					foreach (ExecutionPathCollection catchPath in list)
+						ProcessCatchPath (catchPath, method);
 				}
 			}
-
-			warned_offsets_in_method.Clear ();
-
-			// Look for paths that 'throw ex;' instead of 'throw'
-			foreach (ExecutionPathCollection catchPath in executionPaths)
-				ProcessCatchPath (catchPath, method);
 
 			return Runner.CurrentRuleResult;
 		}
 
-		private void ProcessCatchPath (ExecutionPathCollection catchPath, MethodDefinition method)
+		private void ProcessCatchPath (IEnumerable<ExecutionBlock> catchPath, MethodDefinition method)
 		{
 			// Track original exception (top of stack at start) through to the final
 			// return (be it throw, rethrow, leave, or leave.s)

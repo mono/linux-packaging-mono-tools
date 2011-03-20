@@ -6,11 +6,13 @@
 //	Adrian Tsai <adrian_tsai@hotmail.com>
 //	Daniel Abramov <ex@vingrad.ru>
 //	Andreas Noever <andreas.noever@gmail.com>
+//	Cedric Vivier  <cedricv@neonux.com>
 //
 // Copyright (C) 2007-2008 Novell, Inc (http://www.novell.com)
 // Copyright (c) 2007 Adrian Tsai
 // Copyright (C) 2008 Daniel Abramov
 // (C) 2008 Andreas Noever
+// Copyright (C) 2008 Cedric Vivier
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -31,6 +33,7 @@
 // THE SOFTWARE.
 
 using System;
+using System.Collections.Generic;
 
 using Mono.Cecil;
 
@@ -59,7 +62,7 @@ namespace Gendarme.Framework.Rocks {
 		/// <returns>True if the method is defined as the entry point of it's assembly, False otherwise</returns>
 		public static bool IsEntryPoint (this MethodReference self)
 		{
-			return (self == self.DeclaringType.Module.Assembly.EntryPoint);
+			return ((self != null) && (self == self.Module.Assembly.EntryPoint));
 		}
 
 		/// <summary>
@@ -69,8 +72,11 @@ namespace Gendarme.Framework.Rocks {
 		/// <returns>True if the method is a finalizer, False otherwise.</returns>
 		public static bool IsFinalizer (this MethodReference self)
 		{
+			if (self == null)
+				return false;
+
 			return (self.HasThis && !self.HasParameters && (self.Name == "Finalize") &&
-				(self.ReturnType.ReturnType.FullName == "System.Void"));
+				(self.ReturnType.FullName == "System.Void"));
 		}
 
 		/// <summary>
@@ -81,6 +87,9 @@ namespace Gendarme.Framework.Rocks {
 		/// False otherwise (e.g. compiler or tool generated)</returns>
 		public static bool IsGeneratedCode (this MethodReference self)
 		{
+			if (self == null)
+				return false;
+
 			MethodDefinition method = self.Resolve ();
 			if ((method != null) && method.HasCustomAttributes) {
 				if (method.CustomAttributes.ContainsAnyType (CustomAttributeRocks.GeneratedCodeAttributes))
@@ -101,6 +110,9 @@ namespace Gendarme.Framework.Rocks {
 		/// <returns>True if the method is a valid Main, False otherwise.</returns>
 		public static bool IsMain (this MethodReference self)
 		{
+			if (self == null)
+				return false;
+
 			MethodDefinition method = self.Resolve ();
 			// Main must be static
 			if (!method.IsStatic)
@@ -110,7 +122,7 @@ namespace Gendarme.Framework.Rocks {
 				return false;
 
 			// Main must return void or int
-			switch (method.ReturnType.ReturnType.Name) {
+			switch (method.ReturnType.Name) {
 			case "Void":
 			case "Int32":
 				// ok, continue checks
@@ -123,11 +135,12 @@ namespace Gendarme.Framework.Rocks {
 			if (!method.HasParameters)
 				return true;
 
-			if (method.Parameters.Count != 1)
+			IList<ParameterDefinition> pdc = method.Parameters;
+			if (pdc.Count != 1)
 				return false;
 
 			// Main (string[] args)
-			return (method.Parameters [0].ParameterType.Name == "String[]");
+			return (pdc [0].ParameterType.Name == "String[]");
 		}
 
 		/// <summary>
@@ -137,6 +150,9 @@ namespace Gendarme.Framework.Rocks {
 		/// <returns>True if the method is an override to a virtual method, False otherwise</returns>
 		public static bool IsOverride (this MethodReference self)
 		{
+			if (self == null)
+				return false;
+
 			MethodDefinition method = self.Resolve ();
 			if ((method == null) || !method.IsVirtual)
 				return false;
@@ -145,19 +161,22 @@ namespace Gendarme.Framework.Rocks {
 			TypeDefinition parent = declaring.BaseType != null ? declaring.BaseType.Resolve () : null;
 			while (parent != null) {
 				string name = method.Name;
-				string retval = method.ReturnType.ReturnType.FullName;
+				string retval = method.ReturnType.FullName;
 				int pcount = method.HasParameters ? method.Parameters.Count : 0;
 				foreach (MethodDefinition md in parent.Methods) {
 					if (name != md.Name)
 						continue;
-					if (retval != md.ReturnType.ReturnType.FullName)
+					if (retval != md.ReturnType.FullName)
 						continue;
-					if ((md.HasParameters && (pcount == 0)) || (pcount != md.Parameters.Count))
+					if (md.HasParameters && (pcount == 0))
+						continue;
+					IList<ParameterDefinition> ppdc = md.Parameters;
+					if (pcount != ppdc.Count)
 						continue;
 
 					bool ok = true;
 					for (int i = 0; i < pcount; i++) {
-						if (method.Parameters [i].ParameterType.FullName != md.Parameters [i].ParameterType.FullName) {
+						if (method.Parameters [i].ParameterType.FullName != ppdc [i].ParameterType.FullName) {
 							ok = false;
 							break;
 						}
@@ -179,6 +198,9 @@ namespace Gendarme.Framework.Rocks {
 		/// <returns>True if the method is a getter or a setter, False otherwise</returns>
 		public static bool IsProperty (this MethodReference self)
 		{
+			if (self == null)
+				return false;
+
 			MethodDefinition method = self.Resolve ();
 			if (method == null)
 				return false;
@@ -192,6 +214,9 @@ namespace Gendarme.Framework.Rocks {
 		/// <returns>True if the method can be used from outside of the assembly, false otherwise.</returns>
 		public static bool IsVisible (this MethodReference self)
 		{
+			if (self == null)
+				return false;
+
 			MethodDefinition method = self.Resolve ();
 			if ((method == null) || method.IsPrivate || method.IsAssembly)
 				return false;
@@ -207,11 +232,14 @@ namespace Gendarme.Framework.Rocks {
 		/// <returns>True if the method has the signature of an event callback.</returns>
 		public static bool IsEventCallback (this MethodReference self)
 		{
+			if (self == null)
+				return false;
+
 			MethodDefinition method = self.Resolve ();
 			if ((method == null) || !method.HasParameters)
 				return false;
 
-			ParameterDefinitionCollection parameters = method.Parameters;
+			IList<ParameterDefinition> parameters = method.Parameters;
 			if (parameters.Count != 2)
 				return false;
 
@@ -220,10 +248,83 @@ namespace Gendarme.Framework.Rocks {
 			if (gp == null)
 				return type.Inherits ("System.EventArgs");
 
-			if (gp.HasConstraints && (gp.Constraints.Count == 1))
-				return (gp.Constraints [0].FullName == "System.EventArgs");
+			if (gp.HasConstraints) {
+				IList<TypeReference> cc = gp.Constraints;
+				return ((cc.Count == 1) && (cc [0].FullName == "System.EventArgs"));
+			}
 
 			return false;
+		}
+
+		/// <summary>
+		/// Returns a property using supplied MethodReference of 
+		/// a property accessor method (getter or setter).
+		/// </summary>
+		/// <param name="self">The MethodReference on which the extension method can be called.</param>
+		/// <returns>PropertyDefinition which corresponds to the supplied MethodReference.</returns>
+		public static PropertyDefinition GetPropertyByAccessor (this MethodReference self)
+		{
+			if (self == null)
+				return null;
+
+			MethodDefinition method = self.Resolve ();
+			if (method == null || !method.DeclaringType.HasProperties || !method.IsProperty ())
+				return null;
+
+			string mname = method.Name;
+			foreach (PropertyDefinition property in method.DeclaringType.Properties) {
+				// set_ and get_ both have a length equal to 4
+				string pname = property.Name;
+				if (String.CompareOrdinal (pname, 0, mname, 4, pname.Length) == 0)
+					return property;
+			}
+			return null;
+		}
+
+		private static bool AreSameElementTypes (TypeReference a, TypeReference b)
+		{
+			return a.GetElementType ().FullName == b.GetElementType ().FullName;
+		}
+
+		/// <summary>
+		/// Compare the IMethodSignature members with the one being specified.
+		/// </summary>
+		/// <param name="self">>The IMethodSignature on which the extension method can be called.</param>
+		/// <param name="signature">The IMethodSignature which is being compared.</param>
+		/// <returns>True if the IMethodSignature members are identical, false otherwise</returns>
+		public static bool CompareSignature (this IMethodSignature self, IMethodSignature signature)
+		{
+			if (self == null)
+				return (signature == null);
+
+			if (self.HasThis != signature.HasThis)
+				return false;
+			if (self.ExplicitThis != signature.ExplicitThis)
+				return false;
+			if (self.CallingConvention != signature.CallingConvention)
+				return false;
+
+			if (!AreSameElementTypes (self.ReturnType, signature.ReturnType))
+				return false;
+
+			bool h1 = self.HasParameters;
+			bool h2 = signature.HasParameters;
+			if (h1 != h2)
+				return false;
+			if (!h1 && !h2)
+				return true;
+
+			IList<ParameterDefinition> pdc1 = self.Parameters;
+			IList<ParameterDefinition> pdc2 = signature.Parameters;
+			int count = pdc1.Count;
+			if (count != pdc2.Count)
+				return false;
+
+			for (int i = 0; i < count; ++i) {
+				if (!AreSameElementTypes (pdc1 [i].ParameterType, pdc2 [i].ParameterType))
+					return false;
+			}
+			return true;
 		}
 	}
 }

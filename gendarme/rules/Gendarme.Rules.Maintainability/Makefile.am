@@ -7,7 +7,12 @@ rules_sources =  \
 	AvoidLackOfCohesionOfMethodsRule.cs \
 	AvoidUnnecessarySpecializationRule.cs \
 	ConsiderUsingStopwatchRule.cs \
-	PreferStringIsNullOrEmptyRule.cs
+	PreferStringIsNullOrEmptyRule.cs \
+	RemoveDependenceOnObsoleteCodeRule.cs \
+	ReviewMisleadingFieldNamesRule.cs \
+	VariableNamesShouldNotMatchFieldNamesRule.cs
+
+EXTRA_TESTS_OPTIONS += -r:System.Runtime.Serialization.dll
 
 tests_sources = \
 	AvoidAlwaysNullFieldTest.cs \
@@ -16,4 +21,7 @@ tests_sources = \
 	AvoidLackOfCohesionOfMethodsTest.cs \
 	AvoidUnnecessarySpecializationTest.cs \
 	ConsiderUsingStopwatchTest.cs \
-	PreferStringIsNullOrEmptyTest.cs
+	PreferStringIsNullOrEmptyTest.cs \
+	RemoveDependenceOnObsoleteCodeTest.cs \
+	ReviewMisleadingFieldNamesTest.cs \
+	VariableNamesShouldNotMatchFieldNamesTest.cs

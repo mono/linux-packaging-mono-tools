@@ -35,13 +35,14 @@ host_triplet = @host@
 target_triplet = @target@
 subdir = gendarme/man
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
-	$(srcdir)/gendarme.1.in $(srcdir)/gendarme.5.in ChangeLog
+	$(srcdir)/gd2i.1.in $(srcdir)/gendarme.1.in \
+	$(srcdir)/gendarme.5.in ChangeLog
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.in
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
-CONFIG_CLEAN_FILES = gendarme.1 gendarme.5
+CONFIG_CLEAN_FILES = gendarme.1 gendarme.5 gd2i.1
 SOURCES =
 DIST_SOURCES =
 man1dir = $(mandir)/man1
@@ -60,6 +61,7 @@ rules_documentationDATA_INSTALL = $(INSTALL_DATA)
 DATA = $(rules_documentation_DATA)
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
+ACLOCAL_FLAGS = @ACLOCAL_FLAGS@
 AMTAR = @AMTAR@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
@@ -78,6 +80,7 @@ CYGPATH_W = @CYGPATH_W@
 DATADIRNAME = @DATADIRNAME@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
+DMCS = @DMCS@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
@@ -91,6 +94,8 @@ GETTEXT_PACKAGE = @GETTEXT_PACKAGE@
 GMCS = @GMCS@
 GMOFILES = @GMOFILES@
 GMSGFMT = @GMSGFMT@
+GNOME_SHARP_CFLAGS = @GNOME_SHARP_CFLAGS@
+GNOME_SHARP_LIBS = @GNOME_SHARP_LIBS@
 GNUNIT_VERSION = @GNUNIT_VERSION@
 GREP = @GREP@
 GTKHTML_SHARP_CFLAGS = @GTKHTML_SHARP_CFLAGS@
@@ -200,9 +205,9 @@ target_vendor = @target_vendor@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-man_MANS = gendarme.1 gendarme.5
-EXTRA_DIST = gendarme.1.in gendarme.5.in gendarme.config gendarme.source
-DISTCLEANFILES = Makefile.in gendarme.1 gendarme.5
+man_MANS = gendarme.1 gendarme.5 gd2i.1
+EXTRA_DIST = gendarme.1.in gendarme.5.in gd2i.1.in gendarme.config gendarme.source
+DISTCLEANFILES = Makefile.in gendarme.1 gendarme.5 gd2i.1
 CLEANFILES = gendarme.tree gendarme.zip
 rules_documentationdir = $(prefix)/lib/monodoc/sources
 rules_documentation_DATA = gendarme.source gendarme.tree gendarme.zip
@@ -241,6 +246,8 @@ $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 gendarme.1: $(top_builddir)/config.status $(srcdir)/gendarme.1.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 gendarme.5: $(top_builddir)/config.status $(srcdir)/gendarme.5.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
+gd2i.1: $(top_builddir)/config.status $(srcdir)/gd2i.1.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 install-man1: $(man1_MANS) $(man_MANS)
 	@$(NORMAL_INSTALL)

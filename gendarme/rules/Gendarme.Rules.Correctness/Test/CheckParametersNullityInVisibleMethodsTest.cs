@@ -4,7 +4,7 @@
 // Authors:
 //	Sebastien Pouliot <sebastien@ximian.com>
 //
-// Copyright (C) 2008 Novell, Inc (http://www.novell.com)
+// Copyright (C) 2008, 2010 Novell, Inc (http://www.novell.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the
@@ -27,6 +27,9 @@
 //
 
 using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
 
 using Mono.Cecil;
 
@@ -621,6 +624,175 @@ namespace Tests.Rules.Correctness {
 			AssertRuleSuccess<CheckParametersNullityInVisibleMethodsTest> ("GetOut");
 			AssertRuleSuccess<CheckParametersNullityInVisibleMethodsTest> ("ShowOut");
 			AssertRuleSuccess<CheckParametersNullityInVisibleMethodsTest> ("ArrayOut");
+		}
+
+		public class NonGeneric567817 {
+			private IList underlyingCollection;
+			private int ctx;
+			public virtual void Add (string item)
+			{
+				if (item == null) {
+					underlyingCollection.Add (null);
+					return;
+				} else {
+					if (ctx != item.Length) { throw new Exception (); }
+
+					underlyingCollection.Add (item);
+				}
+			}
+		}
+
+		public interface Stub {
+			object Context { get; }
+		}
+
+		public class Generic567817<TInterface, TImpl>
+			where TInterface : Stub
+			where TImpl : class, TInterface {
+			List<TImpl> underlyingCollection;
+			object ctx;
+
+			public virtual void Add (TInterface item)
+			{
+				if (item == null) {
+					underlyingCollection.Add (null);
+					return;
+				} else {
+					if (ctx != item.Context) { throw new Exception (); }
+
+					underlyingCollection.Add ((TImpl) item);
+				}
+			}
+		}
+
+		[Test]
+		public void Bug567817 ()
+		{
+			AssertRuleSuccess<NonGeneric567817> ("Add");
+			AssertRuleSuccess<Generic567817<Stub, Stub>> ("Add");
+		}
+
+		public class GenericClass {
+
+			public bool Test1<T> (T fs) where T : Stream
+			{
+				return fs.CanRead;
+			}
+
+			public bool Test2<T> (T fs) where T : Stream
+			{
+				if (fs == null)
+					return false;
+				return fs.CanRead;
+			}
+
+			public bool Test2Equals<T> (T fs) where T : Stream
+			{
+				if (Equals (fs, null))
+					return false;
+
+				return fs.CanRead;
+			}
+
+			public bool Test2EqualsDefault<T> (T fs) where T : Stream
+			{
+				if (Equals (fs, default (Stream)))
+					return false;
+
+				return fs.CanRead;
+			}
+
+			public bool Test3<T> (T fs) where T : Stream
+			{
+				if (fs != null)
+					return fs.CanRead;
+
+				return false;
+			}
+
+			public bool Test3Equals<T> (T fs) where T : Stream
+			{
+				if (!Equals (fs, null))
+					return fs.CanRead;
+
+				return false;
+			}
+
+			public bool Test3EqualsDefault<T> (T fs) where T : Stream
+			{
+				if (!Equals (fs, default (Stream)))
+					return fs.CanRead;
+
+				return false;
+			}
+		}
+
+		[Test]
+		public void MoreGenericCases ()
+		{
+			AssertRuleFailure<GenericClass> ("Test1", 1);
+			AssertRuleSuccess<GenericClass> ("Test2");
+			AssertRuleSuccess<GenericClass> ("Test2Equals");
+			AssertRuleSuccess<GenericClass> ("Test2EqualsDefault");
+			AssertRuleSuccess<GenericClass> ("Test3");
+			AssertRuleSuccess<GenericClass> ("Test3Equals");
+			AssertRuleSuccess<GenericClass> ("Test3EqualsDefault");
+		}
+
+		// test case provided by Iristyle, extracted from
+		// https://github.com/Iristyle/mono-tools/commit/0c5649353619fc76b04ce406193f3e06e8654d69
+		public void ChecksObjectAndMember (Uri url)
+		{
+			if (null == url)
+				throw new ArgumentNullException ("url");
+
+			string requestDetails = null != url && null != url.AbsoluteUri ?
+				String.Format ("URL: {0}{1}", url.AbsoluteUri, Environment.NewLine) : String.Empty;
+		}
+
+		[Test]
+		public void StaticWithParameter ()
+		{
+			AssertRuleSuccess<CheckParametersNullityInVisibleMethodsTest> ("ChecksObjectAndMember");                        
+		}
+
+		// test case from Iristyle
+		// https://github.com/Iristyle/mono-tools/commit/d27c6d10ccebde1d1c3d600279fc35802581f266
+		public void ReassignsRefBeforeCheck (ref object test)
+		{
+			//uncommenting this line makes the test succeed
+			//if (null == test) { throw new ArgumentNullException("test"); }
+
+			//follow this general pattern because of FxCop false positive on CA1062
+			//http://connect.microsoft.com/VisualStudio/feedback/details/560099/ca1062-false-positive-with-byref-arguments
+			object testCopy = test;
+			
+			if (null == testCopy)
+				throw new ArgumentNullException ("test");
+			test = testCopy;
+		}
+
+		[Test]
+		[Ignore ("by design the rule only checks parameter arguments, not variables, fields, return value...")]
+		public void ParameterAssignedToVariableBeforeCheck ()
+		{
+			AssertRuleSuccess<CheckParametersNullityInVisibleMethodsTest> ("ReassignsRefBeforeCheck");
+		}
+
+		// test case provided by Iristyle - bnc665193
+		// https://github.com/Iristyle/mono-tools/commit/5afbd0a3ef746ff6fdb3db4e1be53995c1734be4
+		public void ChecksIsType (Exception ex)
+		{
+			//only non-nulls may pass
+			if (ex is ArgumentException) {
+				ex.ToString ();
+			}            
+		}
+
+		[Test]
+		public void AllowsIsCheck ()
+		{
+			AssertRuleSuccess<CheckParametersNullityInVisibleMethodsTest> ("ChecksIsType");
 		}
 	}
 }

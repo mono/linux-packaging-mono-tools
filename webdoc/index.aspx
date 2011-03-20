@@ -1,11 +1,16 @@
-<%@ Page Language="C#" %>
+<%@ Page Language="C#" ClassName="Mono.Website.Index" %>
 <%@ Import Namespace="System.Web" %>
 <%@ Import Namespace="System.Collections.Specialized" %>
 <html>
   <head>
-    <title>Mono Documentation</title>
+    <title><%=GetTitle ()%></title>
   </head>
         <script language="c#" runat="server">
+		public string GetTitle ()
+		{
+			return Global.help_tree.GetTitle (Request.QueryString ["link"]);
+		}
+
                 // Get the path to be shown in the content fram
                 string getContentFrame()
                 {
@@ -25,7 +30,7 @@
                 }
         </script>
 
-<frameset rows="75,*" frameborder="0" border="1">
+<frameset rows="40,*" frameborder="0" border="1">
  <frame src="header.aspx" name="Header" id='header' scrolling="no" noresize="true" />
   <frameset cols="20%,80%" frameborder="1" border="1">
     <frame src="monodoc.ashx?tree=boot" name="Tree" />

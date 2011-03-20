@@ -93,9 +93,10 @@ namespace Gendarme.Rules.Performance {
 	[FxCopCompatibility ("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
 	public class AvoidUncalledPrivateCodeRule : Rule, IMethodRule {
 
-		static string [] ComRegistration = new string[] {
+		static string [] SpecialAttributes = new string[] {
 			"System.Runtime.InteropServices.ComRegisterFunctionAttribute",
-			"System.Runtime.InteropServices.ComUnregisterFunctionAttribute"
+			"System.Runtime.InteropServices.ComUnregisterFunctionAttribute",
+			"System.Diagnostics.ConditionalAttribute"
 		};
 
 		static private bool Applicable (MethodDefinition method)
@@ -117,8 +118,9 @@ namespace Gendarme.Rules.Performance {
 				return false;
 
 			// does not apply if the method is used to register/unregister COM objects
+			// or it is decorated with a [Conditional("x")] attribute
 			if (method.HasCustomAttributes) {
-				if (method.CustomAttributes.ContainsAnyType (ComRegistration))
+				if (method.CustomAttributes.ContainsAnyType (SpecialAttributes))
 					return false;
 			}
 
@@ -213,9 +215,12 @@ namespace Gendarme.Rules.Performance {
 				return true;
 			
 			// handle non-virtual Equals, e.g. Equals(type)
-			if ((method.Name == "Equals") && (method.Parameters.Count == 1) &&
-				(method.Parameters [0].ParameterType == method.DeclaringType))
-				return true;
+			string name = method.Name;
+			if (method.HasParameters && (name == "Equals")) {
+				IList<ParameterDefinition> pdc = method.Parameters;
+				if ((pdc.Count == 1) && (pdc [0].ParameterType == method.DeclaringType))
+					return true;
+			}
 
 			// check if this method is needed to satisfy an interface
 			TypeDefinition type = (method.DeclaringType as TypeDefinition);
@@ -224,7 +229,7 @@ namespace Gendarme.Rules.Performance {
 					TypeDefinition intf = tr.Resolve ();
 					if (intf != null) {
 						foreach (MethodReference member in intf.Methods) {
-							if (method.Name == member.Name)
+							if (name == member.Name)
 								return true;
 						}
 					}
@@ -245,7 +250,7 @@ namespace Gendarme.Rules.Performance {
 			AssemblyDefinition assembly = method.DeclaringType.Module.Assembly;
 			foreach (ModuleDefinition module in assembly.Modules) {
 				// scan each type
-				foreach (TypeDefinition type in module.Types) {
+				foreach (TypeDefinition type in module.GetAllTypes ()) {
 					if (CheckTypeForMethodUsage (type, method))
 						return true;
 				}
@@ -253,19 +258,19 @@ namespace Gendarme.Rules.Performance {
 			return false;
 		}
 
-		static Dictionary<TypeDefinition, HashSet<uint>> cache = new Dictionary<TypeDefinition, HashSet<uint>> ();
+		static Dictionary<TypeDefinition, HashSet<ulong>> cache = new Dictionary<TypeDefinition, HashSet<ulong>> ();
 
-		private static uint GetToken (MethodReference method)
+		private static ulong GetToken (MethodReference method)
 		{
-			return method.GetOriginalMethod ().MetadataToken.ToUInt ();
+			return (ulong) method.DeclaringType.Module.Assembly.GetHashCode () << 32 | method.GetElementMethod ().MetadataToken.ToUInt32 ();
 		}
 
 		private static bool CheckTypeForMethodUsage (TypeDefinition type, MethodReference method)
 		{
 			if (type.HasGenericParameters)
-				type = type.GetOriginalType ().Resolve ();
+				type = type.GetElementType ().Resolve ();
 
-			HashSet<uint> methods = GetCache (type);
+			HashSet<ulong> methods = GetCache (type);
 			if (methods.Contains (GetToken (method)))
 				return true;
 
@@ -279,19 +284,12 @@ namespace Gendarme.Rules.Performance {
 			return false;
 		}
 
-		private static HashSet<uint> GetCache (TypeDefinition type)
+		private static HashSet<ulong> GetCache (TypeDefinition type)
 		{
-			HashSet<uint> methods;
+			HashSet<ulong> methods;
 			if (!cache.TryGetValue (type, out methods)) {
-				methods = new HashSet<uint> ();
+				methods = new HashSet<ulong> ();
 				cache.Add (type, methods);
-				if (type.HasConstructors) {
-					foreach (MethodDefinition ctor in type.Constructors) {
-						if (!ctor.HasBody)
-							continue;
-						BuildMethodUsage (methods, ctor);
-					}
-				}
 				if (type.HasMethods) {
 					foreach (MethodDefinition md in type.Methods) {
 						if (!md.HasBody)
@@ -303,20 +301,22 @@ namespace Gendarme.Rules.Performance {
 			return methods;
 		}
 
-		private static void BuildMethodUsage (HashSet<uint> methods, MethodDefinition method)
+		private static void BuildMethodUsage (HashSet<ulong> methods, MethodDefinition method)
 		{
 			foreach (Instruction ins in method.Body.Instructions) {
 				MethodReference mr = (ins.Operand as MethodReference);
-				if (mr == null)
+				// avoid CallSite - but do not limit ourselves to Call[virt]+Newobj (e.g. ldftn)
+				if ((mr == null) || (ins.OpCode.Code == Code.Calli))
 					continue;
 
 				TypeReference type = mr.DeclaringType;
 				if (!(type is ArrayType)) {
-					// if (type.GetOriginalType ().HasGenericParameters)
+					// if (type.GetElementType ().HasGenericParameters)
 					// the simpler ^^^ does not work under Mono but works on MS
 					type = type.Resolve ();
-					if (type != null && type.HasGenericParameters)
+					if (type != null && type.HasGenericParameters) {
 						methods.Add (GetToken (type.GetMethod (mr.Name)));
+					}
 				}
 				methods.Add (GetToken (mr));
 			}

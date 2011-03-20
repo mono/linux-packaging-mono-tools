@@ -71,6 +71,7 @@ CTAGS = ctags
 DIST_SUBDIRS = $(SUBDIRS)
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
+ACLOCAL_FLAGS = @ACLOCAL_FLAGS@
 AMTAR = @AMTAR@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
@@ -89,6 +90,7 @@ CYGPATH_W = @CYGPATH_W@
 DATADIRNAME = @DATADIRNAME@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
+DMCS = @DMCS@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
@@ -102,6 +104,8 @@ GETTEXT_PACKAGE = @GETTEXT_PACKAGE@
 GMCS = @GMCS@
 GMOFILES = @GMOFILES@
 GMSGFMT = @GMSGFMT@
+GNOME_SHARP_CFLAGS = @GNOME_SHARP_CFLAGS@
+GNOME_SHARP_LIBS = @GNOME_SHARP_LIBS@
 GNUNIT_VERSION = @GNUNIT_VERSION@
 GREP = @GREP@
 GTKHTML_SHARP_CFLAGS = @GTKHTML_SHARP_CFLAGS@
@@ -247,6 +251,7 @@ rules_doc = $(rules_doc_zip) $(rules_doc_source) $(rules_doc_tree)
 generated_doc = doc/generated/index.xml
 tests_build_sources = $(addprefix $(srcdir)/Test/, $(tests_sources))
 rules_sources = \
+	CentralizePInvokesIntoNativeMethodsTypeRule.cs \
 	DelegatesPassedToNativeCodeMustIncludeExceptionHandlingRule.cs \
 	DoNotCastIntPtrToInt32Rule.cs \
 	GetLastErrorMustBeCalledRightAfterPInvokeRule.cs \
@@ -256,6 +261,7 @@ rules_sources = \
 	UseManagedAlternativesToPInvokeRule.cs
 
 tests_sources = \
+	CentralizePInvokesIntoNativeMethodsTypeTest.cs \
 	DoNotCastIntPtrToInt32Test.cs \
 	GetLastErrorMustBeCalledRightAfterPInvokeTest.cs \
 	MarshalBooleansInPInvokeDeclarationsTest.cs \
@@ -620,7 +626,7 @@ $(rules_dll): $(rules_build_sources) $(framework)
 	$(GMCS) -target:library $(EXTRA_RULES_OPTIONS) -nowarn:1591 -doc:$(rules_dll).doc \
 		-r:$(CECIL_ASM) -r:$(framework) -out:$@ $(rules_build_sources)
 
-$(tests_dll): $(tests_build_sources) $(rules_dll)
+$(tests_dll): $(tests_build_sources) $(rules_dll) $(EXTRA_TESTS_DEPS)
 	$(GMCS) -target:library $(EXTRA_TESTS_OPTIONS) -r:$(CECIL_ASM) -r:$(framework) \
 		-r:$(rules_dll) -r:$(common_tests) -pkg:mono-nunit -out:$@ $(tests_build_sources)
 

@@ -110,6 +110,7 @@ namespace Gendarme.Rules.Correctness {
 
 	[Problem ("This disposable local is not guaranteed to be disposed of before the method returns.")]
 	[Solution ("Use a 'using' statement or surround the local's usage with a try/finally block.")]
+	[FxCopCompatibility("Microsoft.Reliability", "CA2000:DisposeObjectsBeforeLosingScope")]
 	[EngineDependency (typeof (OpCodeEngine))]
 	public sealed class EnsureLocalDisposalRule : Rule, IMethodRule {
 
@@ -136,13 +137,13 @@ namespace Gendarme.Rules.Correctness {
 				return method.DeclaringType.Implements ("System.IDisposable");
 			}
 
-			return method.ReturnType.ReturnType.Implements ("System.IDisposable");
+			return method.ReturnType.Implements ("System.IDisposable");
 		}
 
 		static bool AreBothInstructionsInSameTryFinallyBlock (MethodBody body, Instruction a, Instruction b)
 		{
 			foreach (ExceptionHandler eh in body.ExceptionHandlers) {
-				if (eh.Type != ExceptionHandlerType.Finally)
+				if (eh.HandlerType != ExceptionHandlerType.Finally)
 					continue;
 				if (eh.TryStart.Offset <= a.Next.Offset && eh.TryEnd.Offset >= a.Offset
 					&& eh.HandlerStart.Offset <= b.Offset && eh.HandlerEnd.Offset >= b.Offset)
@@ -151,7 +152,7 @@ namespace Gendarme.Rules.Correctness {
 			return false;
 		}
 
-		static Instruction LocalTraceBack (MethodDefinition method, Instruction ins)
+		static Instruction LocalTraceBack (IMethodSignature method, Instruction ins)
 		{
 			ins = ins.TraceBack (method);
 			while (ins != null) {
@@ -176,14 +177,19 @@ namespace Gendarme.Rules.Correctness {
 			return null;
 		}
 
+		static bool IsSetter (MethodReference m)
+		{
+			if (m == null)
+				return false;
+			MethodDefinition md = m.Resolve ();
+			if (md == null)
+				return m.Name.StartsWith ("set_", StringComparison.Ordinal);
+			return md.IsSetter;
+		}
+
 		public RuleResult CheckMethod (MethodDefinition method)
 		{
 			if (!method.HasBody)
-				return RuleResult.DoesNotApply;
-
-			//we ignore methods/constructors that returns IDisposable themselves
-			//where local(s) are most likely used for disposable object construction
-			if (DoesReturnDisposable (method))
 				return RuleResult.DoesNotApply;
 
 			//is there any potential IDisposable-getting opcode in the method?
@@ -191,13 +197,15 @@ namespace Gendarme.Rules.Correctness {
 			if (!callsAndNewobjBitmask.Intersect (methodBitmask))
 				return RuleResult.DoesNotApply;
 
-			//do we potentially store that IDisposable in a local?
-			if (!OpCodeBitmask.StoreLocal.Intersect (methodBitmask))
+			//we ignore methods/constructors that returns IDisposable themselves
+			//where local(s) are most likely used for disposable object construction
+			if (DoesReturnDisposable (method))
 				return RuleResult.DoesNotApply;
 
 			suspectLocals.Clear ();
 
-			foreach (Instruction ins in method.Body.Instructions) {
+			MethodBody body = method.Body;
+			foreach (Instruction ins in body.Instructions) {
 				if (!callsAndNewobjBitmask.Get (ins.OpCode.Code))
 					continue;
 
@@ -206,7 +214,7 @@ namespace Gendarme.Rules.Correctness {
 				if (IsDispose (call)) {
 					Instruction local = FindRelatedSuspectLocal (method, ins);
 					if (local != null) {
-						if (!AreBothInstructionsInSameTryFinallyBlock (method.Body, local, ins)) {
+						if (!AreBothInstructionsInSameTryFinallyBlock (body, local, ins)) {
 							string msg = string.Format ("Local {0}is not guaranteed to be disposed of.", GetFriendlyNameOrEmpty (local.GetVariable (method)));
 							Runner.Report (method, local, Severity.Medium, Confidence.Normal, msg);
 						}
@@ -215,13 +223,26 @@ namespace Gendarme.Rules.Correctness {
 					continue;
 				}
 
-				if (ins.Next == null || !ins.Next.IsStoreLocal ())
-					continue; //even if an IDisposable, it isn't stored in a local
-
 				if (!DoesReturnDisposable (call))
 					continue;
 
-				suspectLocals.Add (ins.Next);
+				Instruction nextInstruction = ins.Next;
+				if (nextInstruction == null)
+					continue;
+
+				Code nextCode = nextInstruction.OpCode.Code;
+				if (nextCode == Code.Pop || OpCodeBitmask.Calls.Get (nextCode)) {
+					// We ignore setter because it is an obvious share of the IDisposable
+					if (IsSetter (nextInstruction.Operand as MethodReference))
+						continue;
+
+					ReportCall (method, ins, call);
+					continue;
+				}
+				
+				//even if an IDisposable, it isn't stored in a local
+				if (nextInstruction.IsStoreLocal ())
+					suspectLocals.Add (nextInstruction);
 			}
 
 			foreach (var local in suspectLocals) {
@@ -232,11 +253,30 @@ namespace Gendarme.Rules.Correctness {
 			return Runner.CurrentRuleResult;
 		}
 
+		static bool IsFluentLike (MethodReference method)
+		{
+			string rtype = method.ReturnType.FullName;
+			// StringBuilder StringBuilder.Append (...)
+			if (rtype == method.DeclaringType.FullName)
+				return true;
+			return (method.HasParameters && rtype == method.Parameters [0].ParameterType.FullName);
+		}
+
+		void ReportCall (MethodDefinition method, Instruction ins, MethodReference call)
+		{
+			TypeReference type = ins.Is (Code.Newobj) ? call.DeclaringType : call.ReturnType;
+			bool fluent = IsFluentLike (call);
+			string msg = string.Format ("Local of type '{0}' is not disposed of ({1}).",
+				type.Name, fluent ? "is this a fluent-like API ?" : "at least not locally");
+			Runner.Report (method, ins, Severity.High, fluent ? Confidence.Normal : Confidence.High, msg);
+		}
+
 		static string GetFriendlyNameOrEmpty (VariableReference variable)
 		{
-			if (null == variable.Name || variable.Name.StartsWith ("V_"))
-				return string.Format ("of type '{0}' ", variable.VariableType.Name);
-			return string.Format ("'{0}' of type '{1}' ", variable.Name, variable.VariableType.Name);
+			string tname = variable.VariableType.Name;
+			if (variable.IsGeneratedName ())
+				return string.Format ("of type '{0}' ", tname);
+			return string.Format ("'{0}' of type '{1}' ", variable.Name, tname);
 		}
 
 		static OpCodeBitmask BuildCallsAndNewobjOpCodeBitmask ()

@@ -3,6 +3,7 @@
 //
 // Authors:
 //	Néstor Salceda <nestor.salceda@gmail.com>
+//	Antoine Vandecreme  <avandecreme@sopragroup.com>
 //
 // 	(C) 2008 Néstor Salceda
 //
@@ -27,7 +28,10 @@
 //
 
 using System;
+using System.IO;
+using System.Resources;
 using System.Collections;
+using System.Collections.Generic;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -62,26 +66,104 @@ namespace Gendarme.Rules.Correctness {
 
 	[Problem ("You are calling a Format method without the correct arguments.  This could result in a FormatException being thrown.")]
 	[Solution ("Pass the correct arguments to the formatting method.")]
+	[FxCopCompatibility ("Microsoft.Usage", "CA2241:ProvideCorrectArgumentsToFormattingMethods")]
 	[EngineDependency (typeof (OpCodeEngine))]
 	public class ProvideCorrectArgumentsToFormattingMethodsRule : Rule, IMethodRule {
 		static MethodSignature formatSignature = new MethodSignature ("Format", "System.String");
 		static BitArray results = new BitArray (16);
 
-		private static Instruction GetLoadStringInstruction (Instruction call)
+		private static string GetLoadStringFormatInstruction (Instruction call, MethodDefinition method,
+			int formatPosition)
 		{
-			Instruction current = call;
-			Instruction farest = null;
-			while (current != null) {
-				if (current.OpCode.Code == Code.Ldstr) {
-					//skip strings until get a "valid" one
-					if (GetExpectedParameters ((string)current.Operand) != 0)
-						return current;
-					else 
-						farest = current;
-				}
-				current = current.Previous;	
+			Instruction loadString = call.TraceBack (method, -formatPosition);
+			if (loadString == null)
+				return null;
+
+			// If we find a variable load, search the store
+			while (loadString.IsLoadLocal ()) {
+				Instruction storeIns = GetStoreLocal (loadString, method);
+				if (storeIns == null)
+					return null;
+				loadString = storeIns.TraceBack (method);
+				if (loadString == null)
+					return null;
 			}
-			return farest;
+
+			switch (loadString.OpCode.Code) {
+			case Code.Call:
+			case Code.Callvirt:
+				return GetLoadStringFromCall (loadString.Operand as MethodReference);
+			case Code.Ldstr:
+				return loadString.Operand as string;
+			default:
+				return null;
+			}
+		}
+
+		// this works because there's an earlier check limiting this to generated code
+		// which is a simple, well-known, case where the first string load is known
+		private static string GetResourceNameFromResourceGetter (MethodDefinition md)
+		{
+			foreach (Instruction instruction in md.Body.Instructions)
+				if (instruction.OpCode.Code == Code.Ldstr)
+					return instruction.Operand as string;
+			return null;
+		}
+
+		private static EmbeddedResource GetEmbeddedResource (AssemblyDefinition ad,
+			string resourceClassName)
+		{
+			IList<Resource> resources = ad.MainModule.Resources;
+			foreach (EmbeddedResource resource in resources)
+				if (resourceClassName.Equals (resource.Name))
+					return resource;
+			return null;
+		}
+
+		private static string GetLoadStringFromCall (MethodReference mr)
+		{
+			MethodDefinition md = mr.Resolve ();
+			if ((md == null) || !IsResource (md))
+				return null;
+
+			string resourceName = GetResourceNameFromResourceGetter (md);
+			if (resourceName == null)
+				return null;
+
+			AssemblyDefinition ad = md.GetAssembly ();
+			string resourceClassName = md.DeclaringType.FullName + ".resources";
+			EmbeddedResource resource = GetEmbeddedResource (ad, resourceClassName);
+			if (resource == null)
+				return null;
+
+			using (MemoryStream ms = new MemoryStream (resource.GetResourceData ()))
+			using (ResourceSet resourceSet = new ResourceSet (ms)) {
+				return resourceSet.GetString (resourceName);
+			}
+		}
+
+		private static bool IsResource (MethodDefinition method)
+		{
+			return method.IsStatic && method.IsGetter && method.IsGeneratedCode ();
+		}
+
+		// Get the store instruction associated with the load instruction
+		private static Instruction GetStoreLocal (Instruction loadIns, MethodDefinition method)
+		{
+			Instruction storeIns = loadIns.Previous;
+			do {
+				// look for a STLOC* instruction and compare the variable indexes
+				if (storeIns.IsStoreLocal () && AreMirrorInstructions (loadIns, storeIns, method))
+					return storeIns;
+				storeIns = storeIns.Previous;
+			} while (storeIns != null);
+			return null;
+		}
+
+		// Return true if both ld and st are store and load associated instructions
+		private static bool AreMirrorInstructions (Instruction ld, Instruction st, MethodDefinition method)
+		{
+			return (ld.GetVariable (method).Index == st.GetVariable (method).Index);
 		}
 
 		//TODO: It only works with 0 - 9 digits
@@ -111,78 +193,83 @@ namespace Gendarme.Rules.Correctness {
 			return counter;
 		}
 
-		private static int CountElementsInTheStack (MethodDefinition method, Instruction start, Instruction end)
+		private static bool TryComputeArraySize (Instruction call, MethodDefinition method, int lastParameterPosition,
+			out int elementsPushed)
 		{
-			Instruction current = start;
-			int counter = 0;
-			bool newarrDetected = false;
-			while (end != current) {
-				if (newarrDetected) {
-					//Count only the stelem instructions if
-					//there are a newarr instruction.
-					if (current.OpCode == OpCodes.Stelem_Ref)
-						counter++;
-				}
-				else {
-					//Count with the stack
-					counter += current.GetPushCount ();
-					counter -= current.GetPopCount (method);
-				}
-				//If there are a newarr we need an special
-				//behaviour
-				if (current.OpCode.Code == Code.Newarr) {
-					newarrDetected = true;
-					counter = 0;
-				}
-				current = current.Next;
+			elementsPushed = 0;
+			Instruction loadArray = call.TraceBack (method, -lastParameterPosition);
+
+			if (loadArray == null)
+				return false;
+
+			while (loadArray.OpCode != OpCodes.Newarr) {
+				if (loadArray.OpCode == OpCodes.Dup)
+					loadArray = loadArray.TraceBack (method);
+				else if (loadArray.IsLoadLocal ()) {
+					Instruction storeIns = GetStoreLocal (loadArray, method);
+					if (storeIns == null)
+						return false;
+					loadArray = storeIns.TraceBack (method);
+				} else
+					return false;
+
+				if (loadArray == null)
+					return false;
 			}
-			return counter;
+
+			if (loadArray.Previous == null)
+				return false;
+
+			// Previous operand should be a ldc.I4 instruction type
+			object previousOperand = loadArray.Previous.GetOperand (method);
+			if (!(previousOperand is int))
+				return false;
+			elementsPushed = (int) previousOperand;
+			return true;
 		}
 
 		private void CheckCallToFormatter (Instruction call, MethodDefinition method)
 		{
-			Instruction loadString = GetLoadStringInstruction (call);
-			if (loadString == null) 
-				return;
+			MethodReference mr = (call.Operand as MethodReference);
 
-			// if it's not a LDSTR (e.g. a return value) then we can't be sure
-			// of the content (and we succeed, well we don't fail/report).
-			string operand = (loadString.Operand as string);
-			if (operand == null)
-				return;
+			IList<ParameterDefinition> pdc = mr.Parameters;
+			int formatPosition = 0;
+			int nbParameters = pdc.Count;
+			int elementsPushed = nbParameters - 1;
 
-			int elementsPushed;
-
-			// String.Format (string, object) -> 1
-			// String.Format (string, object, object) -> 2
-			// String.Format (string, object, object, object) -> 3
+			// String.Format (string, object) -> elementsPushed = 1
+			// String.Format (string, object, object) -> elementsPushed = 2
+			// String.Format (string, object, object, object) -> elementsPushed = 3
 			// String.Format (string, object[]) -> compute
 			// String.Format (IFormatProvider, string, object[]) -> compute
-			MethodReference mr = (call.Operand as MethodReference);
-			if (mr.Parameters [mr.Parameters.Count - 1].ParameterType.FullName == "System.Object")
-				elementsPushed = mr.Parameters.Count - 1;
-			else
-				elementsPushed = CountElementsInTheStack (method, loadString.Next, call);
+			if (pdc [nbParameters - 1].ParameterType.FullName != "System.Object") {
+				// If we cannot determine the array size, we succeed (well we don't fail/report)
+				if (!TryComputeArraySize (call, method, nbParameters - 1, out elementsPushed))
+					return;
 
-			int expectedParameters = GetExpectedParameters ((string) loadString.Operand);
-			
-			//There aren't parameters, and isn't a string with {
-			//characters
-			if (elementsPushed == 0 && expectedParameters == 0) {
+				// String.Format (IFormatProvider, string, object[]) -> formatPosition = 1
+				if (pdc [0].ParameterType.FullName != "System.String")
+					formatPosition = 1;
+			}
+
+			// if we don't find the content we succeed (well we don't fail/report).
+			string loadString = GetLoadStringFormatInstruction (call, method, formatPosition);
+			if (loadString == null)
+				return;
+
+			int expectedParameters = GetExpectedParameters (loadString);
+
+			// There aren't parameters, and isn't a string with '{' characters
+			if (expectedParameters == 0 && elementsPushed == 0) {
 				Runner.Report (method, call, Severity.Low, Confidence.Normal, "You are calling String.Format without arguments, you can remove the call to String.Format");
 				return;
 			}
 
-			if ((expectedParameters == 0) && (elementsPushed > 0)) {
-				Runner.Report (method, call, Severity.Medium, Confidence.Normal, "Extra parameters");
+			if (expectedParameters < elementsPushed) {
+				Runner.Report (method, call, Severity.Medium, Confidence.Normal, String.Format ("Extra parameters are provided to String.Format, {0} provided but only {1} expected", elementsPushed, expectedParameters));
 				return;
 			}
 
-			//It's likely you are calling a method for getting the
-			//formatting string.
-			if (expectedParameters == 0)
-				return;
-			
 			if (elementsPushed < expectedParameters)
 				Runner.Report (method, call, Severity.Critical, Confidence.Normal, String.Format ("The String.Format method is expecting {0} parameters, but only {1} are found.", expectedParameters, elementsPushed));
 		}

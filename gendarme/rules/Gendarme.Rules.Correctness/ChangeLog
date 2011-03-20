@@ -1,8 +1,145 @@
+2010-08-06  Antoine Vandecreme  <avandecreme@sopragroup.com>
+
+	* Makefile.am : Add support for resources
+	* ProvideCorrectArgumentsToFormattingMethodsRule.cs : Add
+	support of string resources as format
+
+2010-06-22  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidMethodsWithSideEffectsInConditionalCodeRule.cs: Apply 
+	AvoidLargeClassesRule
+
+2010-06-20  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* ProvideValidXmlStringRule.cs:
+	* ProvideValidXPathExpressionRule.cs:
+		Apply AvoidRepetitiveCallsToPropertiesRule
+
+2010-06-13  Sebastien Pouliot  <sebastien@ximian.com> 
+
+	* BadRecursiveInvocationRule.cs: Fix regression if a type
+	cannot be resolved (the original name is still available)
+
+2010-06-13  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* BadRecursiveInvocationRule.cs:
+	* DoNotRecurseInEqualityRule.cs:
+	* DoNotRoundIntegersRule.cs:
+	* EnsureLocalDisposalRule.cs:
+	* ProvideCorrectRegexPatternRule.cs:
+	* ProvideValidXmlStringRule.cs:
+	* ProvideValidXPathExpressionRule.cs:
+	* ReviewSelfAssignmentRule.cs:
+		Apply AvoidRepetitiveCallsToPropertiesRule
+
+2010-06-11  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidMethodsWithSideEffectsInConditionalCodeRule.cs: Update
+	comment in xmldoc wrt FX4
+	* ReviewInconsistentIdentityRule.cs: Fix several defects (self 
+	test) and reduce memory usage (e.g. array creation)
+
+2010-06-10  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* DontCompareWithNaNRule.cs: Skip rule if the assembly does not
+	refer (or define for mscorlib) Single or Double types
+	* UseValueInPropertySetterRule.cs: Skip rule if the type has
+	no properties.
+
+2010-06-04  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidMethodsWithSideEffectsInConditionalCodeRule.cs:
+	* EnsureLocalDisposalRule.cs:
+	* ReviewInconsistentIdentityRule.cs:
+ 		Apply AvoidUnnecessarySpecializationRule
+
+2010-05-08  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* CheckParametersNullityInVisibleMethodsRule.cs: Fix when 
+	"ldarg 0" is used instead of the, much more common, "ldarg_0"
+	* MethodCanBeMadeStaticRule.cs: Fix when "ldarg 0" is used 
+	instead of the, much more common, "ldarg_0"
+
+2010-05-01  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidMethodsWithSideEffectsInConditionalCodeRule.cs: Apply 
+	AvoidRepetitiveCallsToPropertiesRule on MethodDefinition::
+	get_DeclaringType and get_Name and TypeReference::Get_FullName
+	* ProvideCorrectArgumentsToFormattingMethodsRule.cs: Apply Avoid
+	RepetitiveCallsToPropertiesRule on MethodDefinition::Parameters.
+	Check (expectedParameters == 0) only once
+	* ProvideValidXmlStringRule.cs: Apply AvoidRepetitiveCallsTo
+	PropertiesRule on MethodDefinition::get_Parameters
+	* ProvideValidXPathExpressionRule.cs: Remove duplicate check on
+	SelectSingleNode
+	* ReviewInconsistentIdentityRule.cs: Apply AvoidRepetitiveCallsTo
+	PropertiesRule on Type::get_FullName
+
+2010-04-28  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* MethodCanBeMadeStaticRule.cs: Re-order conditions from the
+	fastest to the slowest to return DoesNotApply. Ignore methods
+	decorated with [Conditional("X")] since they could be empty (i.e.
+	not using 'this') in IL while impossible, source wise, to change
+	to static.
+	* ProvideCorrectRegexPatternRule.cs: Change TryComputeArraySize
+	to static (self-test)
+
+2010-04-25  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* DisposableFieldsShouldBeDisposedRule.cs: Handle compiler 
+	generated fields (e.g. used in C# 3 automatic properties).
+
+2010-04-17  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* ProvideCorrectRegexPatternRule.cs: Make rule consistent in case
+	where the argument looks like: boolean_condition ? "good" : "bad"
+	i.e. same result (first or second bad string) and compiler 
+	independant. However since we're less sure of the second case we 
+	lower our confidence on that defect.
+
+2010-04-10  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* ProvideCorrectArgumentsToFormattingMethodsRule.cs: Fix false
+	positives when globalization, arrays / 'params' are used. Patch
+	by Antoine Vandecrème
+
+2010-01-30  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* ReviewDoubleAssignmentRule: Apply PreferEmptyInstanceOverNullRule
+
+2010-01-27  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidMethodsWithSideEffectsInConditionalCodeRule.cs: Apply
+	MethodCanBeMadeStaticRule
+	* CallingEqualsWithNullArgRule.cs: Apply rule to Equals that are
+	not public.
+	* ReviewInconsistentIdentityRule.cs: Apply rules to CompareTo 
+	that are not public.
+
+2010-01-06  Jb Evain  <jbevain@novell.com>
+
+	* UseNoInliningWithGetCallingAssemblyRule.cs: Fix the
+	documentation and do some refactoring.
+
+2010-01-04  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* CheckParametersNullityInVisibleMethodsRule.cs: Handle boxing
+	correctly (e.g. when dealing with generics). Fix bug #567817
+
+2010-01-02  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* UseNoInliningWithGetCallingAssemblyRule.cs: New. Rule to ensure
+	Assembly.GetCallingAssembly is called from a method decorated 
+	with [MethodImpl (MethodImplOptions.NoInlining)]
+	* Makefile.am: Add new rule and tests to the build. Add -d:DEBUG
+	to unit tests assembly to remove the three failures in 
+	AvoidMethodsWithSideEffectsInConditionalCodeTest
+
 2009-11-28  Sebastien Pouliot  <sebastien@ximian.com>
 
 	* ReviewInconsistentIdentityTest.cs: Don't process methods 
 	without bodies (e.g. abstract, pinvoke...)
-	[Backport r147054]
 
 2009-07-28  Cedric Vivier  <cedricv@neonux.com>
 

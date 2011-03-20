@@ -25,7 +25,10 @@
 // THE SOFTWARE.
 
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 
 using Mono.Cecil;
@@ -60,16 +63,6 @@ namespace Gendarme.Framework.Rocks {
 		}
 
 		/// <summary>
-		/// Check is debugging symbols are available for this module.
-		/// </summary>
-		/// <param name="self"></param>
-		/// <returns>True if the symbol file for this module is available, False otherwise</returns>
-		public static bool HasDebuggingInformation (this ModuleDefinition self)
-		{
-			return (self as IAnnotationProvider).Annotations.Contains ("symbols");
-		}
-
-		/// <summary>
 		/// Load, if available, the debugging symbols associated with the module. This first
 		/// try to load a MDB file (symbols from the Mono:: runtime) and then, if not present 
 		/// and running on MS.NET, try to load a PDB file (symbols from MS runtime).
@@ -77,12 +70,14 @@ namespace Gendarme.Framework.Rocks {
 		/// <param name="self"></param>
 		public static void LoadDebuggingSymbols (this ModuleDefinition self)
 		{
-			// don't create a new reader if the symbols are already loaded
-			IAnnotationProvider provider = (self as IAnnotationProvider);
-			if (provider.Annotations.Contains ("symbols"))
+			if (self == null)
 				return;
 
-			string image_name = self.Image.FileInformation.FullName;
+			// don't create a new reader if the symbols are already loaded
+			if (self.HasSymbols)
+				return;
+
+			string image_name = self.FullyQualifiedName;
 			string symbol_name = image_name + ".mdb";
 			Type reader_type = null;
 
@@ -90,7 +85,7 @@ namespace Gendarme.Framework.Rocks {
 			// so we start by looking for it's debugging symbol file
 			if (File.Exists (symbol_name)) {
 				// "always" if we can find Mono.Cecil.Mdb
-				reader_type = Type.GetType ("Mono.Cecil.Mdb.MdbFactory, Mono.Cecil.Mdb, Version=0.2.0.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756");
+				reader_type = Type.GetType ("Mono.Cecil.Mdb.MdbReaderProvider, Mono.Cecil.Mdb, Version=0.9.4.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756");
 				// load the assembly from the current folder if
 				// it is here, or fallback to the gac
 			}
@@ -101,7 +96,7 @@ namespace Gendarme.Framework.Rocks {
 				// assume we're running on MS.NET
 				symbol_name = Path.ChangeExtension (image_name, ".pdb");
 				if (File.Exists (symbol_name)) {
-					reader_type = Type.GetType ("Mono.Cecil.Pdb.PdbFactory, Mono.Cecil.Pdb");
+					reader_type = Type.GetType ("Mono.Cecil.Pdb.PdbReaderProvider, Mono.Cecil.Pdb");
 				}
 			}
 
@@ -109,10 +104,9 @@ namespace Gendarme.Framework.Rocks {
 			if (reader_type == null)
 				return;
 
-			ISymbolStoreFactory factory = (ISymbolStoreFactory) Activator.CreateInstance (reader_type);
+			ISymbolReaderProvider provider = (ISymbolReaderProvider) Activator.CreateInstance (reader_type);
 			try {
-				self.LoadSymbols (factory.CreateReader (self, image_name));
-				provider.Annotations.Add ("symbols", symbol_name);
+				self.ReadSymbols (provider.GetSymbolReader (self, image_name));
 			}
 			catch (FileNotFoundException) {
 				// this happens if a MDB file is missing 	 
@@ -133,6 +127,47 @@ namespace Gendarme.Framework.Rocks {
 			}
 			// in any case (of failure to load symbols) Gendarme can continue its analysis (but some rules
 			// can be affected). The HasDebuggingInformation extension method let them adjust themselves
+		}
+
+		static TypeDefinition[] Empty = new TypeDefinition [0];
+
+		/// <summary>
+		/// Return an IEnumerable that allows a single loop (like a foreach) to
+		/// traverse all types that are defined in a module.
+		/// </summary>
+		/// <param name="self">The ModuleDefinition on which the extension method can be called.</param>
+		/// <returns>An IEnumerable to traverse every types of the module</returns>
+		public static IEnumerable<TypeDefinition> GetAllTypes (this ModuleDefinition self)
+		{
+			if (self == null)
+				return Empty;
+			return self.Types.SelectMany (t => t.GetAllTypes ());
+		}
+
+		static IEnumerable<TypeDefinition> GetAllTypes (this TypeDefinition self)
+		{
+			yield return self;
+
+			if (!self.HasNestedTypes)
+				yield break;
+
+			foreach (var type in self.NestedTypes.SelectMany (t => t.GetAllTypes ()))
+				yield return type;
+		}
+
+		public static bool HasAnyTypeReference (this ModuleDefinition self, string [] typeNames)
+		{
+			if (self == null)
+				return false;
+
+			if (typeNames == null)
+				throw new ArgumentNullException ("typeNames");
+
+			foreach (var typeName in typeNames)
+				if (self.HasTypeReference (typeName))
+					return true;
+
+			return false;
 		}
 	}
 }

@@ -24,9 +24,13 @@
 //
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.IO;
+using System.Linq;
 using System.Text;
+using System.Globalization;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -60,7 +64,7 @@ namespace GuiCompare {
 			if (array != null)
 				return PrettyType (array.ElementType) + "[]";
 
-			var reference = type as ReferenceType;
+			var reference = type as ByReferenceType;
 			if (reference != null)
 				return PrettyType (reference.ElementType) + "&";
 
@@ -143,7 +147,7 @@ namespace GuiCompare {
 			if (interface_list != null) {
 				foreach (TypeReference ifc in GetInterfaces (fromDef)) {
 					TypeDefinition ifc_def = ifc.Resolve ();
-					if (ifc_def.IsNotPublic)
+					if (ifc_def == null || ifc_def.IsNotPublic)
 						continue;
 
 					interface_list.Add (new CecilInterface (ifc));
@@ -151,21 +155,27 @@ namespace GuiCompare {
 			}
 
 			if (constructor_list != null) {
-				foreach (MethodDefinition md in fromDef.Constructors) {
+				foreach (MethodDefinition md in fromDef.Methods.Where (m => m.IsConstructor)) {
 					if (md.IsPrivate || md.IsAssembly)
 						continue;
 					constructor_list.Add (new CecilMethod (md));
 				}
 			}
 			if (method_list != null) {
-				foreach (MethodDefinition md in fromDef.Methods) {
+				foreach (MethodDefinition md in fromDef.Methods.Where (m => !m.IsConstructor)) {
 					if (md.IsSpecialName) {
 						if (!md.Name.StartsWith("op_"))
 							continue;
 					}
 
-					if (IsFinalizer (md))
-						continue;
+					if (IsFinalizer (md)) {
+						string name = md.DeclaringType.Name;
+						int arity = name.IndexOf ('`');
+						if (arity > 0)
+							name = name.Substring (0, arity);
+
+						md.Name = "~" + name;
+					}
 
 					if (md.IsPrivate || md.IsAssembly)
 						continue;
@@ -273,8 +283,7 @@ namespace GuiCompare {
 				else if (type_def.IsInterface) {
 					interface_list.Add (new CecilInterface (type_def));
 				}
-				else if (type_def.BaseType.FullName == "System.MulticastDelegate"
-				         || type_def.BaseType.FullName == "System.Delegate") {
+				else if (type_def.BaseType.FullName == "System.MulticastDelegate") {
 					delegate_list.Add (new CecilDelegate (type_def));
 				}
 				else {
@@ -287,11 +296,11 @@ namespace GuiCompare {
 		{
 			StringBuilder sb = new StringBuilder();
 			bool first = true;
-			foreach (object o in ca.ConstructorParameters) {
+			foreach (var argument in ca.ConstructorArguments) {
 				if (!first)
 					sb.Append (", ");
 				first = false;
-				sb.Append (o.ToString());
+				sb.Append (argument.Value.ToString());
 			}
 			
 			return sb.ToString();
@@ -348,25 +357,33 @@ namespace GuiCompare {
 			return l;			
 		}
 		
-		public static readonly AssemblyResolver Resolver = new AssemblyResolver();
+		public static List<CompParameter> GetParameters (IMethodSignature provider)
+		{
+			var l = new List<CompParameter> ();
+			foreach (ParameterDefinition pd in provider.Parameters)
+			{
+				l.Add (new CecilParameter (pd));
+			}
+					
+			return l;
+		}
+		
+		public static readonly IAssemblyResolver Resolver = new DefaultAssemblyResolver();
 	}
 
 	public class CecilAssembly : CompAssembly {
 		public CecilAssembly (string path)
-			: base (Path.GetFileName (path))
+			: base(Path.GetFileName (path))
 		{
 			var namespaces = new Dictionary<string, Dictionary<string, TypeDefinition>> ();
 
-			var assembly = AssemblyFactory.GetAssembly(path);
-
+			var assembly = AssemblyDefinition.ReadAssembly (path, new ReaderParameters { AssemblyResolver = CecilUtils.Resolver });
+			
 			foreach (TypeDefinition t in assembly.MainModule.Types) {
 				if (t.Name == "<Module>")
 					continue;
-
+				
 				if (t.IsNotPublic)
-					continue;
-
-				if (t.IsNested)
 					continue;
 
 				if (t.IsSpecialName || t.IsRuntimeSpecialName)
@@ -382,14 +399,21 @@ namespace GuiCompare {
 					namespaces.Add (t.Namespace, ns);
 				}
 
-				ns [t.Name] = t;
+				ns[t.Name] = t;
 			}
 
 			namespace_list = new List<CompNamed> ();
 			foreach (string ns_name in namespaces.Keys)
-				namespace_list.Add (new CecilNamespace (ns_name, namespaces [ns_name]));
+				namespace_list.Add (new CecilNamespace (ns_name, namespaces[ns_name]));
 
 			attributes = CecilUtils.GetCustomAttributes (assembly, todos);
+
+			// TypeForwardedToAttributes are created by checking if assembly contains
+			// extern forwarder types and using them to construct fake custom attributes
+			foreach (ExportedType t in assembly.MainModule.ExportedTypes) {
+				if (t.IsForwarder)
+					attributes.Add (new PseudoCecilAttribute (t));
+			}
 		}
 
 		public override List<CompNamed> GetNamespaces()
@@ -435,8 +459,7 @@ namespace GuiCompare {
 				else if (type_def.IsInterface) {
 					interface_list.Add (new CecilInterface (type_def));
 				}
-				else if ((type_def.BaseType != null && type_def.BaseType.FullName == "System.MulticastDelegate")
-				         || (type_def.BaseType != null && type_def.BaseType.FullName == "System.Delegate")) {
+				else if (type_def.BaseType != null && type_def.BaseType.FullName == "System.MulticastDelegate") {
 					delegate_list.Add (new CecilDelegate (type_def));
 				}
 				else {
@@ -598,6 +621,28 @@ namespace GuiCompare {
 		public override string GetBaseType ()
 		{
 			return type_def.BaseType == null ? null : CecilUtils.FormatTypeLikeCorCompare (type_def.BaseType);
+		}
+		
+		public override List<CompNamed> GetConstructors ()
+		{
+			List<CompNamed> l = new List<CompNamed> ();
+			foreach (MethodDefinition md in type_def.Methods) {
+				if (md.IsConstructor)
+					l.Add (new CecilMethod (md));
+			}
+			
+			return l;
+		}
+		
+		public override List<CompNamed> GetMethods ()
+		{
+			List<CompNamed> l = new List<CompNamed> ();
+			foreach (MethodDefinition md in type_def.Methods) {
+				if (!md.IsConstructor)
+					l.Add (new CecilMethod (md));
+			}
+			
+			return l;
 		}
 		
 		public override List<CompGenericParameter> GetTypeParameters ()
@@ -825,8 +870,13 @@ namespace GuiCompare {
 
 		public override string GetLiteralValue ()
 		{
-			if (field_def.IsLiteral && field_def.Constant != null)
-				return field_def.Constant.ToString();
+			if (field_def.IsLiteral && field_def.Constant != null) {
+				if (field_def.Constant is char)
+					return string.Format (CultureInfo.InvariantCulture, (char) field_def.Constant < 0x80 ? "\\x{0:X02}" : "\\u{0:X04}", (int)(char) field_def.Constant);
+				
+				return Convert.ToString (field_def.Constant, CultureInfo.InvariantCulture);
+			}
+			
 			return null;
 		}
 		
@@ -853,7 +903,7 @@ namespace GuiCompare {
 			if (method_def.IsConstructor)
 				return null;
 			
-			return CecilUtils.FormatTypeLikeCorCompare (method_def.ReturnType.ReturnType);
+			return CecilUtils.FormatTypeLikeCorCompare (method_def.ReturnType);
 		}
 
 		public override bool ThrowsNotImplementedException ()
@@ -893,15 +943,20 @@ namespace GuiCompare {
 		public override List<CompGenericParameter> GetTypeParameters ()
 		{
 			return CecilUtils.GetTypeParameters (method_def);
-		}	
+		}
+		
+		public override List<CompParameter> GetParameters ()
+		{
+			return CecilUtils.GetParameters (method_def);
+		}
 		
 		static string FormatName (MethodDefinition method_def, bool beautify)
 		{
 			StringBuilder sb = new StringBuilder ();
 			if (!method_def.IsConstructor)
 				sb.Append (beautify
-				           ? CecilUtils.PrettyType (method_def.ReturnType.ReturnType)
-				           : CecilUtils.FormatTypeLikeCorCompare (method_def.ReturnType.ReturnType));
+				           ? CecilUtils.PrettyType (method_def.ReturnType)
+				           : CecilUtils.FormatTypeLikeCorCompare (method_def.ReturnType));
 			sb.Append (" ");
 			if (beautify) {
 				if (method_def.IsSpecialName && method_def.Name.StartsWith ("op_")) {
@@ -930,6 +985,8 @@ namespace GuiCompare {
 					case "op_OnesComplement": sb.Append ("operator ~"); break;
 					case "op_True": sb.Append ("operator true"); break;
 					case "op_False": sb.Append ("operator false"); break;
+					case "op_LeftShift": sb.Append ("operator <<"); break;
+					case "op_RightShift": sb.Append ("operator >>"); break;
 					default: Console.WriteLine ("unhandled operator named {0}", method_def.Name); sb.Append (method_def.Name); break;
 					}
 				}
@@ -1122,12 +1179,71 @@ namespace GuiCompare {
 		public CecilAttribute (CustomAttribute ca)
 			: base (ca.Constructor.DeclaringType.FullName)
 		{
+			var sb = new StringBuilder ("[" + ca.Constructor.DeclaringType.FullName);
+			bool first = true;
+			
+			var cargs = ca.ConstructorArguments;
+			if (cargs != null && cargs.Count > 0) {
+				foreach (var argument in cargs) {
+					if (first) {
+						sb.Append (" (");
+						first = false;
+					} else
+						sb.Append (", ");
+
+					sb.Append (FormatValue (argument.Value));
+				}
+				
+			}
+
+			var properties = ca.Properties;
+			if (properties != null && properties.Count > 0) {
+				foreach (var namedArg in properties) {
+					if (first) {
+						sb.Append (" (");
+						first = false;
+					} else
+						sb.Append (", ");
+					
+					sb.AppendFormat ("{0}={1}", namedArg.Name, FormatValue (namedArg.Argument.Value));
+				}
+			}
+			
+			if (!first)
+				sb.Append (')');
+			sb.Append ("]");
+			
+			ExtraInfo = sb.ToString ();
+		}
+
+		string FormatValue (object o)
+		{
+			if (o == null)
+				return "null";
+
+			if (o is string)
+				return "\"" + o + "\"";
+
+			if (o is bool)
+				return o.ToString ().ToLowerInvariant ();
+			
+			return o.ToString ();
+		}
+	}
+
+	public class PseudoCecilAttribute : CompAttribute
+	{
+		public PseudoCecilAttribute (ExportedType type)
+			: base (typeof (TypeForwardedToAttribute).FullName)
+		{
+			ExtraInfo = "[assembly: TypeForwardedToAttribute (typeof (" + type.ToString () + "))]";
 		}
 	}
 	
 	public class CecilGenericParameter : CompGenericParameter
 	{
-		List<CompNamed> attributes;		
+		List<CompNamed> attributes;	
+		IList<TypeReference> constraints;
 		
 		public CecilGenericParameter (GenericParameter gp)
 			: base (gp.Name, gp.Attributes)
@@ -1137,8 +1253,31 @@ namespace GuiCompare {
 			var constraints = gp.Constraints;
 			if (constraints.Count == 0)
 				return;
-				
+			
 			// TODO: finish constraints loading
+			this.constraints = constraints;
+		}
+		
+		public override bool HasConstraints {
+			get {
+				return constraints != null;
+			}
+		}
+		
+		public override List<CompNamed> GetAttributes ()
+		{
+			return attributes;
+		}
+	}
+	
+	public class CecilParameter : CompParameter
+	{
+		List<CompNamed> attributes;
+		
+		public CecilParameter (ParameterDefinition pd)
+			: base (pd.Name, CecilUtils.FormatTypeLikeCorCompare (pd.ParameterType), pd.IsOptional)
+		{
+			attributes = CecilUtils.GetCustomAttributes (pd, todos);
 		}
 		
 		public override List<CompNamed> GetAttributes ()

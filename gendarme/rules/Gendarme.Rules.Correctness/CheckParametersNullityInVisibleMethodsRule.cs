@@ -4,7 +4,7 @@
 // Authors:
 //	Sebastien Pouliot <sebastien@ximian.com>
 //
-// Copyright (C) 2008 Novell, Inc (http://www.novell.com)
+// Copyright (C) 2008,2010 Novell, Inc (http://www.novell.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the
@@ -106,20 +106,25 @@ namespace Gendarme.Rules.Correctness {
 			if (parameter.IsOut)
 				return;
 
+			int sequence = parameter.GetSequence ();
+			// ldarg this - 'this' cannot be null
+			if (sequence == 0)
+				return;
+
 			// was there a null check done before ?	
-			if (has_null_check.Get (parameter.Sequence))
+			if (has_null_check.Get (sequence))
 				return;
 
 			// make sure we don't report it more than once
-			has_null_check.Set (parameter.Sequence);
+			has_null_check.Set (sequence);
 
 			// ignore a value type parameter (as long as its not an array of value types)
 			TypeReference ptype = parameter.ParameterType;
 			// take care of references (ref)
-			ReferenceType rt = (ptype as ReferenceType);
+			ByReferenceType rt = (ptype as ByReferenceType);
 			if (rt != null)
 				ptype = rt.ElementType;
-			if (ptype.IsValueType && !ptype.IsArray ())
+			if (ptype.IsValueType && !ptype.IsArray)
 				return;
 
 			// last chance, if the type is a generic type constrained not to be nullable
@@ -140,25 +145,34 @@ namespace Gendarme.Rules.Correctness {
 			if (parameter == null)
 				return;
 
+			// avoid checking parameters where a null check was already found
+			if (has_null_check.Get (parameter.GetSequence ()))
+				return;
+
 			Instruction next = ins.Next;
 			Code nc = next.OpCode.Code;
-			// load indirect reference (ref)
-			if (nc == Code.Ldind_Ref) {
+			switch (nc) {
+			case Code.Box:		// generics
+			case Code.Ldind_Ref:	// load indirect reference
 				next = next.Next;
 				nc = next.OpCode.Code;
+				break;
+			case Code.Isinst:
+				has_null_check.Set (parameter.GetSequence ());
+				return;
 			}
 
 			if (null_compare.Get (nc)) {
-				has_null_check.Set (parameter.Sequence);
+				has_null_check.Set (parameter.GetSequence ());
 			} else {
 				// compare with null (next or previous to current instruction)
 				// followed by a CEQ instruction
 				if (nc == Code.Ldnull) {
 					if (next.Next.OpCode.Code == Code.Ceq)
-						has_null_check.Set (parameter.Sequence);
+						has_null_check.Set (parameter.GetSequence ());
 				} else if (nc == Code.Ceq) {
 					if (ins.Previous.OpCode.Code == Code.Ldnull)
-						has_null_check.Set (parameter.Sequence);
+						has_null_check.Set (parameter.GetSequence ());
 				}
 			}
 		}
@@ -180,13 +194,17 @@ namespace Gendarme.Rules.Correctness {
 			// note: not perfect but greatly reduce false positives
 			if (!md.HasParameters)
 				return;
+			int base_index = md.IsStatic ? 0 : -1;
 			for (int i = 0; i < md.Parameters.Count; i++) {
-				Instruction pi = ins.TraceBack (method, -(md.IsStatic ? 0 : 1 + i));
+				Instruction pi = ins.TraceBack (method, base_index - i);
 				if (pi == null)
 					continue;
+				// generic types will be be boxed, skip that
+				if (pi.OpCode.Code == Code.Box)
+					pi = pi.Previous;
 				ParameterDefinition p = pi.GetParameter (method);
 				if (p != null)
-					has_null_check.Set (p.Sequence);
+					has_null_check.Set (p.GetSequence ());
 			}
 		}
 
@@ -197,6 +215,7 @@ namespace Gendarme.Rules.Correctness {
 				return RuleResult.DoesNotApply;
 
 			has_null_check.ClearAll ();
+			int parameters = method.Parameters.Count;
 
 			// check
 			foreach (Instruction ins in method.Body.Instructions) {
@@ -212,6 +231,10 @@ namespace Gendarme.Rules.Correctness {
 					}
 					CheckParameter (owner.GetParameter (method));
 				}
+
+				// stop processing instructions once all parameters are validated
+				if (has_null_check.Count () == parameters)
+					break;
 			}
 
 			return Runner.CurrentRuleResult;

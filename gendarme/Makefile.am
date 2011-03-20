@@ -1,7 +1,7 @@
 TESTDIRS = framework rules
-SUBDIRS = $(TESTDIRS) console swf-wizard-runner man win32-setup
-bin_SCRIPTS = gendarme gendarme-wizard
-EXTRA_DIST = gendarme.in gendarme-wizard.in AssemblyInfo.cs.in MIT.X11 gendarme.sln self-test.ignore gendarme.svg options.make
+SUBDIRS = $(TESTDIRS) console swf-wizard-runner man wix tools
+bin_SCRIPTS = gendarme gendarme-wizard gd2i
+EXTRA_DIST = gendarme.in gendarme-wizard.in AssemblyInfo.cs.in MIT.X11 gendarme.sln self-test.ignore mono-options.ignore gendarme.svg options.make
 
 CLEANFILES = gendarme gendarme-wizard bin/rules.xml
 
@@ -10,15 +10,7 @@ pixmap_DATA = gendarme.svg
 
 DISTCLEANFILES = \
 	AssemblyInfo.cs \
-	configure \
-	config.guess \
-	config.sub \
-	Makefile.in \
-	install-sh \
-	aclocal.m4 \
-	INSTALL \
-	COPYING \
-	missing
+	Makefile.in
 	
 wdir = $(shell pwd)
 
@@ -45,9 +37,15 @@ run-test: bin/gendarme.exe.config
 
 self-test: all bin/gendarme.exe.config
 	rm -f gendarme.log; \
-	mono --debug bin/gendarme.exe --config rules/rules.xml --set self-test --html bin/self-test.html --ignore=self-test.ignore \
-		--severity=all --confidence=all bin/gendarme.exe bin/gendarme-wizard.exe bin/Gendarme.*.dll
+	mono --debug bin/gendarme.exe --config rules/rules.xml --set self-test --xml bin/self-test.xml --html bin/self-test.html \
+		--ignore=self-test.ignore --severity=all --confidence=all bin/gendarme.exe bin/gendarme-wizard.exe bin/Gendarme.*.dll
 
+check-test: all bin/gendarme.exe.config test
+	mono --debug bin/gendarme.exe --config rules/rules.xml --set unit-test --xml bin/unit-test.xml --html bin/unit-test.html \
+		--ignore=unit-test.ignore --severity=all --confidence=all @unit-test.list
+
+test-regress: all
+	mono --debug bin/gendarme.exe --config rules/rules.xml --set self-test --log regress.log testcases/*.dll testcases/*.exe
 	
 TEST1 ?= AvoidVisibleConstantFieldTest
 test1_file = $(shell find rules -name "\.svn" -prune -o  -name "*$(TEST1)*" -print)
@@ -108,7 +106,11 @@ instruct.xsd:
 
 push: instruct.xsd
 	xmllint --schema instruct.xsd gendarme.xml
-	scp gendarme-2.6-bin.zip $(USER)@upload.ohloh.net:gendarme/files; \
-	scp gendarme-2.6-win32-setup.zip $(USER)@upload.ohloh.net:gendarme/files; \
-	scp gendarme.xml $(USER)@upload.ohloh.net:gendarme/instructs
+#	scp gendarme-2.8preview1-bin.zip $(USER)@upload.ohloh.net:gendarme/files; \
+#	scp gendarme-2.8preview1-win32-setup.zip $(USER)@upload.ohloh.net:gendarme/files; \
+#	scp gendarme.xml $(USER)@upload.ohloh.net:gendarme/instructs
+
+pull-log:
+	scp $(USER)@upload.ohloh.net:gendarme/logs/upload.log .
+	cat upload.log
 

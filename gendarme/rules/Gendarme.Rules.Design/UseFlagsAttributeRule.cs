@@ -74,6 +74,7 @@ namespace Gendarme.Rules.Design {
 
 	[Problem ("The enum seems to be composed of flag values, but is not decorated with [Flags].")]
 	[Solution ("Add [Flags] to the enum,  change the values so that they are not powers of two, or ignore the defect.")]
+	[FxCopCompatibility ("Microsoft.Design", "CA1027:MarkEnumsWithFlags")]
 	public sealed class UseFlagsAttributeRule : Rule, ITypeRule {
 	
 		private List<ulong> values = new List<ulong> ();
@@ -82,21 +83,18 @@ namespace Gendarme.Rules.Design {
 		{
 			values.Clear ();
 			
-			Type ftype = null;
 			foreach (FieldDefinition field in type.Fields) {
 				if (field.IsStatic) {
-					if (ftype == null)
-						ftype = field.Constant.GetType ();
-						
+					object o = field.Constant;
 					ulong value;
-					if (ftype == typeof (ulong)) {
-						value = (ulong) field.Constant;
+					if (o is ulong) {
+						value = (ulong) o;
 
 						if (value != 0 && !values.Contains (value))
 							values.Add (value);
 
 					} else {
-						long v = Convert.ToInt64 (field.Constant);
+						long v = Convert.ToInt64 (o);
 
 						if (v > 0) {
 							value = (ulong) v;
@@ -111,7 +109,7 @@ namespace Gendarme.Rules.Design {
 			}
 		}
 		
-		private bool IsPowerOfTwo (ulong x)
+		static bool IsPowerOfTwo (ulong x)
 		{
 			Debug.Assert (x > 0, "x is not positive");
 

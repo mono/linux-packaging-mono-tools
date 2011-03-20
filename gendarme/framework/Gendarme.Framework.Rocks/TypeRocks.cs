@@ -57,26 +57,6 @@ namespace Gendarme.Framework.Rocks {
 	public static class TypeRocks {
 
 		/// <summary>
-		/// Return an IEnumerable that allows a single loop (like a foreach) to
-		/// traverse all MethodDefinition in the type. That includes the Constructors
-		/// and Methods collections.
-		/// </summary>
-		/// <param name="self">The TypeReference on which the extension method can be called.</param>
-		/// <returns>An IEnumerable to traverse all constructors and methods</returns>
-		public static IEnumerable<MethodDefinition> AllMethods (this TypeReference self)
-		{
-			TypeDefinition type = self.Resolve ();
-			if (type.HasConstructors) {
-				foreach (MethodDefinition ctor in type.Constructors)
-					yield return ctor;
-			}
-			if (type.HasMethods) {
-				foreach (MethodDefinition method in type.Methods)
-					yield return method;
-			}
-		}
-
-		/// <summary>
 		/// Returns an IEnumerable that allows a single loop (like a foreach) to
 		/// traverse all base classes and interfaces inherited by the type.
 		/// </summary>
@@ -110,10 +90,12 @@ namespace Gendarme.Framework.Rocks {
 		/// <param name="typeName">Full name of the type.</param>
 		/// <returns>True if the collection contains an type of the same name,
 		/// False otherwise.</returns>
-		public static bool ContainsType (this TypeReferenceCollection self, string typeName)
+		public static bool ContainsType (this IEnumerable<TypeReference> self, string typeName)
 		{
 			if (typeName == null)
 				throw new ArgumentNullException ("typeName");
+			if (self == null)
+				return false;
 
 			foreach (TypeReference type in self) {
 				if (type.FullName == typeName)
@@ -129,10 +111,12 @@ namespace Gendarme.Framework.Rocks {
 		/// <param name="typeNames">A string array of full type names.</param>
 		/// <returns>True if the collection contains any types matching one specified,
 		/// False otherwise.</returns>
-		public static bool ContainsAnyType (this TypeReferenceCollection self, string [] typeNames)
+		public static bool ContainsAnyType (this IEnumerable<TypeReference> self, string [] typeNames)
 		{
 			if (typeNames == null)
 				throw new ArgumentNullException ("typeNames");
+			if (self == null)
+				return false;
 
 			foreach (TypeReference type in self) {
 				string fullname = type.FullName;
@@ -155,27 +139,16 @@ namespace Gendarme.Framework.Rocks {
 		/// </remarks>
 		public static MethodDefinition GetMethod (this TypeReference self, MethodSignature signature)
 		{
-			bool ctors, methods;
-			// method name is optional so we must look in everything
-			if (String.IsNullOrEmpty (signature.Name)) {
-				ctors = true;
-				methods = true;
-			} else {
-				ctors = (signature.Name [0] == '.');
-				methods = !ctors;
-			}
-			
+			if (signature == null)
+				throw new ArgumentNullException ("signature");
+			if (self == null)
+				return null;
+
 			TypeDefinition type = self.Resolve ();
 			if (type == null)
 				return null;
 
-			if (ctors && type.HasConstructors) {
-				foreach (MethodDefinition ctor in type.Constructors) {
-					if (signature.Matches (ctor))
-						return ctor;
-				}
-			}
-			if (methods && type.HasMethods) {
+			if (type.HasMethods) {
 				foreach (MethodDefinition method in type.Methods) {
 					if (signature.Matches (method))
 						return method;
@@ -196,22 +169,26 @@ namespace Gendarme.Framework.Rocks {
 		/// <returns>The first MethodDefinition that satisfies all conditions.</returns>
 		public static MethodDefinition GetMethod (this TypeReference self, MethodAttributes attributes, string name, string returnType, string [] parameters, Func<MethodDefinition, bool> customCondition)
 		{
-			foreach (MethodDefinition method in self.AllMethods ()) {
+			if (self == null)
+				return null;
+
+			foreach (MethodDefinition method in self.Resolve ().Methods) {
 				if (name != null && method.Name != name)
 					continue;
 				if ((method.Attributes & attributes) != attributes)
 					continue;
-				if (returnType != null && method.ReturnType.ReturnType.FullName != returnType)
+				if (returnType != null && method.ReturnType.FullName != returnType)
 					continue;
 				if (parameters != null) {
 					if (method.HasParameters) {
-						if (parameters.Length != method.Parameters.Count)
+						IList<ParameterDefinition> pdc = method.Parameters;
+						if (parameters.Length != pdc.Count)
 							continue;
 						bool parameterError = false;
 						for (int i = 0; i < parameters.Length; i++) {
 							if (parameters [i] == null)
 								continue;//ignore parameter
-							if (parameters [i] != method.Parameters [i].ParameterType.GetOriginalType ().FullName) {
+							if (parameters [i] != pdc [i].ParameterType.GetElementType ().FullName) {
 								parameterError = true;
 								break;
 							}
@@ -298,7 +275,7 @@ namespace Gendarme.Framework.Rocks {
 		/// <returns>True if at least one method matches the signature. Otherwise false.</returns>
 		public static bool HasMethod (this TypeReference self, MethodSignature signature)
 		{
-			return (self.GetMethod (signature) != null);
+			return ((self != null) && self.GetMethod (signature) != null);
 		}
 
 		/// <summary>
@@ -314,6 +291,8 @@ namespace Gendarme.Framework.Rocks {
 		{
 			if (interfaceName == null)
 				throw new ArgumentNullException ("interfaceName");
+			if (self == null)
+				return false;
 
 			TypeDefinition type = self.Resolve ();
 			if (type == null)
@@ -332,7 +311,7 @@ namespace Gendarme.Framework.Rocks {
 				// does the type implements it itself
 				if (type.HasInterfaces) {
 					foreach (TypeReference iface in type.Interfaces) {
-						string fullname = (generic) ? iface.GetOriginalType ().FullName : iface.FullName;
+						string fullname = (generic) ? iface.GetElementType ().FullName : iface.FullName;
 						if (fullname == interfaceName)
 							return true;
 						//if not, then maybe one of its parent interfaces does
@@ -358,11 +337,16 @@ namespace Gendarme.Framework.Rocks {
 		{
 			if (className == null)
 				throw new ArgumentNullException ("className");
+			if (self == null)
+				return false;
 
 			TypeReference current = self.Resolve ();
-			while ((current != null) && (current.FullName != "System.Object")) {
-				if (current.FullName == className)
+			while (current != null) {
+				string fullname = current.FullName;
+				if (fullname == className)
 					return true;
+				if (fullname == "System.Object")
+					return false;
 
 				TypeDefinition td = current.Resolve ();
 				if (td == null)
@@ -370,16 +354,6 @@ namespace Gendarme.Framework.Rocks {
 				current = td.BaseType;
 			}
 			return false;
-		}
-
-		/// <summary>
-		/// Check if the type represent an array (of any other type).
-		/// </summary>
-		/// <param name="self">The TypeReference on which the extension method can be called.</param>
-		/// <returns>True if the type is an array, False otherwise</returns>
-		public static bool IsArray (this TypeReference self)
-		{
-			return (self is ArrayType);
 		}
 
 		/// <summary>
@@ -392,6 +366,9 @@ namespace Gendarme.Framework.Rocks {
 		/// False otherwise.</returns>
 		public static bool IsAttribute (this TypeReference self)
 		{
+			if (self == null)
+				return false;
+
 			return self.Inherits ("System.Attribute");
 		}
 
@@ -402,6 +379,9 @@ namespace Gendarme.Framework.Rocks {
 		/// <returns>True if the type is a delegate, False otherwise.</returns>
 		public static bool IsDelegate (this TypeReference self)
 		{
+			if (self == null)
+				return false;
+
 			TypeDefinition type = self.Resolve ();
 			// e.g. this occurs for <Module> or GenericParameter
 			if (null == type || type.BaseType == null)
@@ -423,6 +403,9 @@ namespace Gendarme.Framework.Rocks {
 		/// <returns>True if the type as the [Flags] attribute, false otherwise.</returns>
 		public static bool IsFlags (this TypeReference self)
 		{
+			if (self == null)
+				return false;
+
 			TypeDefinition type = self.Resolve ();
 			if ((type == null) || !type.IsEnum || !type.HasCustomAttributes)
 				return false;
@@ -437,8 +420,12 @@ namespace Gendarme.Framework.Rocks {
 		/// <returns>True if the type is System.Single (C# float) or System.Double (C3 double), False otherwise.</returns>
 		public static bool IsFloatingPoint (this TypeReference self)
 		{
-			return ((self.FullName == Mono.Cecil.Constants.Single) ||
-				(self.FullName == Mono.Cecil.Constants.Double));
+			if (self == null)
+				return false;
+
+			string full_name = self.FullName;
+			return ((full_name == "System.Single") ||
+				(full_name == "System.Double"));
 		}
 
 		/// <summary>
@@ -449,10 +436,14 @@ namespace Gendarme.Framework.Rocks {
 		/// False otherwise (e.g. compiler or tool generated)</returns>
 		public static bool IsGeneratedCode (this TypeReference self)
 		{
-			if (self.HasCustomAttributes) {
+			if (self == null)
+				return false;
+
+			if (self.IsDefinition) {
+				TypeDefinition type = self.Resolve ();
 				// both helpful attributes only exists in 2.0 and more recent frameworks
-				if (self.Module.Assembly.Runtime >= TargetRuntime.NET_2_0) {
-					if (self.CustomAttributes.ContainsAnyType (CustomAttributeRocks.GeneratedCodeAttributes))
+				if (type.Module.Runtime >= TargetRuntime.Net_2_0) {
+					if (type.CustomAttributes.ContainsAnyType (CustomAttributeRocks.GeneratedCodeAttributes))
 						return true;
 				}
 			}
@@ -477,41 +468,13 @@ namespace Gendarme.Framework.Rocks {
 		/// <returns>True if the type refers to native code, False otherwise</returns>
 		public static bool IsNative (this TypeReference self)
 		{
+			if (self == null)
+				return false;
+
 			switch (self.FullName) {
 			case "System.IntPtr":
 			case "System.UIntPtr":
 			case "System.Runtime.InteropServices.HandleRef":
-				return true;
-			default:
-				return false;
-			}
-		}
-
-		/// <summary>
-		/// Check if the type refers to a primitive type.
-		/// </summary>
-		/// <param name="self">The TypeReference on which the extension method can be called.</param>
-		/// <returns>True if the type is a primitive type, False otherwise</returns>
-		public static bool IsPrimitive (this TypeReference self)
-		{
-			if ((self == null) || (self.Namespace != "System"))
-				return false;
-
-			switch (self.Name) {
-			case "Byte":
-			case "SByte":
-			case "Boolean":
-			case "Int16":
-			case "UInt16":
-			case "Char":
-			case "Int32":
-			case "UInt32":
-			case "Single":
-			case "Int64":
-			case "UInt64":
-			case "Double":
-			case "IntPtr":
-			case "UIntPtr":
 				return true;
 			default:
 				return false;
@@ -525,6 +488,9 @@ namespace Gendarme.Framework.Rocks {
 		/// <returns>True if the type is static, false otherwise.</returns>
 		public static bool IsStatic (this TypeReference self)
 		{
+			if (self == null)
+				return false;
+
 			TypeDefinition type = self.Resolve ();
 			if (type == null)
 				return false;
@@ -538,6 +504,9 @@ namespace Gendarme.Framework.Rocks {
 		/// <returns>True if the type can be used from outside of the assembly, false otherwise.</returns>
 		public static bool IsVisible (this TypeReference self)
 		{
+			if (self == null)
+				return false;
+
 			TypeDefinition type = self.Resolve ();
 			if (type == null)
 				return true; // it's probably visible since we have a reference to it

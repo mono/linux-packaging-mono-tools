@@ -13,6 +13,7 @@
 
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 using Mono.Cecil;
@@ -22,15 +23,16 @@ namespace Gendarme.Framework.Helpers {
 
 	public sealed class MethodPrinter { 
 
-		private InstructionCollection instructions;
+		private IList<Instruction> instructions;
 		private MethodDefinition method;
 		private IDictionary branchTable;
 
-		public MethodPrinter(MethodDefinition method)
+		public MethodPrinter (MethodDefinition m)
 		{
-			Debug.Assert (method != null, "method is null");
+			if (m == null)
+				throw new ArgumentNullException ("m");
 			
-			this.method = method;
+			method = m;
 			if (method.HasBody)
 				instructions = method.Body.Instructions;
 			
@@ -82,6 +84,9 @@ namespace Gendarme.Framework.Helpers {
 		#region Helpers (used by CFG)
 		public static int[] BranchTargets (Instruction instruction)
 		{
+			if (instruction == null)
+				throw new ArgumentNullException ("instruction");
+
 			int[] result = null;
 			switch (instruction.OpCode.OperandType) {
 			case OperandType.InlineSwitch:
@@ -107,6 +112,9 @@ namespace Gendarme.Framework.Helpers {
 
 		public bool IsLeader (Instruction instruction, Instruction previous)
 		{
+			if (instruction == null)
+				throw new ArgumentNullException ("instruction");
+
 			/* First instruction in the method */
 			if (previous == null)
 				return true;

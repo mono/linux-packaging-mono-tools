@@ -1,3 +1,45 @@
+2010-06-22  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* PreferEmptyInstanceOverNullRule.cs: Apply AvoidLargeClassesRule
+
+2010-06-13  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* DisableDebuggingCodeRule.cs: 
+		Apply AvoidRepetitiveCallsToPropertiesRule
+
+2010-06-10  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* ConstructorShouldNotCallVirtualMethodsRule.cs: Avoid calling
+	MethodReference.ToString since we already have the value
+
+2010-06-05  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* ReturnNullRule.cs: Fix case where an immediate if (?:) would 
+	not be reported
+
+2010-06-04  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* PreferEmptyInstanceOverNullRule.cs: Keep state around since it
+	can be needed if we report a defect. Rename GetReturnTypeSuggestion
+	to SuggestReturnType (apply ConsiderConvertingMethodToPropertyRule)
+
+2010-01-28  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* PreferTryParseRule.cs: Simplify and reduce code duplication by
+	using the new MethodSignatures.[Try]Parse
+
+2010-01-23  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* PreferSafeHandleRule.cs: Apply MethodCanBeMadeStaticRule
+	* PreferTryParseRule.cs: New. Rule to encourage the use of TryParse
+	methods (when available) over Parse methods.
+
+2010-01-09  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* PreferParamsArrayForVariableArgumentsRule.cs: New rule to warn
+	about methods using the vararg calling convention and not used 
+	for interoperability purpose.
+
 2009-07-17  Jesse Jones  <jesjones@mindspring.com>
 
 	* GetEntryAssemblyMayReturnNullRule.cs, DisableDebuggingCodeRule.cs: 

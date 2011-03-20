@@ -49,8 +49,8 @@ namespace Test.Framework {
 		public void FixtureSetUp ()
 		{
 			string unit = Assembly.GetExecutingAssembly ().Location;
-			assembly = AssemblyFactory.GetAssembly (unit);
-			type = assembly.MainModule.Types ["Test.Framework.StackEntryAnalysisTest"];
+			assembly = AssemblyDefinition.ReadAssembly (unit);
+			type = assembly.MainModule.GetType ("Test.Framework.StackEntryAnalysisTest");
 		}
 
 		public MethodDefinition GetTest (string name)
@@ -83,8 +83,8 @@ namespace Test.Framework {
 			StackEntryAnalysis sea = new StackEntryAnalysis (m);
 			StackEntryUsageResult [] result = sea.GetStackEntryUsage (GetFirstNewObj (m));
 
-			Assert.AreEqual (1, result.Length);
-			Assert.AreEqual (OpCodes.Ret, result [0].Instruction.OpCode);
+			Assert.AreEqual (1, result.Length, "result-Length-1");
+			Assert.AreEqual (OpCodes.Ret, result [0].Instruction.OpCode, "result-Opcode-Ret");
 		}
 
 		public object SimpleLoc ()
@@ -100,8 +100,8 @@ namespace Test.Framework {
 			StackEntryAnalysis sea = new StackEntryAnalysis (m);
 			StackEntryUsageResult [] result = sea.GetStackEntryUsage (GetFirstNewObj (m));
 
-			Assert.AreEqual (1, result.Length);
-			Assert.AreEqual (OpCodes.Ret, result [0].Instruction.OpCode);
+			Assert.AreEqual (1, result.Length, "result-Length-1");
+			Assert.AreEqual (OpCodes.Ret, result [0].Instruction.OpCode, "result-Opcode-Ret");
 		}
 
 		public object Loc ()
@@ -118,8 +118,8 @@ namespace Test.Framework {
 			StackEntryAnalysis sea = new StackEntryAnalysis (m);
 			StackEntryUsageResult [] result = sea.GetStackEntryUsage (GetFirstNewObj (m));
 
-			Assert.AreEqual (1, result.Length);
-			Assert.AreEqual (OpCodes.Ret, result [0].Instruction.OpCode);
+			Assert.AreEqual (1, result.Length, "result-Length-1");
+			Assert.AreEqual (OpCodes.Ret, result [0].Instruction.OpCode, "result-Opcode-Ret");
 		}
 
 		public object Loc2 ()
@@ -150,8 +150,8 @@ namespace Test.Framework {
 			StackEntryAnalysis sea = new StackEntryAnalysis (m);
 			StackEntryUsageResult [] result = sea.GetStackEntryUsage (GetFirstNewObj (m));
 
-			Assert.AreEqual (1, result.Length);
-			Assert.AreEqual (OpCodes.Ret, result [0].Instruction.OpCode);
+			Assert.AreEqual (1, result.Length, "result-Length-1");
+			Assert.AreEqual (OpCodes.Ret, result [0].Instruction.OpCode, "result-Opcode-Ret");
 		}
 
 		public object Pop ()
@@ -188,9 +188,9 @@ namespace Test.Framework {
 			StackEntryAnalysis sea = new StackEntryAnalysis (m);
 			StackEntryUsageResult [] result = sea.GetStackEntryUsage (GetFirstNewObj (m));
 
-			Assert.AreEqual (2, result.Length);
-			Assert.AreEqual (OpCodes.Ret, result [0].Instruction.OpCode);
-			Assert.AreEqual (OpCodes.Callvirt, result [1].Instruction.OpCode);
+			Assert.AreEqual (2, result.Length, "result-Length-2");
+			Assert.AreEqual (OpCodes.Ret, result [0].Instruction.OpCode, "result[0]-Opcode-Ret");
+			Assert.AreEqual (OpCodes.Callvirt, result [1].Instruction.OpCode, "result[1]-Opcode-Callvirt");
 		}
 
 		public void Branch2 ()
@@ -207,8 +207,8 @@ namespace Test.Framework {
 			StackEntryAnalysis sea = new StackEntryAnalysis (m);
 			StackEntryUsageResult [] result = sea.GetStackEntryUsage (GetFirstNewObj (m));
 
-			Assert.AreEqual (1, result.Length);
-			Assert.AreEqual (OpCodes.Callvirt, result [0].Instruction.OpCode);
+			Assert.AreEqual (1, result.Length, "result-Length-1");
+			Assert.AreEqual (OpCodes.Callvirt, result [0].Instruction.OpCode, "result-Opcode-Callvirt");
 		}
 
 		public object TryFinally ()
@@ -236,8 +236,8 @@ namespace Test.Framework {
 			StackEntryAnalysis sea = new StackEntryAnalysis (m);
 			StackEntryUsageResult [] result = sea.GetStackEntryUsage (GetFirstNewObj (m));
 
-			Assert.AreEqual (1, result.Length);
-			Assert.AreEqual (OpCodes.Callvirt, result [0].Instruction.OpCode);
+			Assert.AreEqual (1, result.Length, "result-Length-1");
+			Assert.AreEqual (OpCodes.Callvirt, result [0].Instruction.OpCode, "result-Opcode-Callvirt");
 		}
 
 		public object NestedTryFinally ()
@@ -273,8 +273,8 @@ namespace Test.Framework {
 			StackEntryAnalysis sea = new StackEntryAnalysis (m);
 			StackEntryUsageResult [] result = sea.GetStackEntryUsage (GetFirstNewObj (m));
 
-			Assert.AreEqual (1, result.Length);
-			Assert.AreEqual (OpCodes.Callvirt, result [0].Instruction.OpCode);
+			Assert.AreEqual (1, result.Length, "result-Length-1");
+			Assert.AreEqual (OpCodes.Callvirt, result [0].Instruction.OpCode, "result-Opcode-Callvirt");
 		}
 
 		public object NestedTryFinally2 ()
@@ -310,8 +310,8 @@ namespace Test.Framework {
 			StackEntryAnalysis sea = new StackEntryAnalysis (m);
 			StackEntryUsageResult [] result = sea.GetStackEntryUsage (GetFirstNewObj (m));
 
-			Assert.AreEqual (1, result.Length);
-			Assert.AreEqual (OpCodes.Callvirt, result [0].Instruction.OpCode);
+			Assert.AreEqual (1, result.Length, "result-Length-1");
+			Assert.AreEqual (OpCodes.Callvirt, result [0].Instruction.OpCode, "result-Opcode-Callvirt");
 		}
 
 		public object TryCatch ()
@@ -340,9 +340,9 @@ namespace Test.Framework {
 			StackEntryAnalysis sea = new StackEntryAnalysis (m);
 			StackEntryUsageResult [] result = sea.GetStackEntryUsage (GetFirstNewObj (m));
 
-			Assert.AreEqual (2, result.Length); //no "return a";
-			Assert.AreEqual (OpCodes.Callvirt, result [0].Instruction.OpCode); //return a.ToString ();
-			Assert.AreEqual (OpCodes.Callvirt, result [1].Instruction.OpCode); //return b.GetHashCode ();
+			Assert.AreEqual (2, result.Length, "result-Length-2"); //no "return a";
+			Assert.AreEqual (OpCodes.Callvirt, result [0].Instruction.OpCode, "result[0]-Opcode-Callvirt"); //return a.ToString ();
+			Assert.AreEqual (OpCodes.Callvirt, result [1].Instruction.OpCode, "result[1]-Opcode-Callvirt"); //return b.GetHashCode ();
 		}
 
 		public object TryCatchFinally ()
@@ -383,9 +383,9 @@ namespace Test.Framework {
 			StackEntryAnalysis sea = new StackEntryAnalysis (m);
 			StackEntryUsageResult [] result = sea.GetStackEntryUsage (GetFirstNewObj (m));
 
-			Assert.AreEqual (2, result.Length); //no "return a";
-			Assert.AreEqual (OpCodes.Callvirt, result [0].Instruction.OpCode); //return a.ToString ();
-			Assert.AreEqual (OpCodes.Callvirt, result [1].Instruction.OpCode); //return c.GetHashCode ();
+			Assert.AreEqual (2, result.Length, "result-Length-2"); //no "return a";
+			Assert.AreEqual (OpCodes.Callvirt, result [0].Instruction.OpCode, "result[0]-Opcode-Callvirt"); //return a.ToString ();
+			Assert.AreEqual (OpCodes.Callvirt, result [1].Instruction.OpCode, "result[1]-Opcode-Callvirt"); //return c.GetHashCode ();
 		}
 
 		public object MultipleCatch ()
@@ -423,9 +423,9 @@ namespace Test.Framework {
 			StackEntryAnalysis sea = new StackEntryAnalysis (m);
 			StackEntryUsageResult [] result = sea.GetStackEntryUsage (GetFirstNewObj (m));
 
-			Assert.AreEqual (2, result.Length); //no "return a";
-			Assert.AreEqual (OpCodes.Callvirt, result [0].Instruction.OpCode); //return b.ToString ();
-			Assert.AreEqual (OpCodes.Callvirt, result [1].Instruction.OpCode); //return c.GetHashCode ();
+			Assert.AreEqual (2, result.Length, "result-Length-2"); //no "return a";
+			Assert.AreEqual (OpCodes.Callvirt, result [0].Instruction.OpCode, "result[0]-Opcode-Callvirt"); //return b.ToString ();
+			Assert.AreEqual (OpCodes.Callvirt, result [1].Instruction.OpCode, "result[1]-Opcode-Callvirt"); //return c.GetHashCode ();
 		}
 
 		public object Starg (object b)
@@ -442,8 +442,8 @@ namespace Test.Framework {
 			StackEntryAnalysis sea = new StackEntryAnalysis (m);
 			StackEntryUsageResult [] result = sea.GetStackEntryUsage (GetFirstNewObj (m));
 
-			Assert.AreEqual (1, result.Length);
-			Assert.AreEqual (OpCodes.Ret, result [0].Instruction.OpCode);
+			Assert.AreEqual (1, result.Length, "result-Length-1");
+			Assert.AreEqual (OpCodes.Ret, result [0].Instruction.OpCode, "result-Opcode-Ret");
 		}
 
 		public object Starg2 (object a, object b, object c, object d) //force ldarg.s (no macro)
@@ -459,8 +459,8 @@ namespace Test.Framework {
 			StackEntryAnalysis sea = new StackEntryAnalysis (m);
 			StackEntryUsageResult [] result = sea.GetStackEntryUsage (GetFirstNewObj (m));
 
-			Assert.AreEqual (1, result.Length);
-			Assert.AreEqual (OpCodes.Ret, result [0].Instruction.OpCode);
+			Assert.AreEqual (1, result.Length, "result-Length-1");
+			Assert.AreEqual (OpCodes.Ret, result [0].Instruction.OpCode, "result-Opcode-Ret");
 		}
 
 		public static object StargStatic (object a, object b, object c, object d, object e) //force ldarg.s (no macro) (static (no this))
@@ -476,8 +476,8 @@ namespace Test.Framework {
 			StackEntryAnalysis sea = new StackEntryAnalysis (m);
 			StackEntryUsageResult [] result = sea.GetStackEntryUsage (GetFirstNewObj (m));
 
-			Assert.AreEqual (1, result.Length);
-			Assert.AreEqual (OpCodes.Ret, result [0].Instruction.OpCode);
+			Assert.AreEqual (1, result.Length, "result-Length-1");
+			Assert.AreEqual (OpCodes.Ret, result [0].Instruction.OpCode, "result-Opcode-Ret");
 		}
 
 		public object OutArg (out object b)
@@ -494,9 +494,9 @@ namespace Test.Framework {
 			StackEntryAnalysis sea = new StackEntryAnalysis (m);
 			StackEntryUsageResult [] result = sea.GetStackEntryUsage (GetFirstNewObj (m));
 
-			Assert.AreEqual (2, result.Length);
-			Assert.AreEqual (OpCodes.Stind_Ref, result [0].Instruction.OpCode);
-			Assert.AreEqual (OpCodes.Ret, result [1].Instruction.OpCode);
+			Assert.AreEqual (2, result.Length, "result-Length-2");
+			Assert.AreEqual (OpCodes.Stind_Ref, result [0].Instruction.OpCode, "result[0]-Opcode-Stind_Ref");
+			Assert.AreEqual (OpCodes.Ret, result [1].Instruction.OpCode, "result[1]-Opcode-Ret");
 		}
 
 		public object OutArg2 (object a, object b, object c, out object d) //force non macro version
@@ -512,9 +512,9 @@ namespace Test.Framework {
 			StackEntryAnalysis sea = new StackEntryAnalysis (m);
 			StackEntryUsageResult [] result = sea.GetStackEntryUsage (GetFirstNewObj (m));
 
-			Assert.AreEqual (2, result.Length);
-			Assert.AreEqual (OpCodes.Stind_Ref, result [0].Instruction.OpCode);
-			Assert.AreEqual (OpCodes.Ret, result [1].Instruction.OpCode);
+			Assert.AreEqual (2, result.Length, "result-Length-2");
+			Assert.AreEqual (OpCodes.Stind_Ref, result [0].Instruction.OpCode, "result[0]-Opcode-Stind_Ref");
+			Assert.AreEqual (OpCodes.Ret, result [1].Instruction.OpCode, "result[1]-Opcode-Ret");
 		}
 
 		public object Switch ()
@@ -545,9 +545,9 @@ namespace Test.Framework {
 			StackEntryAnalysis sea = new StackEntryAnalysis (m);
 			StackEntryUsageResult [] result = sea.GetStackEntryUsage (GetFirstNewObj (m));
 
-			Assert.AreEqual (2, result.Length);
-			Assert.AreEqual (OpCodes.Callvirt, result [0].Instruction.OpCode);
-			Assert.AreEqual (OpCodes.Callvirt, result [1].Instruction.OpCode);
+			Assert.AreEqual (2, result.Length, "result-Length-2");
+			Assert.AreEqual (OpCodes.Callvirt, result [0].Instruction.OpCode, "result[0]-Opcode-Callvirt");
+			Assert.AreEqual (OpCodes.Callvirt, result [1].Instruction.OpCode, "result[1]-Opcode-Callvirt");
 		}
 
 		[Test]
@@ -563,27 +563,29 @@ namespace Test.Framework {
 
 			MethodDefinition m = new MethodDefinition ("Switch2", Mono.Cecil.MethodAttributes.Public, this.type);
 
-			Instruction switch1 = m.Body.CilWorker.Create (OpCodes.Ret);
-			Instruction switch2 = m.Body.CilWorker.Create (OpCodes.Ret);
+			ILProcessor il = m.Body.GetILProcessor ();
 
-			m.Body.CilWorker.Emit (OpCodes.Newobj, (MethodReference) GetFirstNewObj (GetTest ("Switch")).Operand); //get object.ctor()
-			m.Body.CilWorker.Emit (OpCodes.Ldc_I4_0);
-			m.Body.CilWorker.Emit (OpCodes.Switch, new Instruction [] { switch1, switch2 });
+			Instruction switch1 = il.Create (OpCodes.Ret);
+			Instruction switch2 = il.Create (OpCodes.Ret);
+
+			il.Emit (OpCodes.Newobj, (MethodReference) GetFirstNewObj (GetTest ("Switch")).Operand); //get object.ctor()
+			il.Emit (OpCodes.Ldc_I4_0);
+			il.Emit (OpCodes.Switch, new Instruction [] { switch1, switch2 });
 
 			//default	
-			m.Body.CilWorker.Emit (OpCodes.Ret);
+			il.Emit (OpCodes.Ret);
 
 			//switch 1 and 2
-			m.Body.CilWorker.Append (switch1);
-			m.Body.CilWorker.Append (switch2);
+			il.Append (switch1);
+			il.Append (switch2);
 
 			StackEntryAnalysis sea = new StackEntryAnalysis (m);
 			StackEntryUsageResult [] result = sea.GetStackEntryUsage (GetFirstNewObj (m));
 
-			Assert.AreEqual (3, result.Length);
-			Assert.AreEqual (OpCodes.Ret, result [0].Instruction.OpCode);
-			Assert.AreEqual (OpCodes.Ret, result [1].Instruction.OpCode);
-			Assert.AreEqual (OpCodes.Ret, result [2].Instruction.OpCode);
+			Assert.AreEqual (3, result.Length, "result-Length-3");
+			Assert.AreEqual (OpCodes.Ret, result [0].Instruction.OpCode, "result[0]-Opcode-Ret");
+			Assert.AreEqual (OpCodes.Ret, result [1].Instruction.OpCode, "result[1]-Opcode-Ret");
+			Assert.AreEqual (OpCodes.Ret, result [2].Instruction.OpCode, "result[2]-Opcode-Ret");
 		}
 
 		public void Castclass ()
@@ -599,8 +601,8 @@ namespace Test.Framework {
 			StackEntryAnalysis sea = new StackEntryAnalysis (m);
 			StackEntryUsageResult [] result = sea.GetStackEntryUsage (GetFirstNewObj (m));
 
-			Assert.AreEqual (1, result.Length);
-			Assert.AreEqual (OpCodes.Throw, result [0].Instruction.OpCode);
+			Assert.AreEqual (1, result.Length, "result-Length-1");
+			Assert.AreEqual (OpCodes.Throw, result [0].Instruction.OpCode, "result-Opcode-Throw");
 		}
 
 		public void StackOffset ()
@@ -618,11 +620,11 @@ namespace Test.Framework {
 			StackEntryAnalysis sea = new StackEntryAnalysis (m);
 			StackEntryUsageResult [] result = sea.GetStackEntryUsage (GetFirstNewObj (m));
 
-			Assert.AreEqual (4, result.Length);
-			Assert.AreEqual (0, result [0].StackOffset);
-			Assert.AreEqual (1, result [1].StackOffset);
-			Assert.AreEqual (0, result [2].StackOffset);
-			Assert.AreEqual (0, result [3].StackOffset);
+			Assert.AreEqual (4, result.Length, "result-Length-4");
+			Assert.AreEqual (0, result [0].StackOffset, "result[0]-StackOffset-0");
+			Assert.AreEqual (1, result [1].StackOffset, "result[1]-StackOffset-1");
+			Assert.AreEqual (0, result [2].StackOffset, "result[2]-StackOffset-0");
+			Assert.AreEqual (0, result [3].StackOffset, "result[3]-StackOffset-0");
 		}
 
 		object field;
@@ -639,9 +641,9 @@ namespace Test.Framework {
 			StackEntryAnalysis sea = new StackEntryAnalysis (m);
 			StackEntryUsageResult [] result = sea.GetStackEntryUsage (GetFirstNewObj (m));
 
-			Assert.AreEqual (2, result.Length);
-			Assert.AreEqual (Code.Stfld, result [0].Instruction.OpCode.Code);
-			Assert.AreEqual (Code.Callvirt, result [1].Instruction.OpCode.Code);
+			Assert.AreEqual (2, result.Length, "result-Length-2");
+			Assert.AreEqual (Code.Stfld, result [0].Instruction.OpCode.Code, "result[0]-Opcode-Stfld");
+			Assert.AreEqual (Code.Callvirt, result [1].Instruction.OpCode.Code, "result[1]-Opcode-Callvirt");
 		}
 
 		public void Field2 ()
@@ -660,8 +662,8 @@ namespace Test.Framework {
 			StackEntryAnalysis sea = new StackEntryAnalysis (m);
 			StackEntryUsageResult [] result = sea.GetStackEntryUsage (GetFirstNewObj (m));
 
-			Assert.AreEqual (1, result.Length);
-			Assert.AreEqual (Code.Stfld, result [0].Instruction.OpCode.Code);
+			Assert.AreEqual (1, result.Length, "result-Length-1");
+			Assert.AreEqual (Code.Stfld, result [0].Instruction.OpCode.Code, "result-Opcode-Stfld");
 		}
 
 		static object staticField;
@@ -678,9 +680,9 @@ namespace Test.Framework {
 			StackEntryAnalysis sea = new StackEntryAnalysis (m);
 			StackEntryUsageResult [] result = sea.GetStackEntryUsage (GetFirstNewObj (m));
 
-			Assert.AreEqual (2, result.Length);
-			Assert.AreEqual (Code.Stsfld, result [0].Instruction.OpCode.Code);
-			Assert.AreEqual (Code.Callvirt, result [1].Instruction.OpCode.Code);
+			Assert.AreEqual (2, result.Length, "result-Length-2");
+			Assert.AreEqual (Code.Stsfld, result [0].Instruction.OpCode.Code, "result[0]-Opcode-Stfld");
+			Assert.AreEqual (Code.Callvirt, result [1].Instruction.OpCode.Code, "result[1]-Opcode-Callvirt");
 		}
 
 /*	Cecil doesn't support Calli instructions atm.

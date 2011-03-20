@@ -3,8 +3,10 @@
 //
 // Authors:
 //	Cedric Vivier <cedricv@neonux.com>
+//	Sebastien Pouliot <sebastien@ximian.com>
 //
 // Copyright (C) 2008 Cedric Vivier
+// Copyright (C) 2010 Novell, Inc (http://www.novell.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +27,6 @@
 // THE SOFTWARE.
 
 using System;
-using System.Text;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -90,8 +91,6 @@ namespace Gendarme.Rules.Correctness {
 
 		static OpCodeBitmask callsAndNewobjBitmask = BuildCallsAndNewobjOpCodeBitmask ();
 
-		MethodDefinition method;
-
 		const string RegexClass = "System.Text.RegularExpressions.Regex";
 		const string ValidatorClass = "System.Configuration.RegexStringValidator";
 
@@ -101,60 +100,69 @@ namespace Gendarme.Rules.Correctness {
 
 			Runner.AnalyzeModule += delegate (object o, RunnerEventArgs e) {
 				bool usingRegexClass = e.CurrentAssembly.Name.Name == "System"
-				                       || e.CurrentModule.TypeReferences.ContainsType (RegexClass);
-				bool usingValidatorClass = e.CurrentAssembly.Runtime >= TargetRuntime.NET_2_0
+				                       || e.CurrentModule.HasTypeReference (RegexClass);
+				bool usingValidatorClass = e.CurrentModule.Runtime >= TargetRuntime.Net_2_0
 				                           && (e.CurrentAssembly.Name.Name == "System.Configuration"
-				                              || e.CurrentModule.TypeReferences.ContainsType (ValidatorClass));
+				                              || e.CurrentModule.HasTypeReference (ValidatorClass));
 				Active = usingRegexClass | usingValidatorClass;
 			};
 		}
 
-		void CheckPattern (Instruction ins, int argumentOffset)
+		void CheckArguments (MethodDefinition method, Instruction ins, Instruction ld)
 		{
-			Instruction ld = ins.TraceBack (method, argumentOffset);
-			if (null == ld)
-				return;
-
-			switch (ld.OpCode.Code) {
-			case Code.Ldstr:
-				CheckPattern (ins, (string) ld.Operand);
-				break;
-			case Code.Ldsfld:
-				FieldReference f = (FieldReference) ld.Operand;
-				if (f.Name != "Empty" || f.DeclaringType.FullName != "System.String")
-					return;
-				CheckPattern (ins, null);
-				break;
-			case Code.Ldnull:
-				CheckPattern (ins, null);
-				break;
+			// handle things like: boolean_condition ? "string-1" : "string-2"
+			// where the first string (compiler dependent) is ok, while the second is bad
+			if (CheckLoadInstruction (method, ins, ld, Confidence.High)) {
+				Instruction previous = ld.Previous;
+				if ((previous != null) && (previous.Operand == ins)) {
+					CheckLoadInstruction (method, ins, previous.Previous, Confidence.Normal);
+				}
 			}
 		}
 
-		void CheckPattern (Instruction ins, string pattern)
+		bool CheckLoadInstruction (MethodDefinition method, Instruction ins, Instruction ld, Confidence confidence)
+		{
+			switch (ld.OpCode.Code) {
+			case Code.Ldstr:
+				return CheckPattern (method, ins, (string) ld.Operand, confidence);
+			case Code.Ldsfld:
+				FieldReference f = (FieldReference) ld.Operand;
+				if (f.Name != "Empty" || f.DeclaringType.FullName != "System.String")
+					return false;
+				return CheckPattern (method, ins, null, confidence);
+			case Code.Ldnull:
+				return CheckPattern (method, ins, null, confidence);
+			}
+			return true;
+		}
+
+		bool CheckPattern (MethodDefinition method, Instruction ins, string pattern, Confidence confidence)
 		{
 			if (string.IsNullOrEmpty (pattern)) {
 				Runner.Report (method, ins, Severity.High, Confidence.High, "Pattern is null or empty.");
-				return;
+				return false;
 			}
 
 			try {
 				new Regex (pattern);
+				return true;
 			} catch (Exception e) {
 				/* potential set of exceptions is not well documented and potentially changes with regarts to
 				   different runtime and/or runtime version. */
 				string msg = string.Format ("Pattern '{0}' is invalid. Reason: {1}", pattern, e.Message);
-				Runner.Report (method, ins, Severity.High, Confidence.High, msg);
+				Runner.Report (method, ins, Severity.High, confidence, msg);
+				return false;
 			}
 		}
 
-		void CheckCall (Instruction ins, MethodReference call)
+		void CheckCall (MethodDefinition method, Instruction ins, MethodReference call)
 		{
 			if (null == call) //resolution did not work
 				return;
 			if (!call.HasParameters)
 				return;
-			if (call.DeclaringType.FullName != RegexClass && call.DeclaringType.FullName != ValidatorClass)
+			string tname = call.DeclaringType.FullName;
+			if (tname != RegexClass && tname != ValidatorClass)
 				return;
 
 			MethodDefinition mdef = call.Resolve ();
@@ -165,8 +173,11 @@ namespace Gendarme.Rules.Correctness {
 				return;
 
 			foreach (ParameterDefinition p in mdef.Parameters) {
-				if ((p.Name == "pattern" || p.Name == "regex") && p.ParameterType.FullName == "System.String") {
-					CheckPattern (ins, -(call.HasThis ? 0 : -1 + p.Sequence));
+				string pname = p.Name;
+				if ((pname == "pattern" || pname == "regex") && p.ParameterType.FullName == "System.String") {
+					Instruction ld = ins.TraceBack (method, -(call.HasThis ? 0 : -1 + p.GetSequence ()));
+					if (ld != null)
+						CheckArguments (method, ins, ld);
 					return;
 				}
 			}
@@ -177,8 +188,6 @@ namespace Gendarme.Rules.Correctness {
 			if (!method.HasBody)
 				return RuleResult.DoesNotApply;
 
-			this.method = method;
-
 			//is there any interesting opcode in the method?
 			if (!callsAndNewobjBitmask.Intersect (OpCodeEngine.GetBitmask (method)))
 				return RuleResult.DoesNotApply;
@@ -187,7 +196,7 @@ namespace Gendarme.Rules.Correctness {
 				if (!callsAndNewobjBitmask.Get (ins.OpCode.Code))
 					continue;
 
-				CheckCall (ins, (MethodReference) ins.Operand);
+				CheckCall (method, ins, (MethodReference) ins.Operand);
 			}
 
 			return Runner.CurrentRuleResult;

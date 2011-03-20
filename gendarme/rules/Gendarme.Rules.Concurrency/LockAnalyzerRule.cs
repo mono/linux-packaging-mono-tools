@@ -4,7 +4,7 @@
 // Authors:
 //	Sebastien Pouliot <sebastien@ximian.com>
 //
-// Copyright (C) 2008 Novell, Inc (http://www.novell.com)
+// Copyright (C) 2008,2010 Novell, Inc (http://www.novell.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the
@@ -49,13 +49,13 @@ namespace Gendarme.Rules.Concurrency {
 			// if not then this rule does not need to be executed for the module
 			// note: mscorlib.dll is an exception since it defines, not refer, System.Threading.Monitor
 			Runner.AnalyzeModule += delegate (object o, RunnerEventArgs e) {
-				Active = (e.CurrentAssembly.Name.Name == Constants.Corlib) ||
-					e.CurrentModule.TypeReferences.ContainsType ("System.Threading.Monitor");
+				Active = (e.CurrentAssembly.Name.Name == "mscorlib") ||
+					e.CurrentModule.HasTypeReference ("System.Threading.Monitor");
 			};
 		}
 
 
-		abstract public void Analyze (MethodDefinition method, Instruction ins);
+		abstract public void Analyze (MethodDefinition method, MethodReference enter, Instruction ins);
 
 		public RuleResult CheckMethod (MethodDefinition method)
 		{
@@ -67,16 +67,15 @@ namespace Gendarme.Rules.Concurrency {
 				return RuleResult.DoesNotApply;
 
 			foreach (Instruction ins in method.Body.Instructions) {
-				if (ins.OpCode.FlowControl != FlowControl.Call)
+				MethodReference mr = ins.GetMethod ();
+				if (mr == null)
 					continue;
-
-				MethodReference mr = (ins.Operand as MethodReference);
 				if (mr.DeclaringType.FullName != "System.Threading.Monitor")
 					continue;
 				if (mr.Name != "Enter")
 					continue;
 
-				Analyze (method, ins);
+				Analyze (method, mr, ins);
 			}
 			return Runner.CurrentRuleResult;
 		}

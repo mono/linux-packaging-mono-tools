@@ -7,7 +7,6 @@
 //
 using System;
 using Gtk;
-using Gnome;
 using System.IO;
 using System.Reflection;
 
@@ -102,13 +101,14 @@ class GtkHtmlHtmlRender : IHtmlRender {
 	}
 	
 	public void Print (string Html) {
-		
+#if !MACOS
 		if (Html == null) {
 			Console.WriteLine ("empty print");
 			return;
 		}
 
 		PrintManager.Print (Html);
+#endif
 	}
 
 	public bool Initialize ()

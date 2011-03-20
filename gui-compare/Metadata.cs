@@ -41,7 +41,8 @@ namespace GuiCompare {
 		Field,
 		Delegate,
 		Event,
-		GenericParameter
+		GenericParameter,
+		Parameter
 	}
 
 	public interface ICompAttributeContainer
@@ -80,6 +81,11 @@ namespace GuiCompare {
 	{
 		List<CompGenericParameter> GetTypeParameters ();
 	}
+	
+	public interface ICompParameters
+	{
+		List<CompParameter> GetParameters ();
+	}
 
 	public abstract class CompNamed {
 		public CompNamed (string name, CompType type)
@@ -104,7 +110,12 @@ namespace GuiCompare {
 			set { displayName = value; }
 			get { return displayName == null ? name : displayName; }
 		}
-		
+
+		public string ExtraInfo {
+			set { extraInfo = value; }
+			get { return extraInfo; }
+		}
+
 		public CompType Type {
 			set { type = value; }
 			get { return type; }
@@ -112,19 +123,40 @@ namespace GuiCompare {
 
 		public ComparisonNode GetComparisonNode ()
 		{
-			ComparisonNode node = new ComparisonNode (type, DisplayName, MemberName);
+			ComparisonNode node = new ComparisonNode (type, DisplayName, MemberName, ExtraInfo);
 			node.Todos.AddRange (todos);
 			return node;
 		}
 
 		public static int Compare (CompNamed x, CompNamed y)
 		{
-			return String.Compare (x.Name, y.Name);
+			int res = string.Compare (x.Name, y.Name);
+			if (res != 0)
+				return res;
+
+			var x_g = x as CompMethod;
+			var y_g = y as CompMethod;
+			if (x_g == null || y_g == null)
+				return res;
+
+			var x_tp = x_g.GetTypeParameters ();
+			var y_tp = y_g.GetTypeParameters ();
+			if (x_tp == null && y_tp != null)
+				return -1;
+
+			if (x_tp != null && y_tp == null)
+				return 1;
+
+			if (x_tp == null && y_tp == null)
+				return res;
+
+			return x_tp.Count.CompareTo (y_tp.Count);
 		}
 
 		string displayName;
 		string name;
 		string memberName;
+		string extraInfo;
 		CompType type;
 		public List<string> todos;
 	}
@@ -134,7 +166,7 @@ namespace GuiCompare {
 			: base (name, CompType.Assembly)
 		{
 		}
-
+		
 		public abstract List<CompNamed> GetNamespaces ();
 		public abstract List<CompNamed> GetAttributes ();
 	}
@@ -198,11 +230,20 @@ namespace GuiCompare {
 		public bool IsAbstract { get { return false; } }
 	}
 
-	public abstract class CompDelegate : CompNamed, ICompAttributeContainer, ICompHasBaseType, ICompGenericParameter {
+	public abstract class CompDelegate : CompNamed, ICompAttributeContainer, ICompHasBaseType, ICompGenericParameter, ICompMemberContainer
+	{
 		public CompDelegate (string name)
 			: base (name, CompType.Delegate)
 		{
 		}
+		
+		public List<CompNamed> GetFields() { return new List<CompNamed>(); }
+		public List<CompNamed> GetInterfaces () { return new List<CompNamed>(); }
+ 		public List<CompNamed> GetProperties() { return new List<CompNamed>(); }
+ 		public List<CompNamed> GetEvents() { return new List<CompNamed>(); }
+
+		public abstract List<CompNamed> GetConstructors();
+		public abstract List<CompNamed> GetMethods();
 		
 		public abstract List<CompNamed> GetAttributes ();
 
@@ -254,29 +295,28 @@ namespace GuiCompare {
 		public abstract List<CompNamed> GetAttributes ();
 	}
 
-	public abstract class CompMethod : CompMember, ICompGenericParameter {
+	public abstract class CompMethod : CompMember, ICompGenericParameter, ICompParameters
+	{
 		public CompMethod (string name)
 			: base (name, CompType.Method)
 		{
 		}
-
+		
 		public abstract bool ThrowsNotImplementedException ();
+		
+		public abstract List<CompParameter> GetParameters ();
 		
 		public abstract List<CompGenericParameter> GetTypeParameters ();
 	}
 
-	public abstract class CompProperty : CompMember, ICompMemberContainer {
+	public abstract class CompProperty : CompMember
+	{
 		public CompProperty (string name)
 			: base (name, CompType.Property)
 		{
 		}
 		
 		public abstract List<CompNamed> GetMethods();
-		public List<CompNamed> GetInterfaces() { return new List<CompNamed>(); }
-		public List<CompNamed> GetConstructors() { return new List<CompNamed>(); }
-		public List<CompNamed> GetEvents() { return new List<CompNamed>(); }
-		public List<CompNamed> GetFields() { return new List<CompNamed>(); }
-		public List<CompNamed> GetProperties() { return new List<CompNamed>(); }
 	}
 
 	public abstract class CompField : CompMember {
@@ -311,11 +351,40 @@ namespace GuiCompare {
 			GenericAttributes = attr;
 		}
 		
+		public abstract bool HasConstraints { get; }
+		
 		public abstract List<CompNamed> GetAttributes ();
 		
 		public static string GetGenericAttributeDesc (Mono.Cecil.GenericParameterAttributes ga)
 		{
 			return ga.ToString ();
 		}
+	}
+	
+	public abstract class CompParameter : CompNamed, ICompAttributeContainer
+	{
+		bool optional;
+		string type;
+		
+		public CompParameter (string name, string type, bool optional)
+			: base (name, CompType.Parameter)
+		{
+			this.type = type;
+			this.optional = optional;
+		}
+		
+		public bool IsOptional {
+			get {
+				return optional;
+			}
+		}
+		
+		public string TypeReference {
+			get {
+				return type;
+			}
+		}
+		
+		public abstract List<CompNamed> GetAttributes ();		
 	}
 }

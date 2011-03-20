@@ -64,10 +64,10 @@ namespace Gendarme.Rules.Interoperability {
 	[FxCopCompatibility ("Microsoft.Interoperability", "CA1414:MarkBooleanPInvokeArgumentsWithMarshalAs")]
 	public class MarshalBooleansInPInvokeDeclarationsRule : Rule, IMethodRule {
 
-		static bool CheckBooleanMarshalling (IHasMarshalSpec spec, TypeReference type)
+		static bool CheckBooleanMarshalling (IMarshalInfoProvider spec, MemberReference type)
 		{
 			// is marshalling information provided
-			if (spec.MarshalSpec != null)
+			if (spec.MarshalInfo != null)
 				return true;
 			// using StartsWith to catch references (ref)
 			return !type.FullName.StartsWith ("System.Boolean", StringComparison.Ordinal);
@@ -92,8 +92,9 @@ namespace Gendarme.Rules.Interoperability {
 			}
 
 			// and check return value
-			if (!CheckBooleanMarshalling (method.ReturnType, method.ReturnType.ReturnType)) {
-				Runner.Report (method.ReturnType, Severity.High, Confidence.Normal);
+			MethodReturnType mrt = method.MethodReturnType;
+			if (!CheckBooleanMarshalling (mrt, mrt.ReturnType)) {
+				Runner.Report (mrt, Severity.High, Confidence.Normal);
 			}
 
 			return Runner.CurrentRuleResult;

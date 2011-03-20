@@ -30,6 +30,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -72,23 +73,6 @@ namespace Gendarme.Rules.Correctness {
 	[EngineDependency (typeof (OpCodeEngine))]
 	public class BadRecursiveInvocationRule : Rule, IMethodRule {
 
-		// note: parameter names do not have to match because we can be calling a base class virtual method
-		private static bool CheckParameters (ParameterDefinitionCollection caller, ParameterDefinitionCollection callee)
-		{
-			if (caller.Count != callee.Count)
-				return false;
-
-			for (int j = 0; j < caller.Count; j++) {
-				ParameterDefinition p1 = (ParameterDefinition) callee [j];
-				ParameterDefinition p2 = (ParameterDefinition) caller [j];
-
-				if (p1.ParameterType.FullName != p2.ParameterType.FullName)
-					return false;
-			}
-			// complete match (of types)
-			return true;
-		}
-
 		private static bool CompareMethods (MethodReference method1, MethodReference method2, bool virtual_call)
 		{
 			if (method1 == null)
@@ -100,30 +84,25 @@ namespace Gendarme.Rules.Correctness {
 			if (!virtual_call)
 				return (method1.MetadataToken == method2.MetadataToken);
 
-			// static or instance mismatch
-			if (method1.HasThis != method2.HasThis)
-				return false;
-
 			// we could be implementing an interface (skip position 0 because of .ctor and .cctor)
-			bool explicit_interface = (method1.Name.IndexOf ('.') > 0);
-			if (!explicit_interface && (method1.Name != method2.Name))
+			string m1name = method1.Name;
+			bool explicit_interface = (m1name.IndexOf ('.') > 0);
+			if (!explicit_interface && (m1name != method2.Name))
 				return false;
 
 			// compare parameters
-			if (!CheckParameters (method1.Parameters, method2.Parameters))
+			if (!method1.CompareSignature (method2))
 				return false;
 
-			// return value may differ (e.g. if generics are used)
-			if (method1.ReturnType.ReturnType.FullName != method2.ReturnType.ReturnType.FullName)
-				return false;
-
-			TypeDefinition t2 = method2.DeclaringType.Resolve ();
-			if (!explicit_interface && (t2 != null) && !t2.IsInterface)
+			TypeReference t2 = method2.DeclaringType;
+			TypeDefinition t2r = t2.Resolve ();
+			if (!explicit_interface && (t2r != null) && !t2r.IsInterface)
 				return true;
 
+			string t2name = t2.FullName;
 			// we're calling into an interface and this could be us!
 			foreach (MethodReference mr in method1.Resolve ().Overrides) {
-				if (method2.DeclaringType.FullName == mr.DeclaringType.FullName)
+				if (t2name == mr.DeclaringType.FullName)
 					return true;
 			}
 			return false;
@@ -155,7 +134,7 @@ namespace Gendarme.Rules.Correctness {
 					ParameterDefinition param = (ParameterDefinition) insn.Operand;
 					if (method.IsStatic)
 						paramNum++;
-					return (param.Sequence == paramNum);
+					return (param.GetSequence () == paramNum);
 				case Code.Ldarg_0:
 				case Code.Ldarg_1:
 				case Code.Ldarg_2:
@@ -196,7 +175,7 @@ namespace Gendarme.Rules.Correctness {
 			if (!CallsNew.Intersect (OpCodeEngine.GetBitmask (method)))
 				return RuleResult.DoesNotApply;
 
-			InstructionCollection instructions = method.Body.Instructions;
+			IList<Instruction> instructions = method.Body.Instructions;
 			for (int i = 0; i < instructions.Count; i++) {
 				Instruction ins = instructions [i];
 

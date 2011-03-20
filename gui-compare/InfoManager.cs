@@ -143,20 +143,60 @@ namespace GuiCompare
 
 		string [] api_sl2 = {
 			"mscorlib",
-			"System.Windows",
-			"Microsoft.VisualBasic",
 			"System",
 			"System.Core",
 			"System.Net",
 			"System.Runtime.Serialization",
 			"System.ServiceModel",
+			"System.ServiceModel.Web",
+			"System.Windows",
 			"System.Windows.Browser",
 			"System.Xml",
+			"Microsoft.VisualBasic",
 			"",
 			// sdk assemblies:
 			"System.Xml.Linq",
 			"System.Windows.Controls",
 			"System.Windows.Controls.Data",
+		};
+		
+		string [] api_sl4 = {
+			"mscorlib",
+			"System",
+			"System.Core",
+			"System.Net",
+			"System.Runtime.Serialization",
+			"System.ServiceModel",
+			"System.ServiceModel.Web",
+			"System.Windows",
+			"System.Windows.Browser",
+			"System.Xml",
+			"Microsoft.VisualBasic",
+			"",
+			// sdk assemblies:
+			"Microsoft.CSharp",
+			"System.ComponentModel.Composition",
+			"System.ComponentModel.Composition.Initialization",
+			"System.ComponentModel.DataAnnotations",
+			"System.Data.Services.Client",
+			"System.Json",
+			"System.Numerics",
+			"System.Runtime.Serialization.Json",
+			"System.ServiceModel.Extensions",
+			"System.ServiceModel.NetTcp",
+			"System.ServiceModel.PollingDuplex",
+			"System.ServiceModel.Syndication",
+			"System.ServiceModel.Web.Extensions",
+			"System.Windows.Controls.Data",
+			"System.Windows.Controls.Data.Input",
+			"System.Windows.Controls",
+			"System.Windows.Controls.Input",
+			"System.Windows.Controls.Navigation",
+			"System.Windows.Data",
+			"System.Xml.Linq",
+			"System.Xml.Serialization",
+			"System.Xml.Utils",
+			"System.Xml.XPath"
 		};
 
 		string [] api_3_5 = {
@@ -198,6 +238,8 @@ namespace GuiCompare
 			"Microsoft.Build.Framework",
 			"Microsoft.Build.Tasks",
 			"Microsoft.Build.Utilities",
+			"Microsoft.Build.Conversion.v3.5",
+			"Microsoft.Build.Utilities.v3.5",
 			"",
 			"System.Configuration.Install",
 			"System.Design",
@@ -210,15 +252,13 @@ namespace GuiCompare
 
 		string [] api_4_0 = {
 			"mscorlib",
-			
-			"System.Activities.Core.Design",
-			"System.Activities.Design.Base",
+
+			"System.Activities",			
+			"System.Activities.Core.Presentation",
+			"System.Activities.DurableInstancing",
 			"System.Activities.Design",
-			"System.Activities",
-			"System.Activities.Extended",
 			"System.AddIn.Contract",
 			"System.AddIn",
-			"System.Caching",
 			"System.ComponentModel.Composition",
 			"System.ComponentModel.DataAnnotations",
 			"System.configuration",
@@ -236,6 +276,7 @@ namespace GuiCompare
 			"System.Data.SqlXml",
 			"System.Deployment",
 			"System.Design",
+			"System.Device",
 		//	"System.DirectoryServices.AccountManagement",
 			"System.DirectoryServices",
 		//	"System.DirectoryServices.Protocols",
@@ -253,12 +294,14 @@ namespace GuiCompare
 		//	"System.Management.Instrumentation",
 			"System.Messaging",
 			"System.Net",
+			"System.Numerics",
 			"System.Printing",
-			"System.Runtime",
+			"System.Runtime.Caching",
 			"System.Runtime.Remoting",
 			"System.Runtime.Serialization",
 			"System.Runtime.Serialization.Formatters.Soap",
 			"System.Security",
+			"System.ServiceModel.Activation",
 			"System.ServiceModel.Activities",
 			"System.ServiceModel.Channels",
 			"System.ServiceModel.Discovery",
@@ -269,6 +312,7 @@ namespace GuiCompare
 			"System.Speech",
 			"System.Transactions",
 			"System.Web.Abstractions",
+			"System.Web.ApplicationServices",
 			"System.Web.DataVisualization.Design",
 			"System.Web.DataVisualization",
 			"System.Web",
@@ -314,15 +358,14 @@ namespace GuiCompare
 			"PresentationFramework",
 			"PresentationFramework.Luna",
 			"PresentationFramework.Royale",
-
+			"PresentationUI",
 			"ReachFramework",
-			"ReferenceAssemblyBuildTask",
 
 			"WindowsBase",
 		//	"XamlBuildTask"
 		};
 		
-		const string masterinfos_version = "2.6";
+		const string masterinfos_version = "2.8";
 
 		static Uri GetMasterInfoUri (string file)
 		{
@@ -385,6 +428,9 @@ namespace GuiCompare
 				u = GetMasterInfoUri ("masterinfos-SL3.tar.gz");
 				break;
 			
+			case "SL4":
+				u = GetMasterInfoUri ("masterinfos-SL4.tar.gz");
+				break;
 			default:
 				main.Status = "Profile is unknown";
 				return;
@@ -429,10 +475,11 @@ namespace GuiCompare
 						ProcessStartInfo pi = new ProcessStartInfo();
 						pi.WorkingDirectory = pdir;
 						pi.UseShellExecute = true;
-						pi.FileName = "tar xzf " + target + " --strip-components=1";
+						pi.FileName = "tar";
+						pi.Arguments = "xzf " + target + " --strip-components=1";
 						Process p = Process.Start (pi);
 						p.WaitForExit ();
-							
+						
 						Application.Invoke (delegate {
 							main.Progress = 0;
 							main.Status = "Download complete";
@@ -454,7 +501,14 @@ namespace GuiCompare
 					else {
 						Application.Invoke (delegate {
 							main.Progress = 0;
-							main.Status = "Download failed";
+							FileInfo masterinfoInfo = new FileInfo (masterinfo);
+							if (masterinfoInfo.Exists) {
+								main.Status = "Download failed, reusing cached (possibly out of date) masterinfo";
+								if (done != null)
+									done (masterinfo);
+							}
+							else
+								main.Status = "Download failed";
 						});
 					}
 				}
@@ -462,7 +516,14 @@ namespace GuiCompare
 					Console.WriteLine (e);
 					Application.Invoke (delegate {
 						main.Progress = 0;
-						main.Status = "Download failed";
+						FileInfo masterinfoInfo = new FileInfo (masterinfo);
+						if (masterinfoInfo.Exists) {
+							main.Status = "Download failed, reusing cached (possibly out of date) masterinfo";
+							if (done != null)
+								done (masterinfo);
+						}
+						else
+							main.Status = "Download failed";
 					});
 				}
 			});
@@ -483,11 +544,11 @@ namespace GuiCompare
 		/// <param name="assemblyname">
 		/// The name of the assembly to compare, in this case "mscorlib"
 		/// </param>
-		void StartPresetCompare (string assemblyfile, string profile, string assemblyname)
+		void StartPresetCompare (string assemblyfile, string profile, string assemblyname, string groupName)
 		{
 			Ensure (profile, assemblyname, delegate (string masterinfo){
 				CompareDefinition cd = new CompareDefinition (true, masterinfo, false, assemblyfile);
-				cd.Title = assemblyname;
+				cd.Title = assemblyname + " (" + groupName + ")";
 				main.Config.AddRecent (cd);
 				PopulateRecent ();
 				main.Config.Save ();
@@ -500,7 +561,7 @@ namespace GuiCompare
 					 });
 					
 				main.StartCompare (delegate {
-					main.Title = String.Format ("{0} to {1}", masterinfo, assemblyfile);
+					main.Title = String.Format ("{0} to {1}", assemblyfile, masterinfo);
 				});
 			});
 		}
@@ -523,7 +584,7 @@ namespace GuiCompare
 				
 				if (e == String.Empty){
 					// Avoid inserting separators twice
-					if (child is SeparatorMenuItem)
+					if (child is SeparatorMenuItem || sub.Children.Length == 0)
 						continue;
 					child = new SeparatorMenuItem ();
 				} else {
@@ -561,14 +622,16 @@ namespace GuiCompare
 					string element = e;
 					child = new MenuItem (e);
 					child.Activated += delegate {
-						StartPresetCompare (assemblyfile, collection, element);
+						StartPresetCompare (assemblyfile, collection, element, caption);
 					};
 				}
 				sub.Add (child);
 			}
-			
-			item.ShowAll ();
-			container.Add (item);
+
+			if (sub.Children.Length > 0) {
+				item.ShowAll ();
+				container.Add (item);
+			}
 		}
 		
 		/// <summary>
@@ -661,12 +724,13 @@ namespace GuiCompare
 			sub.Add (separator);
 			
 			Populate (sub, "API 1.1", GetVersionPath ("1.0", "net_1_1"), "1.0", api_1_1);
-			Populate (sub, "API 2.0 sp1", GetVersionPath ("2.0", "net_2_0"), "2.0", api_2_0);
-			Populate (sub, "API 3.0 sp1", GetVersionPath ("3.0", "net_3_0"), "3.0", api_3_0);
+			Populate (sub, "API 2.0 sp2", GetVersionPath ("2.0", "net_2_0"), "2.0", api_2_0);
+			Populate (sub, "API 3.0 sp1", GetVersionPath ("2.0", "net_2_0"), "3.0", api_3_0);
 			Populate (sub, "API 3.5 sp1", GetVersionPath ("2.0", "net_2_0"), "3.5", api_3_5);
-			Populate (sub, "API 4.0 beta 1", GetVersionPath ("4.0", "net_4_0"), "4.0", api_4_0);
-			Populate (sub, "Silverlight 2.0", GetVersionPath ("2.1", "net_2_1"), "SL2", api_sl2);
-			Populate (sub, "Silverlight 3.0", GetVersionPath ("2.1", "net_2_1"), "SL3", api_sl2);
+			Populate (sub, "API 4.0", GetVersionPath ("4.0", "net_4_0"), "4.0", api_4_0);
+//			Populate (sub, "Silverlight 2.0", GetVersionPath ("2.1", "net_2_1"), "SL2", api_sl2);
+//			Populate (sub, "Silverlight 3.0", GetVersionPath ("2.1", "net_2_1"), "SL3", api_sl2);
+			Populate (sub, "Silverlight 4.0", GetVersionPath ("2.1", "net_2_1"), "SL4", api_sl4);
 		}
 		
 		static string GetVersionPath (string version, string profile)

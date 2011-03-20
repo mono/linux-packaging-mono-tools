@@ -37,7 +37,6 @@ using Gendarme.Framework;
 using Gendarme.Properties;
 
 using Mono.Cecil;
-using Mono.Cecil.Binary;
 
 namespace Gendarme {
 
@@ -45,9 +44,6 @@ namespace Gendarme {
 
 		// This is used for methods which we execute within a thread, but we don't
 		// execute the methods concurrently so we can use single thread.
-		[ThreadModel (ThreadModel.SingleThread)]
-		delegate void MethodInvoker ();
-
 		[ThreadModel (ThreadModel.SingleThread)]
 		sealed class AssemblyInfo {
 			private DateTime timestamp;
@@ -75,14 +71,14 @@ namespace Gendarme {
 		private GuiRunner runner;
 		private int counter;
 
-		private MethodInvoker assembly_loader;
+		private Action assembly_loader;
 		private IAsyncResult assemblies_loading;
+		private object loader_lock = new object ();
 
-		private MethodInvoker rule_loader;
+		private Action rule_loader;
 		private IAsyncResult rules_loading;
 
-		private MethodInvoker analyze;
-		private IAsyncResult analyzing;
+		private Action analyze;
 
 		private string html_report_filename;
 		private string xml_report_filename;
@@ -112,22 +108,16 @@ namespace Gendarme {
 		[ThreadModel (ThreadModel.SingleThread)]
 		static void EndCallback (IAsyncResult result)
 		{
-			(result.AsyncState as MethodInvoker).EndInvoke (result);
-		}
-
-		static Process Process {
-			get {
-				if (process == null)
-					process = new Process ();
-				return process;
-			}
+			(result.AsyncState as Action).EndInvoke (result);
 		}
 
 		static void Open (string filename)
 		{
-			Process.StartInfo.Verb = "open";
-			Process.StartInfo.FileName = filename;
-			Process.Start ();
+			if (process == null)
+				process = new Process ();
+			process.StartInfo.Verb = "open";
+			process.StartInfo.FileName = filename;
+			process.Start ();
 		}
 
 		#region general wizard code
@@ -313,23 +303,33 @@ namespace Gendarme {
 			UpdatePageUI ();
 		}
 
-		[ThreadModel (ThreadModel.SingleThread)]
 		public void UpdateAssemblies ()
 		{
 			if (IsDisposed)
 				throw new ObjectDisposedException (GetType ().Name);
-			
-			foreach (KeyValuePair<string,AssemblyInfo> kvp in assemblies) {
-				DateTime last_write = File.GetLastWriteTimeUtc (kvp.Key);
-				if ((kvp.Value.Definition == null) || (kvp.Value.Timestamp < last_write)) {
-					AssemblyInfo a = kvp.Value;
-					a.Timestamp = last_write;
-					try {
-						a.Definition = AssemblyFactory.GetAssembly (kvp.Key);
-					}
-					catch (ImageFormatException) {
-						// continue loading & analyzing assemblies
-						// TODO: report as non-fatal warning
+
+			// do not let the final check be done while we're still loading assemblies
+			lock (loader_lock) {
+				foreach (KeyValuePair<string,AssemblyInfo> kvp in assemblies) {
+					DateTime last_write = File.GetLastWriteTimeUtc (kvp.Key);
+					if ((kvp.Value.Definition == null) && (kvp.Value.Timestamp < last_write)) {
+						AssemblyInfo a = kvp.Value;
+						string filename = kvp.Key;
+						try {
+							a.Definition = AssemblyDefinition.ReadAssembly (filename, new ReaderParameters { AssemblyResolver = AssemblyResolver.Resolver });
+						}
+						catch (BadImageFormatException) {
+							// continue loading & analyzing assemblies
+							Runner.Warn ("Invalid image: " + filename);
+						}
+						catch (FileNotFoundException fnfe) {
+							// e.g. .netmodules
+							// continue loading & analyzing assemblies
+							Runner.Warn (fnfe.Message + " while loading " + filename);
+						}
+						finally {
+							a.Timestamp = last_write;
+						}
 					}
 				}
 			}
@@ -347,8 +347,10 @@ namespace Gendarme {
 			rules_count_label.Text = String.Format ("{0} rules are available.", Runner.Rules.Count);
 			if (rules_loading == null)
 				throw new InvalidOperationException ("rules_loading");
-			next_button.Enabled = rules_loading.IsCompleted;
-			rules_tree_view.Enabled = rules_loading.IsCompleted;
+
+			bool completed = rules_loading.IsCompleted;
+			next_button.Enabled = completed;
+			rules_tree_view.Enabled = completed;
 			rules_loading.AsyncWaitHandle.WaitOne ();
 			PopulateRules ();
 		}
@@ -368,7 +370,9 @@ namespace Gendarme {
 			rules_tree_view.AfterCheck -= RulesTreeViewAfterCheck;
 			foreach (IRule rule in Runner.Rules) {
 				TreeNode parent;
-				string name_space = rule.FullName.Substring (0, rule.FullName.Length - rule.Name.Length - 1);
+				string full_name = rule.FullName;
+				string name = rule.Name;
+				string name_space = full_name.Substring (0, full_name.Length - name.Length - 1);
 				if (!nodes.TryGetValue (name_space, out parent)) {
 					parent = new TreeNode (name_space);
 					parent.Checked = all_rules;
@@ -376,8 +380,8 @@ namespace Gendarme {
 					rules_tree_view.Nodes.Add (parent);
 				}
 
-				TreeNode node = new TreeNode (rule.Name);
-				node.Checked = all_rules || rules.Contains (rule.FullName);
+				TreeNode node = new TreeNode (name);
+				node.Checked = all_rules || rules.Contains (full_name);
 				node.Tag = rule;
 				node.ToolTipText = rule.Problem;
 				parent.Nodes.Add (node);
@@ -407,13 +411,14 @@ namespace Gendarme {
 		{
 			string url = null;
 
-			if (rules_tree_view.SelectedNode == null)
+			TreeNode selected = rules_tree_view.SelectedNode;
+			if (selected == null)
 				url = DefaultUrl;
 			else {
-				if (rules_tree_view.SelectedNode.Tag == null) {
-					url = BaseUrl + rules_tree_view.SelectedNode.Text;
+				if (selected.Tag == null) {
+					url = BaseUrl + selected.Text;
 				} else {
-					url = (rules_tree_view.SelectedNode.Tag as IRule).Uri.ToString ();
+					url = (selected.Tag as IRule).Uri.ToString ();
 				}
 			}
 
@@ -529,7 +534,7 @@ namespace Gendarme {
 			assemblies_loading.AsyncWaitHandle.WaitOne ();
 			PrepareAnalyze ();
 			analyze = Analyze;
-			analyzing = analyze.BeginInvoke (EndCallback, analyze);
+			analyze.BeginInvoke (EndCallback, analyze);
 		}
 
 		private void PrepareAnalyze ()
@@ -635,13 +640,29 @@ namespace Gendarme {
 
 			// display an error message and details if we encountered an exception during analysis
 			string error = Runner.Error;
-			bool visible = (error.Length > 0);
-			unexpected_error_label.Visible = visible;
-			copy_paste_label.Visible = visible;
+			bool has_errors = (error.Length > 0);
+			copy_paste_label.Visible = has_errors;
 			bugzilla_linklabel.Text = BugzillaUrl;
-			bugzilla_linklabel.Visible = visible;
-			error_textbox.Text = error;
-			error_textbox.Visible = visible;
+			bugzilla_linklabel.Visible = has_errors;
+
+			string warnings = Runner.Warnings;
+			bool has_warnings = (warnings.Length > 0);
+
+			if (has_errors) {
+				unexpected_error_label.Text = "Results are incomplete due to an unexpected error!";
+				unexpected_error_label.Visible = true;
+				// give priority to errors before warnings
+				error_textbox.Text = error;
+				error_textbox.Visible = true;
+			} else if (has_warnings) {
+				unexpected_error_label.Text = "Results might be incomplete due to the following warnings!";
+				unexpected_error_label.Visible = true;
+				error_textbox.Text = warnings;
+				error_textbox.Visible = true;
+			} else {
+				unexpected_error_label.Visible = false;
+				error_textbox.Visible = false;
+			}
 		}
 
 		private static bool CouldCopyReport (ref string currentName, string fileName)
@@ -691,10 +712,9 @@ namespace Gendarme {
 			if (save_file_dialog.ShowDialog () != DialogResult.OK)
 				return;
 
-			ResultWriter writer = GetSelectedWriter (save_file_dialog.FilterIndex, save_file_dialog.FileName);
-			if (writer != null) {
-				writer.Report ();
-				writer.Dispose ();
+			using (ResultWriter writer = GetSelectedWriter (save_file_dialog.FilterIndex, save_file_dialog.FileName)) {
+				if (writer != null)
+					writer.Report ();
 			}
 		}
 

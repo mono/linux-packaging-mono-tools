@@ -151,7 +151,8 @@ namespace Gendarme.Rules.Interoperability {
 							break;
 						case "System.IntPtr":
 						case "System.UIntPtr":
-							dirty = ((mDef.Name != "op_Inequality") && (mDef.Name != "op_Equality"));
+							string name = mDef.Name;
+							dirty = ((name != "op_Inequality") && (name != "op_Equality"));
 							break;
 						default:
 							dirty = true;
@@ -211,7 +212,11 @@ namespace Gendarme.Rules.Interoperability {
 				if (ins.Next == null)
 					break;
 
-				MethodDefinition pinvoke = (ins.Operand as MethodReference).Resolve ();
+				MethodReference mr = ins.GetMethod ();
+				if (mr == null)
+					break;
+
+				MethodDefinition pinvoke = mr.Resolve ();
 				if ((pinvoke == null) || !pinvoke.IsPInvokeImpl)
 					break;
 

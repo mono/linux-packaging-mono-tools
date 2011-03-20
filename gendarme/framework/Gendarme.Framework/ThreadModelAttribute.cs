@@ -28,8 +28,12 @@
 
 using System;
 
+// Note that these types are extended version of what we recommend
+// that users use. See DecorateThreadsRule documentation for a smaller version
 namespace Gendarme.Framework {
+
 	/// <summary>Used with <see cref = "ThreadModelAttribute"/>.</summary>
+	[Serializable]
 	public enum ThreadModel {
 		/// <summary>The code may run safely only under the main thread.</summary>
 		/// <remarks>This is the default for code in the assemblies being checked.</remarks>
@@ -58,12 +62,78 @@ namespace Gendarme.Framework {
 	AttributeTargets.Interface | AttributeTargets.Delegate |
 	AttributeTargets.Method | AttributeTargets.Event | AttributeTargets.Property,
 	AllowMultiple = false, Inherited = false)]
-	public sealed class ThreadModelAttribute : Attribute {
+	public sealed class ThreadModelAttribute : Attribute, IEquatable<ThreadModelAttribute> {
+
 		public ThreadModelAttribute (ThreadModel model)
 		{
-			Model = model;
+			ThreadModel value = model & ~ThreadModel.AllowEveryCaller;
+			if ((value < ThreadModel.MainThread) || (value > ThreadModel.Concurrent))
+				throw new ArgumentException (model.ToString () + " is not a valid ThreadModel value.");
+			
+			Model = model & (ThreadModel) 0x0007;
+			AllowsEveryCaller = (model & ThreadModel.AllowEveryCaller) != 0;
+		}
+				
+		public ThreadModel Model { get; set; }
+		
+		public bool AllowsEveryCaller { get; set; }
+		
+		#region Overrides and Operators
+		public override string ToString ()
+		{
+			if (AllowsEveryCaller)
+				return string.Format ("{0} | AllowEveryCaller", Model);
+				
+			return Model.ToString ();
 		}
 		
-		public ThreadModel Model { get; set; }
+		public override bool Equals (object obj)
+		{
+			if (obj == null)
+				return false;
+			
+			ThreadModelAttribute rhs = obj as ThreadModelAttribute;
+			return this == rhs;
+		}
+		
+		public bool Equals (ThreadModelAttribute rhs)
+		{
+			return this == rhs;
+		}
+		
+		public static bool operator== (ThreadModelAttribute lhs, ThreadModelAttribute rhs)
+		{
+			if (object.ReferenceEquals (lhs, rhs))
+				return true;
+			
+			if ((object) lhs == null || (object) rhs == null)
+				return false;
+			
+			if (lhs.Model != rhs.Model)
+				return false;
+			
+			if (lhs.AllowsEveryCaller != rhs.AllowsEveryCaller)
+				return false;
+			
+			return true;
+		}
+		
+		public static bool operator!= (ThreadModelAttribute lhs, ThreadModelAttribute rhs)
+		{
+			return !(lhs == rhs);
+		}
+		
+		public override int GetHashCode ()
+		{
+			int hash = 0;
+			
+			unchecked {
+				hash += Model.GetHashCode ();
+				hash += AllowsEveryCaller.GetHashCode ();
+			}
+			
+			return hash;
+		}
+		#endregion
 	}
 }

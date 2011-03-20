@@ -112,7 +112,7 @@ namespace Gendarme.Rules.Performance {
 						continue;
 					}
 
-					if (text != null)
+					if (text.Length > 0)
 						Runner.Report (method, instruction, Severity.Medium, Confidence.Normal, text);
 					break;
 				}
@@ -124,31 +124,31 @@ namespace Gendarme.Rules.Performance {
 		private static string CheckClone (MethodReference call, Instruction ins, MethodDefinition method)
 		{
 			if (call.HasParameters)
-				return null;
+				return String.Empty;
 
-			if (!CheckTypeReference (ins.Previous.GetOperandType (method)))
-				return null;
+			if (!IsSystemString (ins.Previous.GetOperandType (method)))
+				return  String.Empty;
 
 			return String.Format (MessageString, call.Name, String.Empty);
 		}
 
 		private static string CheckSubstring (MethodReference call, Instruction ins)
 		{
-			if (!CheckTypeReference (call.DeclaringType))
-				return null;
+			if (!IsSystemString (call.DeclaringType))
+				return String.Empty;
 
 			// ensure it's System.String::Substring(System.Int32) and that it's given 0 as a parameter
 			if (call.HasParameters && (call.Parameters.Count != 1))
-				return null;
+				return String.Empty;
 			if (!ins.Previous.IsOperandZero ())
-				return null;
+				return String.Empty;
 
 			return String.Format (MessageString, call.Name, "0");
 		}
 
 		private static string CheckToString (MethodReference call, Instruction ins, MethodDefinition method)
 		{
-			if (CheckTypeReference (call.DeclaringType)) {
+			if (IsSystemString (call.DeclaringType)) {
 				// most probably ToString(IFormatProvider), possibly ToString()
 				return String.Format (MessageString, call.Name, 
 					(call.HasParameters && (call.Parameters.Count > 1)) ? "IFormatProvider" : String.Empty);
@@ -158,7 +158,7 @@ namespace Gendarme.Rules.Performance {
 			}
 		}
 
-		private static bool CheckTypeReference (TypeReference type)
+		private static bool IsSystemString (MemberReference type)
 		{
 			return (type == null) ? false : (type.FullName == "System.String");
 		}

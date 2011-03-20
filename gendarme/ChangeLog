@@ -1,3 +1,114 @@
+2010-08-27  Rolf Bjarne Kvinge  <RKvinge@novell.com>
+
+	* self-test.ignore: Add an entry to allow
+	DelegatesPassedToNativeCodeMustIncludeExceptionHandlingRule to catch all
+	exceptions it may throw.
+
+2010-08-06  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AUTHORS: Add Antoine Vandecreme
+	* self-test.ignore: Add entry to ignore PreferEmptyInstanceOverNullRule
+	on ProvideCorrectArgumentsToFormattingMethodsRule since null and 
+	empty have different meaning in the rule
+
+2010-06-23  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* self-test.ignore: Remove entries fixed on the console runner, one
+	that does not apply to recent Mono and add comments about defects
+	that can/will be fixed with FX4.0
+
+2010-06-22  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* self-test.ignore: Remove entries fixed with AvoidLargeClassesRule
+
+2010-06-20  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* self-test.ignore: Remove entries fixed with AvoidComplexMethodsRule
+	* README.vsnet: Add the wizard to the self-test instructions
+
+2010-06-18  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* README.vsnet: Add more detailled instructions on how to get and
+	build all required source code
+	* win32-setup/*: Removed - wix is being used since 2.6
+
+2010-06-17  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* self-test.ignore: Remove more AvoidRepetitiveCallsToPropertiesRule
+	entries
+
+2010-06-13  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* self-test.ignore: Remove some fixed AvoidRepetitiveCallsToPropertiesRule
+
+2010-06-11  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* self-test.ignore: Be precise for AvoidRepetitiveCallsToPropertiesRule
+
+2010-06-11  Sebastien Pouliot  <sebastien@ximian.com> 
+
+	* self-test.ignore: Remove mode defects and add some that would
+	show up if compiling with FX4 (like VS2010)
+
+2010-06-09  Sebastien Pouliot  <sebastien@ximian.com> 
+
+	* self-test.ignore: Remove some (fixed) defects and update some
+	descriptions
+
+2010-06-07  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* self-test.ignore: Use new gd2i to be totally precise for all
+	CheckParametersNullityInVisibleMethodsRule entries.
+	* Makefile.am: Remove win32-setup from dist and replace it with 
+	wix. Also add tools (well gd2i for now) to the dist. Make
+	self-test produce xml (along with html) so we can semi-automate
+	gd2i updates on Gendarme
+
+2010-06-07  Sebastien Pouliot  <sebastien@ximian.com> 
+
+	* self-test.ignore: Add GendarmeWizard (Windows name) for
+	AvoidRepetitiveCallsToPropertiesRule. Fix a copy-paste typo.
+	Remove two entries for bugs in AvoidUnnecessarySpecializationRule
+
+2010-06-06  Sebastien Pouliot  <sebastien@ximian.com> 
+
+	* self-test.ignore: Better document a bug in AvoidUnnecessary
+	SpecializationRule. Remove a (not a) bug on same rule. Add a CSC
+	specific entry
+
+2010-06-06  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* self-test.ignore: Add some CSC-specific ignore entries (different
+	IL being generated) and a new NDesk.Options entry related to the
+	fix to ReturnNullRule.
+
+2010-06-05  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* self-test.ignore: Ignore AvoidSmallNamespaceRule on Gendarme.
+	Framework.Engines namespace
+
+2010-06-04  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* self-test.ignore: Add more precise entries to avoid hiding
+	defects that could/should be fixed.
+
+2010-04-26  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AUTHORS: Add Rolf Bjarne Kvinge
+	* Makefile.am: Add helpers to test regression against private 
+	collection of "weird" assemblies and to get the logs out of
+	ohloh.
+
+2010-01-17  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* self-test.ignore: Update defects to ignore wrt Options.cs 2.1
+
+2010-01-16  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AssemblyStaticInfo.cs: Update copyright notice up to 2010
+	* README: Update name/url of our build infrastructure
+	* MIT.X11: Update copyright notice up to 2010
+
 2009-12-20  Sebastien Pouliot  <sebastien@ximian.com> 
 
 	* NEWS: Updated for 2.6

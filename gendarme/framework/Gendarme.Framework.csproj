@@ -61,8 +61,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\AssemblyStaticInfo.cs" />
+    <Compile Include="Gendarme.Framework.Engines\SuppressMessageEngine.cs" />
     <Compile Include="Gendarme.Framework.Helpers\Log.cs" />
     <Compile Include="Gendarme.Framework.Helpers\MethodPrinter.cs" />
+    <Compile Include="Gendarme.Framework.Rocks\ParameterRocks.cs" />
+    <Compile Include="Gendarme.Framework.Rocks\PropertyRocks.cs" />
+    <Compile Include="Gendarme.Framework.Rocks\VariableDefinitionRocks.cs" />
     <Compile Include="Gendarme.Framework\Engine.cs" />
     <Compile Include="Gendarme.Framework.Engines\OpCodeEngine.cs" />
     <Compile Include="Gendarme.Framework.Helpers\OpCodeBitmask.cs" />
@@ -125,8 +129,8 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\mcs\class\Mono.Cecil\Mono.Cecil.csproj">
-      <Project>{D8F63DFF-5230-43E4-9AB2-DA6E721A1FAE}</Project>
+    <ProjectReference Include="..\..\..\cecil\Mono.Cecil.csproj">
+      <Project>{D68133BD-1E63-496E-9EDE-4FBDBF77B486}</Project>
       <Name>Mono.Cecil</Name>
     </ProjectReference>
   </ItemGroup>

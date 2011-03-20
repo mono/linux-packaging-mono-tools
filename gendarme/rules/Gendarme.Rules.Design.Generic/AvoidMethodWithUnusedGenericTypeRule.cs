@@ -4,7 +4,7 @@
 // Authors:
 //	Sebastien Pouliot <sebastien@ximian.com>
 //
-// Copyright (C) 2008 Novell, Inc (http://www.novell.com)
+// Copyright (C) 2008,2010-2011 Novell, Inc (http://www.novell.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the
@@ -31,6 +31,7 @@ using System;
 using Mono.Cecil;
 
 using Gendarme.Framework;
+using Gendarme.Framework.Rocks;
 
 namespace Gendarme.Rules.Design.Generic {
 
@@ -87,20 +88,16 @@ namespace Gendarme.Rules.Design.Generic {
 
 			// we only want to run this on assemblies that use 2.0 or later
 			// since generics were not available before
-			Runner.AnalyzeAssembly += delegate (object o, RunnerEventArgs e) {
-				Active = (e.CurrentAssembly.Runtime >= TargetRuntime.NET_2_0);
+			Runner.AnalyzeModule += delegate (object o, RunnerEventArgs e) {
+				Active = (e.CurrentModule.Runtime >= TargetRuntime.Net_2_0);
 			};
 		}
 
-		static bool FindGenericType (GenericInstanceType git, string fullname)
+		static bool FindGenericType (IGenericInstance git, string fullname)
 		{
 			foreach (object o in git.GenericArguments) {
-				GenericParameter igp = (o as GenericParameter);
-				if (igp != null) {
-					if (igp.FullName == fullname)
-						return true;
-					continue;
-				}
+				if (IsGenericParameter (o, fullname))
+					return true;
 
 				GenericInstanceType inner = (o as GenericInstanceType);
 				if ((inner != null) && (FindGenericType (inner, fullname)))
@@ -109,35 +106,55 @@ namespace Gendarme.Rules.Design.Generic {
 			return false;
 		}
 
+		static bool IsGenericParameter (object obj, string fullname)
+		{
+			GenericParameter gp = (obj as GenericParameter);
+			return ((gp != null) && (gp.FullName == fullname));
+		}
+
+		static bool IsGenericType (MemberReference type, string fullname)
+		{
+			if (type.FullName == fullname)
+				return true;
+
+			var type_spec = type as TypeSpecification;
+			if (type_spec != null && type_spec.ElementType.FullName == fullname)
+				return true;
+
+			// handle things like ICollection<T>
+			GenericInstanceType git = (type as GenericInstanceType);
+			if (git == null)
+				return false;
+
+			return FindGenericType (git, fullname);
+		}
+
 		public RuleResult CheckMethod (MethodDefinition method)
 		{
 			// rule applies only if the method has generic type parameters
-			if (!method.HasGenericParameters)
+			if (!method.HasGenericParameters || method.IsGeneratedCode ())
 				return RuleResult.DoesNotApply;
 
 			// look if every generic type parameter...
 			foreach (GenericParameter gp in method.GenericParameters) {
+				Severity severity = Severity.Medium;
 				bool found = false;
+				string gp_fullname = gp.FullName;
 				// ... is being used by the method parameters
 				foreach (ParameterDefinition pd in method.Parameters) {
-					if (pd.ParameterType.FullName == gp.FullName) {
-						found = true;
-						break;
-					}
-
-					// handle things like ICollection<T>
-					GenericInstanceType git = (pd.ParameterType as GenericInstanceType);
-					if (git == null)
-						continue;
-
-					if (FindGenericType (git, gp.FullName)) {
+					if (IsGenericType (pd.ParameterType, gp_fullname)) {
 						found = true;
 						break;
 					}
 				}
 				if (!found) {
-					string msg = String.Format ("Generic parameter '{0}' is not used by the method parameters.", gp.FullName);
-					Runner.Report (method, Severity.Medium, Confidence.High, msg);
+					// it's a defect when used only for the return value - but we reduce its severity
+					if (IsGenericType (method.ReturnType, gp_fullname))
+						severity = Severity.Low;
+				}
+				if (!found) {
+					string msg = String.Format ("Generic parameter '{0}' is not used by the method parameters.", gp_fullname);
+					Runner.Report (method, severity, Confidence.High, msg);
 				}
 			}
 			return Runner.CurrentRuleResult;

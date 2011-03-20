@@ -114,6 +114,7 @@ namespace Gendarme.Rules.Exceptions {
 
 	[Problem ("A method of an IDisposable type does not throw System.ObjectDisposedException.")]
 	[Solution ("Throw ObjectDisposedException if the object has been disposed.")]
+	[EngineDependency (typeof (OpCodeEngine))]
 	public sealed class UseObjectDisposedExceptionRule : Rule, IMethodRule {
 		
 		public RuleResult CheckMethod (MethodDefinition method)
@@ -130,14 +131,14 @@ namespace Gendarme.Rules.Exceptions {
 				Log.WriteLine (this, "-----------------------------------------");
 				Log.WriteLine (this, method);
 				
-				has_this_call = false;
-				has_this_field = false;
+				call_using_this = false;
+				field_access_using_this = false;
 				creates_exception = false;
 				has_dispose_check = false;
 				
 				CheckBody (method);
 				
-				if ((has_this_call || has_this_field) && !creates_exception) {
+				if ((call_using_this || field_access_using_this) && !creates_exception) {
 					if (!has_dispose_check) {
 						Runner.Report (method, Severity.Medium, Confidence.High);
 					}
@@ -149,20 +150,21 @@ namespace Gendarme.Rules.Exceptions {
 		
 		private void CheckBody (MethodDefinition method)
 		{
+			string fullname = method.DeclaringType.FullName;
 			foreach (Instruction ins in method.Body.Instructions) {
 				switch (ins.OpCode.Code) {
 				case Code.Call:
 				case Code.Callvirt:
 					MethodReference target = (MethodReference) ins.Operand;
-					if (!has_this_call) {
+					if (!call_using_this) {
 						MethodDefinition callee = target.Resolve ();
 						if (callee != null) {
 							if (!callee.IsPublic && !callee.IsStatic) {
-								if (callee.DeclaringType.FullName == method.DeclaringType.FullName) {
+								if (callee.DeclaringType.FullName == fullname) {
 									Instruction instance = ins.TraceBack (method);
 									if (instance != null && instance.OpCode.Code == Code.Ldarg_0) {
 										Log.WriteLine (this, "found non-public this call at {0:X4}", ins.Offset);
-										has_this_call = true;
+										call_using_this = true;
 									}
 								}
 							}
@@ -172,7 +174,8 @@ namespace Gendarme.Rules.Exceptions {
 					// Special case for helper methods like CheckIfClosedThrowDisposed or
 					// CheckObjectDisposedException.
 					if (!has_dispose_check) {
-						if (target.Name.Contains ("Check") && target.Name.Contains ("Dispose")) {
+						string tname = target.Name;
+						if (tname.Contains ("Check") && tname.Contains ("Dispose")) {
 							Log.WriteLine (this, "found dispose check at {0:X4}", ins.Offset);
 							has_dispose_check = true;
 						}
@@ -182,13 +185,13 @@ namespace Gendarme.Rules.Exceptions {
 				case Code.Ldfld:
 				case Code.Stfld:
 				case Code.Ldflda:
-					if (!has_this_field) {
+					if (!field_access_using_this) {
 						FieldReference field = (FieldReference) ins.Operand;
-						if (field.DeclaringType.FullName == method.DeclaringType.FullName) {
+						if (field.DeclaringType.FullName == fullname) {
 							Instruction instance = ins.TraceBack (method);
 							if (instance != null && instance.OpCode.Code == Code.Ldarg_0) {
 								Log.WriteLine (this, "found field access at {0:X4}", ins.Offset);
-								has_this_field = true;
+								field_access_using_this = true;
 							}
 						}
 					}
@@ -211,7 +214,7 @@ namespace Gendarme.Rules.Exceptions {
 		// will skip methods which don't call a method or touch a field. This is done 
 		// to eliminate annoying cases like methods that do nothing but throw 
 		// something like a not implemented exception.
-		private bool Preflight (MethodDefinition method)
+		static bool Preflight (MethodDefinition method)
 		{
 			bool needs = false;
 			
@@ -230,7 +233,7 @@ namespace Gendarme.Rules.Exceptions {
 		
 		// Note that auto-setters are considered to be generated code so we won't
 		// make it this far for them.
-		private bool AllowedToThrow (MethodDefinition method)
+		static bool AllowedToThrow (MethodDefinition method)
 		{
 			if (method.IsConstructor)
 				return false;
@@ -271,16 +274,17 @@ namespace Gendarme.Rules.Exceptions {
 			mask.Set (Code.Ldfld);
 			mask.Set (Code.Ldflda);
 			mask.Set (Code.Stfld);
+			mask.Set (Code.Newobj);
 			Console.WriteLine (mask);
 		}
 #endif
 		
-		private static readonly OpCodeBitmask CallsAndFields = new OpCodeBitmask (0x8000000000, 0x700400000000000, 0x0, 0x0);
+		private static readonly OpCodeBitmask CallsAndFields = new OpCodeBitmask (0x8000000000, 0x704400000000000, 0x0, 0x0);
 		private static readonly MethodSignature Equals1 = new MethodSignature ("Equals", "System.Boolean", new string [1]);
 		private static readonly MethodSignature Close = new MethodSignature ("Close", "System.Void", new string [0]);
 		
-		private bool has_this_call;
-		private bool has_this_field;
+		private bool call_using_this;
+		private bool field_access_using_this;
 		private bool creates_exception;
 		private bool has_dispose_check;
 	}

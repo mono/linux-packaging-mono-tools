@@ -99,7 +99,7 @@ namespace Gendarme.Rules.Correctness {
 	/// using System.Linq;
 	/// using System.Runtime.Diagnostics;
 	///
-	/// // Eventually this should be part of System.Runtime.Diagnostics.
+	/// // note: in FX4 (and later) this attribute is defined in System.Runtime.Diagnostics.Contracts
 	/// [Serializable]
 	/// [AttributeUsage (AttributeTargets.Method | AttributeTargets.Delegate, AllowMultiple = false)]
 	/// public sealed class PureAttribute : Attribute {
@@ -197,15 +197,18 @@ namespace Gendarme.Rules.Correctness {
 		internal static string ConditionalOn (MethodReference mr)
 		{
 			MethodDefinition method = mr.Resolve ();
-			
-			if (method != null) {
-				if (method.HasCustomAttributes) {
-					foreach (CustomAttribute attr in method.CustomAttributes) {
-						if (StringConstructor.Matches (attr.Constructor)) {
-							if (attr.Constructor.DeclaringType.FullName == "System.Diagnostics.ConditionalAttribute") {
-								return (string) attr.ConstructorParameters [0];
-							}
-						}
+			if ((method == null) || !method.HasCustomAttributes)
+				return null;
+
+			foreach (CustomAttribute attr in method.CustomAttributes) {
+				// ConditionalAttribute has a single ctor taking a string value
+				// http://msdn.microsoft.com/en-us/library/system.diagnostics.conditionalattribute.conditionalattribute.aspx
+				// any attribute without arguments can be skipped
+				if (!attr.HasConstructorArguments)
+					continue;
+				if (StringConstructor.Matches (attr.Constructor)) {
+					if (attr.AttributeType.FullName == "System.Diagnostics.ConditionalAttribute") {
+						return (string) attr.ConstructorArguments [0].Value;
 					}
 				}
 			}
@@ -217,7 +220,7 @@ namespace Gendarme.Rules.Correctness {
 		// until it finds an instruction which does not pop any values off the stack. This
 		// allows us to check all of the instructions used to compute the method's
 		// arguments.
-		internal static Instruction FullTraceBack (MethodDefinition method, Instruction end)
+		internal static Instruction FullTraceBack (IMethodSignature method, Instruction end)
 		{
 			Instruction first = end.TraceBack (method);
 			
@@ -229,7 +232,7 @@ namespace Gendarme.Rules.Correctness {
 		}
 		
 		#region Private Methods
-		private MethodReference FindImpurity (MethodDefinition method, Instruction end)
+		private MethodReference FindImpurity (IMethodSignature method, Instruction end)
 		{
 			MethodReference impure = null;
 			
@@ -254,37 +257,41 @@ namespace Gendarme.Rules.Correctness {
 			MethodDefinition method = mr.Resolve ();
 			
 			if (method != null) {
+				TypeDefinition type = method.DeclaringType;
+				string type_name = type.FullName;
+				string method_name = method.Name;
+
 				// getters
 				if (method.IsGetter)
 					return true;
 				
 				// System.String, System.Type, etc methods
-				if (pure_types.Contains (method.DeclaringType.FullName))
+				if (types_considered_pure.Contains (type_name))
 					return true;
 				
 				// Equals, GetHashCode, Contains, etc
-				if (pure_methods.Contains (method.Name))
+				if (methods_considered_pure.Contains (method_name))
 					return true;
 				
 				// operators
-				if (method.Name.StartsWith ("op_") && method.Name != "op_Implicit" && method.Name != "op_Explicit")
+				if (method_name.StartsWith ("op_") && method_name != "op_Implicit" && method_name != "op_Explicit")
 					return true;
 					
-				// Contract methods
-				if (method.DeclaringType.Name == "Contract")
+				// Contract methods (skip namespace)
+				if (type_name == "System.Diagnostics.Contracts.Contract")
 					return true;
 					
 				// System.Predicate<T> and System.Comparison<T>
-				if (method.DeclaringType.FullName.StartsWith ("System.Predicate`1"))
+				if (type_name.StartsWith ("System.Predicate`1"))
 					return true;
 					
-				if (method.DeclaringType.FullName.StartsWith ("System.Comparison`1"))
+				if (type_name.StartsWith ("System.Comparison`1"))
 					return true;
 					
 				// delegate invocation
 				if (MethodSignatures.Invoke.Matches (method)) {
-					if (method.DeclaringType.HasCustomAttributes) {
-						if (HasPureAttribute (method.DeclaringType.CustomAttributes)) {
+					if (type.HasCustomAttributes) {
+						if (HasPureAttribute (type.CustomAttributes)) {
 							return true;
 						}
 					}
@@ -307,10 +314,10 @@ namespace Gendarme.Rules.Correctness {
 		
 		// Note that we don't want to use ContainsType because we need to ignore
 		// the namespace (at least until it lands in System.Diagnostics).
-		private bool HasPureAttribute (CustomAttributeCollection attrs)
+		static bool HasPureAttribute (IList<CustomAttribute> attrs)
 		{
 			foreach (CustomAttribute attr in attrs) {
-				if (attr.Constructor.DeclaringType.FullName.Contains ("PureAttribute")) {
+				if (attr.AttributeType.FullName.Contains ("PureAttribute")) {
 					return true;
 				}
 			}
@@ -321,7 +328,8 @@ namespace Gendarme.Rules.Correctness {
 		
 		#region Fields
 		private static readonly MethodSignature StringConstructor = new MethodSignature (".ctor", "System.Void", new string [] {"System.String"});
-		private static HashSet<string> pure_types = new HashSet<string>{
+
+		private static HashSet<string> types_considered_pure = new HashSet<string> {
 			"System.Math",
 			"System.Object",
 			"System.String",
@@ -329,7 +337,8 @@ namespace Gendarme.Rules.Correctness {
 			"System.IO.Path",
 			"System.Linq.Enumerable",
 		};
-		private static HashSet<string> pure_methods = new HashSet<string>{
+
+		private static HashSet<string> methods_considered_pure = new HashSet<string> {
 			"AsReadOnly",
 			"BinarySearch",
 			"Clone",

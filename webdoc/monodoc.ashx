@@ -29,27 +29,46 @@ namespace Mono.Website.Handlers
 {
 	public class MonodocHandler : IHttpHandler
 	{
-		static RootTree help_tree;
-		
+		static DateTime monodoc_timestamp, handler_timestamp;
+
 		static MonodocHandler ()
 		{
-			HelpSource.use_css = true;
-			HelpSource.FullHtml = false;
-			HelpSource.UseWebdocCache = true;
-			help_tree = RootTree.LoadTree ();
-			SettingsHandler.Settings.EnableEditing = false;
+			monodoc_timestamp = File.GetCreationTimeUtc (typeof (Node).Assembly.Location);
+			handler_timestamp = File.GetCreationTimeUtc (typeof (MonodocHandler).Assembly.Location);
+
+			DumpEmbeddedImages ();
 		}
-		
+
+		// Dumps the embedded images from monodoc.dll
+		static void DumpEmbeddedImages ()
+		{
+			try {
+				Directory.CreateDirectory ("mdocimages");
+			} catch {}
+
+			var mass = typeof (Node).Assembly;
+		      	var buffer = new byte [4096];
+			foreach (string image in mass.GetManifestResourceNames ()){
+				if (!(image.EndsWith ("png") || image.EndsWith ("jpg")))
+					continue;
+				var target = Path.Combine ("mdocimages", image);
+				if (File.Exists (target))
+					continue;
+
+				using (var output = File.Create (target)){
+					var input = mass.GetManifestResourceStream (image);
+					int n;
+					while ((n = input.Read (buffer, 0, buffer.Length)) > 0){
+						output.Write (buffer, 0, n);
+					}
+				}
+			}
+		}
+
 		void IHttpHandler.ProcessRequest (HttpContext context)
 		{
 			string s;
 
-			s = (string) context.Request.Params["tlink"];
-			if (s != null){
-				HandleTreeLink (context, s);
-				return;
-			}
-			
 			s = (string) context.Request.Params["link"];
 			if (s != null){
 				HandleMonodocUrl (context, s);
@@ -78,7 +97,7 @@ namespace Mono.Website.Handlers
 			// Walk the url, found what we are supposed to render.
 			//
 			string [] nodes = tree.Split (new char [] {'@'});
-			Node current_node = help_tree;
+			Node current_node = Global.help_tree;
 			for (int i = 0; i < nodes.Length; i++){
 				try {
 				current_node = (Node)current_node.Nodes [int.Parse (nodes [i])];
@@ -98,7 +117,7 @@ namespace Mono.Website.Handlers
 				w.WriteAttributeString ("text", n.Caption);
 
 				if (n.tree != null && n.tree.HelpSource != null)
-					w.WriteAttributeString ("action", n.tree.HelpSource.SourceID + "@" + HttpUtility.UrlEncode (n.URL));
+					w.WriteAttributeString ("action", HttpUtility.UrlEncode (n.PublicUrl));
 
 				if (n.Nodes != null){
 					w.WriteAttributeString ("src", tree + "@" + i);
@@ -115,20 +134,31 @@ namespace Mono.Website.Handlers
 		void CheckLastModified (HttpContext context)
 		{
 			string strHeader = context.Request.Headers ["If-Modified-Since"];
-			DateTime lastHelpSourceTime = help_tree.LastHelpSourceTime;
+			DateTime lastHelpSourceTime = Global.help_tree.LastHelpSourceTime;
 			try {
 				if (strHeader != null && lastHelpSourceTime != DateTime.MinValue) {
-					DateTime dtIfModifiedSince = DateTime.ParseExact (strHeader, "r", null);
+				   	// Console.WriteLine ("Got this: {0}", strHeader);
+					DateTime dtIfModifiedSince = DateTime.ParseExact (strHeader, "r", null).ToUniversalTime ();
 					DateTime ftime = lastHelpSourceTime.ToUniversalTime ();
-					if (ftime <= dtIfModifiedSince) {
+					//Console.WriteLine ("Times:");
+					//Console.WriteLine ("   ftime: {0}", ftime);
+					//Console.WriteLine ("   monod: {0}", monodoc_timestamp);
+					//Console.WriteLine ("   handl: {0}", handler_timestamp);
+					//Console.WriteLine ("    dtIf: {0}", dtIfModifiedSince);
+					if (dtIfModifiedSince < DateTime.UtcNow &&
+					    ftime <= dtIfModifiedSince && 
+					    monodoc_timestamp <= dtIfModifiedSince && 
+					    handler_timestamp <= dtIfModifiedSince) {
 						context.Response.StatusCode = 304;
 						return;
 					}
 				}
 			} catch { } 
 
+			long ticks = System.Math.Max (monodoc_timestamp.Ticks, handler_timestamp.Ticks);
 			if (lastHelpSourceTime != DateTime.MinValue) {
-				DateTime lastWT = lastHelpSourceTime.ToUniversalTime ();
+				ticks = System.Math.Max (ticks, lastHelpSourceTime.Ticks);
+				DateTime lastWT = new DateTime (ticks).ToUniversalTime ();
 				context.Response.AddHeader ("Last-Modified", lastWT.ToString ("r"));
 			}
 
@@ -155,7 +185,7 @@ namespace Mono.Website.Handlers
 					throw new Exception ("Internal error");
 				}
 				
-				Stream s = help_tree.GetImage (link);
+				Stream s = Global.help_tree.GetImage (link);
 				
 				if (s == null)
 					throw new HttpException (404, "File not found");
@@ -168,15 +198,19 @@ namespace Mono.Website.Handlers
 				return;
 			}
 
-			if (help_tree == null)
+			if (Global.help_tree == null)
 				return;
 			Node n;
-			string content = help_tree.RenderUrl (link, out n);
+			//Console.WriteLine ("Considering {0}", link);
+			string content = Global.help_tree.RenderUrl (link, out n);
 			CheckLastModified (context);
-			if (context.Response.StatusCode == 304)
-				return;
+			if (context.Response.StatusCode == 304){
+	   			//Console.WriteLine ("Keeping", link);
 
-			PrintDocs (content, context, GetHelpSource (n));
+				return;
+			}
+
+			PrintDocs (content, n, context, GetHelpSource (n));
 		}
 
 		HelpSource GetHelpSource (Node n)
@@ -198,13 +232,13 @@ namespace Mono.Website.Handlers
 			int hsId = int.Parse (lnk [0]);
 			
 			Node n;
-			HelpSource hs = help_tree.GetHelpSourceFromId (hsId);
+			HelpSource hs = Global.help_tree.GetHelpSourceFromId (hsId);
 			string content = hs.GetText (lnk [1], out n);
 			if (content == null) {
-				content = help_tree.RenderUrl (lnk [1], out n);
+				content = Global.help_tree.RenderUrl (lnk [1], out n);
 				hs = GetHelpSource (n);
 			}
-			PrintDocs (content, context, hs);
+			PrintDocs (content, n, context, hs);
 		}
 
 		void Copy (Stream input, Stream output)
@@ -220,8 +254,10 @@ namespace Mono.Website.Handlers
 		}
 
 		string requestPath;
-		void PrintDocs (string content, HttpContext ctx, HelpSource hs)
+		void PrintDocs (string content, Node node, HttpContext ctx, HelpSource hs)
 		{
+			string title = (node == null || node.Caption == null) ? "Mono XDocumentation" : node.Caption;
+
 			ctx.Response.Write (@"
 <html>
 <head>
@@ -240,6 +276,7 @@ function load ()
 	{
 		top.location.href = 'index.aspx'+document.location.search;
 	}
+
 	parent.Header.document.getElementById ('pageLink').href = parent.content.window.location;
 	objs = document.getElementsByTagName('img');
 	for (i = 0; i < objs.length; i++)
@@ -268,38 +305,41 @@ function makeLink (link)
 			
 		default:
 			if(document.all) {
-				return '" + ctx.Request.Path + @"?link=' + link.replace(/\+/g, '%2B').replace(/file:\/\/\//, '');
+				return '");
+			ctx.Response.Write (ctx.Request.Path);
+			ctx.Response.Write (@"?link=' + link.replace(/\+/g, '%2B').replace(/file:\/\/\//, '');
 			}
-			return '" + ctx.Request.Path + @"?link=' + link.replace(/\+/g, '%2B');
+			return '");
+
+			ctx.Response.Write (ctx.Request.Path);
+			ctx.Response.Write (@"?link=' + link.replace(/\+/g, '%2B');
 		}
 }
--->
-	</script>
-		<title>Mono Documentation</title>
-		");
-		if (hs != null && hs.InlineCss != null) {
-			ctx.Response.Write ("<style type=\"text/css\">\n");
-			ctx.Response.Write (hs.InlineCss);
-			ctx.Response.Write ("</style>\n");
-		}
-		if (hs != null && hs.InlineJavaScript != null) {
-			ctx.Response.Write ("<script type=\"text/JavaScript\">\n");
-			ctx.Response.Write (hs.InlineJavaScript);
-			ctx.Response.Write ("</script>\n");
-		}
-		ctx.Response.Write (@"
-		</head>
-		<body onLoad='load()'>
-		");
+-->");
+			ctx.Response.Write ("</script><title>");
+			ctx.Response.Write (title);
+			ctx.Response.Write ("</title>\n");
+	
+			if (hs != null && hs.InlineCss != null) {
+				ctx.Response.Write ("<style type=\"text/css\">\n");
+				ctx.Response.Write (hs.InlineCss);
+				ctx.Response.Write ("</style>\n");
+			}
+			if (hs != null && hs.InlineJavaScript != null) {
+				ctx.Response.Write ("<script type=\"text/JavaScript\">\n");
+				ctx.Response.Write (hs.InlineJavaScript);
+				ctx.Response.Write ("</script>\n");
+			}
+			ctx.Response.Write (@"</head><body onLoad='load()'>");
+
 			// Set up object variable, as it's required by the MakeLink delegate
 			requestPath=ctx.Request.Path;
 			string output;
-
+	
 			if (content == null)
 				output = "No documentation available on this topic";
-			else {
+			else 
 				output = MakeLinks(content);
-			}
 			ctx.Response.Write (output);
 			ctx.Response.Write (@"</body></html>");
 		}
@@ -361,7 +401,7 @@ function makeLink (link)
 		}
 
 		void HandleBoot (HttpContext context)
-				{
+		{
 			context.Response.Write (@"
 <html>
 	<head>
@@ -376,7 +416,7 @@ function makeLink (link)
 		{
 			tree.strTargetDefault = 'content';
 			tree.strSrcBase = 'monodoc.ashx?tree=';
-			tree.strActionBase = 'monodoc.ashx?tlink=';
+			tree.strActionBase = 'monodoc.ashx?link=';
 			tree.strImagesBase = 'xtree/images/msdn2/';
 			tree.strImageExt = '.gif';
 			var content = document.getElementById ('contentList');
@@ -384,18 +424,18 @@ function makeLink (link)
 			content.appendChild (root);
 		");
 
-		for (int i = 0; i < help_tree.Nodes.Count; i++){
-			Node n = (Node)help_tree.Nodes [i];
+		for (int i = 0; i < Global.help_tree.Nodes.Count; i++){
+			Node n = (Node)Global.help_tree.Nodes [i];
 			context.Response.Write (
 				"tree.CreateItem (root, '" + n.Caption + "', '" +
-				n.URL + "', ");
+				n.PublicUrl + "', ");
 	
 			if (n.Nodes.Count != 0)
 				context.Response.Write ("'" + i + "'");
 			else	
 				context.Response.Write ("null");
 	
-			if (i == help_tree.Nodes.Count-1)
+			if (i == Global.help_tree.Nodes.Count-1)
 				context.Response.Write (", true");
 
 			context.Response.Write (@");

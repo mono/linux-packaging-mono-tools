@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections;
+using System.Collections.Generic;
 
 using Mono.Cecil;
 
@@ -66,6 +67,7 @@ namespace Gendarme.Rules.BadPractice {
 
 	[Problem ("The [Obsolete] attribute was used but no help, alternative or description was provided.")]
 	[Solution ("Provide advice to help developers abandon old features and migrate to newer ones.")]
+	[FxCopCompatibility ("Microsoft.Design", "CA1041:ProvideObsoleteAttributeMessage")]
 	public class ObsoleteMessagesShouldNotBeEmptyRule : Rule, ITypeRule {
 
 		private const string ObsoleteAttribute = "System.ObsoleteAttribute";
@@ -77,8 +79,8 @@ namespace Gendarme.Rules.BadPractice {
 			// if the module does not have a reference to System.ObsoleteAttribute 
 			// then nothing will be marked as obsolete inside it
 			Runner.AnalyzeModule += delegate (object o, RunnerEventArgs e) {
-				Active = (e.CurrentAssembly.Name.Name == Constants.Corlib) ||
-					e.CurrentModule.TypeReferences.ContainsType (ObsoleteAttribute);
+				Active = (e.CurrentAssembly.Name.Name == "mscorlib") ||
+					e.CurrentModule.HasTypeReference (ObsoleteAttribute);
 			};
 		}
 
@@ -88,7 +90,9 @@ namespace Gendarme.Rules.BadPractice {
 				return;
 
 			foreach (CustomAttribute ca in cap.CustomAttributes) {
-				if (ca.Constructor.DeclaringType.FullName != ObsoleteAttribute)
+				// ObsoleteAttribute has a three (3) ctors, including a default (parameter-less) ctor
+				// http://msdn.microsoft.com/en-us/library/68k270ch.aspx
+				if (ca.AttributeType.FullName != ObsoleteAttribute)
 					continue;
 
 				// note: we don't have to check fields since they cannot be used
@@ -96,8 +100,7 @@ namespace Gendarme.Rules.BadPractice {
 
 				// no parameter == empty description
 				// note: Message is the first parameter in both ctors (with params)
-				IList cpc = ca.ConstructorParameters;
-				if ((cpc.Count == 0) || String.IsNullOrEmpty ((string) cpc [0]))
+				if (!ca.HasConstructorArguments || String.IsNullOrEmpty ((string) ca.ConstructorArguments [0].Value))
 					Runner.Report ((IMetadataTokenProvider) cap, Severity.Medium, Confidence.High);
 			}
 			// no System.ObsoleteAttribute found inside the collection
@@ -128,13 +131,6 @@ namespace Gendarme.Rules.BadPractice {
 			if (type.HasFields) {
 				foreach (FieldDefinition field in type.Fields) {
 					CheckAttributes (field);
-				}
-			}
-
-			// handles AttributeTargets.Constructor
-			if (type.HasConstructors) {
-				foreach (MethodDefinition ctor in type.Constructors) {
-					CheckAttributes (ctor);
 				}
 			}
 

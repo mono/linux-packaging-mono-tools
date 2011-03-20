@@ -4,7 +4,7 @@
 // Authors:
 //	Sebastien Pouliot <sebastien@ximian.com>
 //
-// Copyright (C) 2008 Novell, Inc (http://www.novell.com)
+// Copyright (C) 2008, 2010 Novell, Inc (http://www.novell.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the
@@ -106,34 +106,49 @@ namespace Gendarme.Rules.Concurrency {
 			"System.Reflection.ParameterInfo"
 		};
 
-		public override void Analyze (MethodDefinition method, Instruction ins)
+		public override void Analyze (MethodDefinition method, MethodReference enter, Instruction ins)
 		{
-			// well original instruction since this is where we will report the defect
+			TypeReference type = null;
+
+			// keep original instruction since this is where we will report the defect
 			Instruction call = ins;
-			while (ins.Previous != null) {
-				ins = ins.Previous;
-				TypeReference type = ins.GetOperandType (method);
-				if (type == null)
-					continue;
 
-				// fast check for sealed types
-				switch (type.FullName) {
-				case "System.ExecutionEngineException":
-				case "System.StackOverflowException":
-				case "System.String":
-				case "System.Threading.Thread":
-					Runner.Report (method, call, Severity.High, Confidence.Normal, type.FullName);
-					return;
-				default:
-					foreach (string unsealed in unsealed_types) {
-						if (!type.Inherits (unsealed))
-							continue;
-
-						string msg = String.Format ("'{0}' inherits from '{1}'.", type.FullName, unsealed);
-						Runner.Report (method, call, Severity.High, Confidence.Normal, msg);
-					}
-					return;
+			// Monitor.Enter(object)
+			// Monitor.Enter(object, ref bool) <-- new in FX4 and used by CSC10
+			Instruction first = call.TraceBack (method);
+			if (first.OpCode.Code == Code.Dup)
+				first = first.Previous;
+			type = first.GetOperandType (method);
+			if (type.FullName == "System.Object") {
+				// newer GMCS use a temporary local that hides the real type
+				Instruction prev = first.Previous;
+				if (first.IsLoadLocal () && prev.IsStoreLocal ()) {
+					if (first.GetVariable (method) == prev.GetVariable (method))
+						type = prev.Previous.GetOperandType (method);
 				}
+			}
+
+			if (type == null)
+				return;
+
+			// fast check for sealed types
+			string full_name = type.FullName;
+			switch (full_name) {
+			case "System.ExecutionEngineException":
+			case "System.StackOverflowException":
+			case "System.String":
+			case "System.Threading.Thread":
+				Runner.Report (method, call, Severity.High, Confidence.Normal, full_name);
+				break;
+			default:
+				foreach (string unsealed in unsealed_types) {
+					if (!type.Inherits (unsealed))
+						continue;
+
+					string msg = String.Format ("'{0}' inherits from '{1}'.", full_name, unsealed);
+					Runner.Report (method, call, Severity.High, Confidence.Normal, msg);
+				}
+				break;
 			}
 		}
 	}

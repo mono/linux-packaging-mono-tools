@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Mono Tools\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2010-02-02 11:29-0700\n"
+"POT-Creation-Date: 2011-02-12 09:42-0700\n"
 "PO-Revision-Date: 2004-07-06 00:13-0300\n"
 "Last-Translator: Maurício de Lemos Rodrigues Collares Neto <mauricioc@gmail."
 "com>\n"
@@ -17,247 +17,6 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-
-#: gnunit/src/AssemblyStore.cs:304
-msgid "Already running some test(s)."
-msgstr ""
-
-#: gnunit/src/AssemblyStore.cs:587
-msgid "Warning: unexpected combination."
-msgstr ""
-
-#: gnunit/src/AssemblyStore.cs:596
-#, csharp-format
-msgid "Don't know anything about {0}"
-msgstr ""
-
-#: gnunit/src/FileDialog.cs:26
-msgid "Select an assembly to load"
-msgstr ""
-
-#: gnunit/src/nunit-gtk.glade:10
-msgid "Mono NUnit2 GUI"
-msgstr ""
-
-#: gnunit/src/nunit-gtk.glade:72
-msgid "_Recent assemblies"
-msgstr ""
-
-#: gnunit/src/nunit-gtk.glade:92
-msgid "_Clear recent"
-msgstr ""
-
-#: gnunit/src/nunit-gtk.glade:165
-msgid "Enable/disable by category"
-msgstr ""
-
-#: gnunit/src/nunit-gtk.glade:166
-msgid "_Categories"
-msgstr ""
-
-#: gnunit/src/nunit-gtk.glade:219
-msgid "Open assembly"
-msgstr ""
-
-#: gnunit/src/nunit-gtk.glade:220
-msgid "Open"
-msgstr ""
-
-#: gnunit/src/nunit-gtk.glade:234
-msgid "Save results to a XML file"
-msgstr ""
-
-#: gnunit/src/nunit-gtk.glade:235
-#, fuzzy
-msgid "Save As"
-msgstr "_Salvar"
-
-#: gnunit/src/nunit-gtk.glade:249
-msgid "Run selected test fixture(s)"
-msgstr ""
-
-#: gnunit/src/nunit-gtk.glade:250 gnunit/src/nunit-gtk.glade:516
-msgid "Run"
-msgstr ""
-
-#: gnunit/src/nunit-gtk.glade:265 docbrowser/browser.glade:1538
-#: docbrowser/browser.glade:1917 docbrowser/browser.glade:2208
-#: docbrowser/browser.glade:2557
-msgid "Cancel"
-msgstr "Cancelar"
-
-#: gnunit/src/nunit-gtk.glade:266
-msgid "Stop"
-msgstr ""
-
-#: gnunit/src/nunit-gtk.glade:280
-msgid "Exit program"
-msgstr ""
-
-#: gnunit/src/nunit-gtk.glade:281 docbrowser/browser.glade:138
-msgid "Quit"
-msgstr "Sair"
-
-#: gnunit/src/nunit-gtk.glade:390
-msgid "Test: "
-msgstr ""
-
-#: gnunit/src/nunit-gtk.glade:588
-msgid "Errors and failures"
-msgstr ""
-
-#: gnunit/src/nunit-gtk.glade:641
-msgid "Tests not run"
-msgstr ""
-
-#: gnunit/src/nunit-gtk.glade:699
-msgid "Standard error"
-msgstr ""
-
-#: gnunit/src/nunit-gtk.glade:757
-msgid "Standard out"
-msgstr ""
-
-#: gnunit/src/nunit-gtk.glade:815 gnunit/src/main.cs:686
-msgid "Error"
-msgstr ""
-
-#: gnunit/src/nunit-gtk.glade:904
-#, fuzzy
-msgid "label"
-msgstr "label16"
-
-#: gnunit/src/nunit-gtk.glade:936 gnunit/src/main.cs:104
-msgid "Show details >>"
-msgstr ""
-
-#: gnunit/src/nunit-gtk.glade:1009
-msgid "Error details"
-msgstr ""
-
-#: gnunit/src/nunit-gtk.glade:1056
-msgid "File exists. Overwrite?"
-msgstr ""
-
-#: gnunit/src/nunit-gtk.glade:1084
-msgid "Don't save results"
-msgstr ""
-
-#: gnunit/src/nunit-gtk.glade:1098
-msgid "Save results"
-msgstr ""
-
-#: gnunit/src/main.cs:37
-#, csharp-format
-msgid "<b>File {0} exists.</b>"
-msgstr ""
-
-#: gnunit/src/main.cs:38
-msgid "Do you want to overwrite it?"
-msgstr ""
-
-#: gnunit/src/main.cs:107
-msgid "Hide details <<"
-msgstr ""
-
-#: gnunit/src/main.cs:200
-msgid "Uncategorized"
-msgstr ""
-
-#: gnunit/src/main.cs:408
-msgid "No assembly loaded."
-msgstr ""
-
-#: gnunit/src/main.cs:434
-#, csharp-format
-msgid "Loading {0}..."
-msgstr ""
-
-#: gnunit/src/main.cs:546
-#, csharp-format
-msgid "Loading test {0} of {1}"
-msgstr ""
-
-#: gnunit/src/main.cs:557
-msgid "Error loading assembly"
-msgstr ""
-
-#: gnunit/src/main.cs:558
-#, csharp-format
-msgid "Error loading '{0}'"
-msgstr ""
-
-#: gnunit/src/main.cs:608
-msgid "translator_credits"
-msgstr ""
-
-#: gnunit/src/main.cs:630
-msgid "You have to select a test to run."
-msgstr ""
-
-#: gnunit/src/main.cs:660
-msgid "No test results available"
-msgstr ""
-
-#: gnunit/src/main.cs:661
-msgid "You must run some tests in order to get results to save."
-msgstr ""
-
-#: gnunit/src/main.cs:667
-msgid "Save results to..."
-msgstr ""
-
-#: gnunit/src/main.cs:676
-msgid "Results not saved."
-msgstr ""
-
-#: gnunit/src/main.cs:687
-msgid "There has been an error saving the results.\n"
-msgstr ""
-
-#: gnunit/src/main.cs:688
-msgid "Do you have correct permissions to write to that file?"
-msgstr ""
-
-#: gnunit/src/main.cs:696
-#, csharp-format
-msgid "Results saved to {0}"
-msgstr ""
-
-#: gnunit/src/main.cs:774
-#, csharp-format
-msgid "Tests (assertions): {0} ({3}) Ignored: {1} Failures: {2}"
-msgstr ""
-
-#: gnunit/src/main.cs:952
-msgid "Running tests..."
-msgstr ""
-
-#: gnunit/src/main.cs:995
-msgid "Cancelled on user request."
-msgstr ""
-
-#: gnunit/src/main.cs:1033
-#, csharp-format
-msgid "{0} tests loaded."
-msgstr ""
-
-#: gnunit/src/main.cs:1051
-#, csharp-format
-msgid "Elapsed time: {0}"
-msgstr ""
-
-#: gnunit/src/main.cs:1061
-msgid "Unhandled Exception"
-msgstr ""
-
-#: gnunit/src/main.cs:1061
-msgid "There has been an unhandled exception.\n"
-msgstr ""
-
-#: gnunit/src/main.cs:1062
-msgid "The program will terminate now."
-msgstr ""
 
 #: docbrowser/browser.glade:8
 msgid "Mono Documentation Library"
@@ -284,6 +43,10 @@ msgstr ""
 #, fuzzy
 msgid "_Close Tab"
 msgstr "_Fechar"
+
+#: docbrowser/browser.glade:138
+msgid "Quit"
+msgstr "Sair"
 
 #: docbrowser/browser.glade:164
 msgid "_Edit"
@@ -501,6 +264,11 @@ msgstr "1"
 msgid "Monodoc is requesting an account for you."
 msgstr "O Monodoc está requisitando uma conta para você."
 
+#: docbrowser/browser.glade:1538 docbrowser/browser.glade:1917
+#: docbrowser/browser.glade:2208 docbrowser/browser.glade:2557
+msgid "Cancel"
+msgstr "Cancelar"
+
 #: docbrowser/browser.glade:1567
 msgid "2"
 msgstr "2"
@@ -692,6 +460,14 @@ msgstr "_Adicionar marcador"
 #: docbrowser/browser.glade:3227
 msgid "Create in:"
 msgstr ""
+
+#, fuzzy
+#~ msgid "Save As"
+#~ msgstr "_Salvar"
+
+#, fuzzy
+#~ msgid "label"
+#~ msgstr "label16"
 
 #~ msgid "Editing"
 #~ msgstr "Edição"

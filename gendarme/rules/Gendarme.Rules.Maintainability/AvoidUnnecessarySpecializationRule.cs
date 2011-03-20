@@ -81,6 +81,7 @@ namespace Gendarme.Rules.Maintainability {
 
 	[Problem ("This method has a parameter whose type is more specialized than necessary. This can make it difficult to reuse the method in other contexts.")]
 	[Solution ("Replace the parameter type with the most general type which will work or make use of the specifics of the formal parameter type.")]
+	[FxCopCompatibility ("Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters")]
 	public class AvoidUnnecessarySpecializationRule : Rule, IMethodRule {
 
 		private StackEntryAnalysis sea;
@@ -91,8 +92,11 @@ namespace Gendarme.Rules.Maintainability {
 		private static TypeReference GetActualType (TypeReference type)
 		{
 			GenericParameter gp = (type as GenericParameter);
-			if ((gp != null) && (gp.Constraints.Count == 1))
-				type = gp.Constraints [0];
+			if (gp != null) {
+				IList<TypeReference> cc = gp.Constraints;
+				if (cc.Count == 1)
+					type = cc [0];
+			}
 			return type;
 		}
 
@@ -188,17 +192,23 @@ namespace Gendarme.Rules.Maintainability {
 			return ifaceDef;
 		}
 
+		static string [] Empty = new string [0];
+
 		private static MethodSignature GetSignature (MethodReference method)
 		{
+			string name = method.Name;
+			string rtype = GetReturnTypeSignature (method);
 			if (!method.HasParameters)
-				return new MethodSignature (method.Name, GetReturnTypeSignature (method), null);
+				return new MethodSignature (name, rtype, Empty);
 
-			string [] parameters = new string [method.Parameters.Count];
-			for (int i = 0; i < method.Parameters.Count; ++i) {
-				TypeReference pType = method.Parameters [i].ParameterType;
+			IList<ParameterDefinition> pdc = method.Parameters;
+			int count = pdc.Count;
+			string [] parameters = new string [count];
+			for (int i = 0; i < count; ++i) {
+				TypeReference pType = pdc [i].ParameterType;
 
 				// handle reference type (ref in C#)
-				ReferenceType ref_type = (pType as ReferenceType);
+				ByReferenceType ref_type = (pType as ByReferenceType);
 				if (ref_type != null)
 					pType = ref_type.ElementType;
 
@@ -207,7 +217,7 @@ namespace Gendarme.Rules.Maintainability {
 				else
 					parameters [i] = pType.FullName;
 			}
-			return new MethodSignature (method.Name, GetReturnTypeSignature (method), parameters);
+			return new MethodSignature (name, rtype, parameters);
 		}
 
 		private static string GetReturnTypeSignature (MethodReference method)
@@ -215,15 +225,16 @@ namespace Gendarme.Rules.Maintainability {
 			//special exception
 			if (!method.HasParameters && (method.Name == "GetEnumerator"))
 				return null;
-			return method.ReturnType.ReturnType.FullName;
+			return method.ReturnType.FullName;
 		}
 
 		private static bool IsSystemObjectMethod (MethodReference method)
 		{
-			if (method.Name.Length < 6 /*Equals*/ || method.Name.Length > 16 /*EqualityOperator*/)
+			string name = method.Name;
+			if (name.Length < 6 /*Equals*/ || name.Length > 16 /*EqualityOperator*/)
 				return false; //no need to do the string comparisons
 
-			switch (method.Name) {
+			switch (name) {
 			case "Finalize" :
 			case "GetHashCode" :
 			case "GetType" :
@@ -231,7 +242,8 @@ namespace Gendarme.Rules.Maintainability {
 			case "ToString" :
 				return !method.HasParameters;
 			case "Equals" :
-				return (method.HasParameters && (method.Parameters.Count == 1 || method.Parameters.Count == 2));
+				IList<ParameterDefinition> pdc = method.Parameters;
+				return (method.HasParameters && (pdc.Count == 1 || pdc.Count == 2));
 			case "ReferenceEquals" :
 				return (method.HasParameters && (method.Parameters.Count == 2));
 
@@ -253,23 +265,14 @@ namespace Gendarme.Rules.Maintainability {
 			return ((type.FullName == "System.Object") || IsFromNonGenericCollectionNamespace (type.Namespace));
 		}
 
-		private void UpdateParameterLeastType (ParameterReference parameter, IEnumerable<StackEntryUsageResult> usageResults)
+		private static List<MethodSignature> GetSignatures (IEnumerable<StackEntryUsageResult> usageResults)
 		{
-			int pIndex = parameter.Sequence - 1;
-			if (pIndex < 0) throw new InvalidOperationException ("parameter.Sequence < 1");
-			int parameterDepth = GetActualTypeDepth (parameter.ParameterType);
-
-			int currentLeastDepth = 0;
-			TypeReference currentLeastType = null;
 			List<MethodSignature> signatures = new List<MethodSignature> ();
-
-			//accumulate all used signatures first
 			foreach (var usage in usageResults) {
-
 				switch (usage.Instruction.OpCode.Code) {
-				case Code.Newobj :
-				case Code.Call :
-				case Code.Callvirt :
+				case Code.Newobj:
+				case Code.Call:
+				case Code.Callvirt:
 					MethodReference method = (MethodReference) usage.Instruction.Operand;
 					if (IsSystemObjectMethod (method) || IsFromNonGenericCollectionNamespace (method.DeclaringType.Namespace))
 						continue;
@@ -277,6 +280,17 @@ namespace Gendarme.Rules.Maintainability {
 					break;
 				}
 			}
+			return signatures;
+		}
+
+		private void UpdateParameterLeastType (ParameterReference parameter, IEnumerable<StackEntryUsageResult> usageResults)
+		{
+			int pIndex = parameter.GetSequence () - 1;
+			int parameterDepth = GetActualTypeDepth (parameter.ParameterType);
+
+			int currentLeastDepth = 0;
+			TypeReference currentLeastType = null;
+			List<MethodSignature> signatures = null;
 
 			//update the result array as in if (needUpdate) block below
 			foreach (var usage in usageResults) {
@@ -294,15 +308,19 @@ namespace Gendarme.Rules.Maintainability {
 						continue;
 					//we cannot really know if suggestion would work since the collection
 					//is non-generic thus we ignore it
-					if (IsFromNonGenericCollectionNamespace (method.DeclaringType.Namespace))
+					TypeReference type = method.DeclaringType;
+					if (IsFromNonGenericCollectionNamespace (type.Namespace))
 						continue;
 
-					if (usage.StackOffset == method.Parameters.Count) {
+					int pcount = method.HasParameters ? method.Parameters.Count : 0;
+					if (usage.StackOffset == pcount) {
 						//argument is used as `this` in the call
-						currentLeastType = GetBaseImplementor (GetActualType (method.DeclaringType), signatures);
+						if (signatures == null)
+							signatures = GetSignatures (usageResults);
+						currentLeastType = GetBaseImplementor (GetActualType (type), signatures);
 					} else {
 						//argument is also used as an argument in the call
-						currentLeastType = method.Parameters [method.Parameters.Count - usage.StackOffset - 1].ParameterType;
+						currentLeastType = method.Parameters [pcount - usage.StackOffset - 1].ParameterType;
 
 						//if parameter type is a generic, find the 'real' constructed type
 						GenericParameter gp = (currentLeastType as GenericParameter);
@@ -338,25 +356,32 @@ namespace Gendarme.Rules.Maintainability {
 			}
 		}
 
-		private void CheckParameter (MethodDefinition method, IEnumerable<Instruction> ldarg)
+		private void CheckParameters (MethodDefinition method)
 		{
 			Dictionary<ParameterDefinition, List<StackEntryUsageResult>> usages = new Dictionary<ParameterDefinition, List<StackEntryUsageResult>> ();
 
-			foreach (Instruction ins in ldarg) {
+			foreach (Instruction ins in method.Body.Instructions) {
+				if (!ins.IsLoadArgument ())
+					continue;
 
 				ParameterDefinition parameter = ins.GetParameter (method);
-				if (null == parameter) //this is `this`, we do not care
+				// this is `this`, we do not care
+				if ((parameter == null) || (parameter.GetSequence () == 0))
 					continue;
-				if (parameter.IsOut || parameter.IsOptional || parameter.ParameterType.IsValueType)
-					continue;
-				if (parameter.ParameterType.IsArray () || parameter.ParameterType.IsDelegate ())
-					continue; //TODO: these are more complex to handle, not supported for now
 
-				if (null == sea || sea.Method != method)
-					sea = new StackEntryAnalysis (method);
+				// is parameter already known ?
+				if (!usages.ContainsKey (parameter)) {
+					if (parameter.IsOut || parameter.IsOptional || parameter.ParameterType.IsValueType)
+						continue;
+					if (parameter.ParameterType.IsArray || parameter.ParameterType.IsDelegate ())
+						continue; //TODO: these are more complex to handle, not supported for now
 
-				if (!usages.ContainsKey (parameter))
+					if (null == sea || sea.Method != method)
+						sea = new StackEntryAnalysis (method);
+
 					usages [parameter] = new List<StackEntryUsageResult> ();
+				}
+
 				usages [parameter].AddRange (sea.GetStackEntryUsage (ins));
 			}
 
@@ -364,19 +389,52 @@ namespace Gendarme.Rules.Maintainability {
 				UpdateParameterLeastType (usage.Key, usage.Value);
 		}
 
-		static bool SignatureDictatedByInterface (MethodReference method)
+		static bool IsSignatureDictated (MethodDefinition method)
 		{
-			TypeDefinition type = (method.DeclaringType as TypeDefinition);
+			TypeDefinition type = method.DeclaringType;
+			MethodSignature signature = null;
+
 			if (type.HasInterfaces) {
-				MethodSignature sig = GetSignature (method);
-				foreach (TypeReference intf_ref in type.Interfaces) {
-					TypeDefinition intr = intf_ref.Resolve ();
-					if (intr == null)
-						continue;
-					foreach (MethodDefinition md in intr.Methods) {
-						if (sig.Matches (md))
+				signature = GetSignature (method);
+				if (IsSignatureDictatedByInterface (method, signature))
+					return true;
+			}
+
+			if (!method.IsVirtual)
+				return false;
+
+			// e.g. System.Object
+			if (type.BaseType == null)
+				return false;
+
+			return IsSignatureDictatedByOverride (method, signature ?? GetSignature (method));
+		}
+
+		static bool IsSignatureDictatedByOverride (IMemberDefinition method, MethodSignature sig)
+		{
+			TypeDefinition baseType = method.DeclaringType.BaseType.Resolve ();
+			while (baseType != null) {
+				if (baseType.HasMethods) {
+					foreach (MethodDefinition md in baseType.Methods) {
+						if (!md.IsConstructor && sig.Matches (md))
 							return true;
 					}
+				}
+				TypeReference tr = baseType.BaseType;
+				baseType = tr == null ? null : tr.Resolve ();
+			}
+			return false;
+		}
+
+		static bool IsSignatureDictatedByInterface (IMemberDefinition method, MethodSignature sig)
+		{
+			foreach (TypeReference intf_ref in method.DeclaringType.Interfaces) {
+				TypeDefinition intr = intf_ref.Resolve ();
+				if (intr == null)
+					continue;
+				foreach (MethodDefinition md in intr.Methods) {
+					if (sig.Matches (md))
+						return true;
 				}
 			}
 			return false;
@@ -386,27 +444,23 @@ namespace Gendarme.Rules.Maintainability {
 		{
 			if (!method.HasBody || !method.HasParameters || method.IsCompilerControlled)
 				return RuleResult.DoesNotApply;
-			if (method.IsProperty () || method.IsGeneratedCode ())
+			if (method.IsProperty () || method.IsGeneratedCode () || method.IsEventCallback ())
 				return RuleResult.DoesNotApply;
 
-			// we can't change parameter types if they were specified by an interface
-			if (SignatureDictatedByInterface (method))
+			// we cannot change parameter types if:
+			// - we're overriding a base virtual method; or
+			// - they were specified by an interface
+			if (IsSignatureDictated (method))
 				return RuleResult.DoesNotApply;
 
-			if (method.Parameters.Count > types_least.Length) {
+			int pcount = method.Parameters.Count;
+			if (pcount > types_least.Length) {
 				// that should be quite rare (does not happen for mono 2.0 class libs)
-				types_least = new TypeReference [method.Parameters.Count];
-				depths_least = new int [method.Parameters.Count];
+				types_least = new TypeReference [pcount];
+				depths_least = new int [pcount];
 			}
 
-			List<Instruction> instructions = new List<Instruction> ();
-			//look at each argument usage
-			foreach (Instruction ins in method.Body.Instructions) {
-				if (ins.IsLoadArgument ())
-					instructions.Add (ins);
-			}
-
-			CheckParameter (method, instructions);
+			CheckParameters (method);
 
 			CheckParametersSpecializationDelta (method);
 
@@ -420,7 +474,7 @@ namespace Gendarme.Rules.Maintainability {
 		{
 			foreach (ParameterDefinition parameter in method.Parameters){
 
-				int i = parameter.Sequence - 1;
+				int i = parameter.GetSequence () - 1;
 				if (null == types_least [i])
 					continue; //argument is not used
 
@@ -451,36 +505,47 @@ namespace Gendarme.Rules.Maintainability {
 			else
 				sb.Append ("' could be of type '");
 
-			TypeReference type = types_least [parameter.Sequence - 1];
+			TypeReference type = types_least [parameter.Index];
 			AppendPrettyTypeName (sb, type);
 			sb.Append ("'.");
 			return sb.ToString ();
 		}
 
-		private static TypeReference GetConstructedGenericType (MethodReference method, GenericParameter parameter)
+		private static TypeReference GetConstructedGenericType (MemberReference method, GenericParameter parameter)
 		{
-			if (parameter.Owner is MethodReference)
-				return ((GenericInstanceMethod) method).GenericArguments [parameter.Position];
-			if (parameter.Owner is TypeReference)
-				return ((GenericInstanceType) method.DeclaringType).GenericArguments [parameter.Position];
-			return parameter.Owner.GenericParameters [parameter.Position];
+			int position = parameter.Position;
+			if (parameter.Owner is MethodReference) {
+				GenericInstanceMethod gim = (method as GenericInstanceMethod);
+				// 'gim' can be null in special cases, e.g. a generated Set method on a multidim array
+				if (gim != null)
+					return gim.GenericArguments [position];
+			}
+			if (parameter.Owner is TypeReference) {
+				GenericInstanceType git = (method.DeclaringType as GenericInstanceType);
+				if (git != null)
+					return git.GenericArguments [position];
+			}
+			return parameter.Owner.GenericParameters [position];
 		}
 
 		private static void AppendPrettyTypeName (StringBuilder sb, TypeReference type)
 		{
 			int nRemoveTrail;
-			if (type.GenericParameters.Count == 0)
+			IList<GenericParameter> gpc = type.GenericParameters;
+			int count = gpc.Count;
+			if (count == 0)
 				nRemoveTrail = 0;
-			else if (type.GenericParameters.Count < 10)
+			else if (count < 10)
 				nRemoveTrail = 2;
 			else
 				nRemoveTrail = 3;
 
-			sb.Append (type.FullName.Substring (0, type.FullName.Length - nRemoveTrail));
-			if (type.GenericParameters.Count > 0) {
+			string fullname = type.FullName;
+			sb.Append (fullname.Substring (0, fullname.Length - nRemoveTrail));
+			if (count > 0) {
 				int n = 0;
 				sb.Append ("<");
-				foreach (GenericParameter gp in type.GenericParameters) {
+				foreach (GenericParameter gp in gpc) {
 					if (n > 0)
 						sb.Append (",");
 					AppendPrettyTypeName (sb, gp);

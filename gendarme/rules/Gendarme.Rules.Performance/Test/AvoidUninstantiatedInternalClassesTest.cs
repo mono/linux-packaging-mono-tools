@@ -6,7 +6,7 @@
 //	Sebastien Pouliot <sebastien@ximian.com>
 //
 // Copyright (c) <2007> Nidhi Rawal
-// Copyright (C) 2008 Novell, Inc (http://www.novell.com)
+// Copyright (C) 2008, 2010 Novell, Inc (http://www.novell.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -87,6 +87,30 @@ namespace Test.Rules.Performance {
 	public class NonInternalClassNotInstantiated {
 		public void display ()
 		{
+		}
+	}
+
+	internal struct InternalUninstantiatedStruct {
+
+		public void display ()
+		{
+		}
+
+		public static void Main (string [] args)
+		{
+		}
+	}
+
+	internal struct InternalInstantiatedStruct {
+
+		public void display ()
+		{
+		}
+
+		public static void Main (string [] args)
+		{
+			InternalInstantiatedStruct i = new InternalInstantiatedStruct ();
+			i.display ();
 		}
 	}
 
@@ -260,13 +284,13 @@ namespace Test.Rules.Performance {
 		public void FixtureSetUp ()
 		{
 			string unit = Assembly.GetExecutingAssembly ().Location;
-			assembly = AssemblyFactory.GetAssembly (unit);
+			assembly = AssemblyDefinition.ReadAssembly (unit);
 		}
 		
 		private TypeDefinition GetTest (string name)
 		{
 			string fullname = "Test.Rules.Performance." + name;
-			return assembly.MainModule.Types[fullname];
+			return assembly.MainModule.GetType (fullname);
 		}
 		
 		[Test]
@@ -297,6 +321,18 @@ namespace Test.Rules.Performance {
 		public void NonInternalClassNotInstantiatedTest ()
 		{
 			AssertRuleDoesNotApply<NonInternalClassNotInstantiated> ();
+		}
+
+		[Test]
+		public void InternalInstantiatedStructTest ()
+		{
+			AssertRuleSuccess<InternalInstantiatedStruct> ();
+		}
+
+		[Test]
+		public void InternalUninstantiatedStructTest ()
+		{
+			AssertRuleFailure<InternalUninstantiatedStruct> ();
 		}
 
 		[Test]
@@ -392,6 +428,16 @@ namespace Test.Rules.Performance {
 			finally {
 				main.DeclaringType.Module.Assembly.EntryPoint = null;
 			}
+		}
+
+		/// <summary>This namespace contains the command-line options processing library distributed by the mono team.</summary>
+		internal sealed class NamespaceDoc {
+		}
+
+		[Test]
+		public void MonoDoc ()
+		{
+			AssertRuleDoesNotApply<NamespaceDoc> ();
 		}
 	}
 }

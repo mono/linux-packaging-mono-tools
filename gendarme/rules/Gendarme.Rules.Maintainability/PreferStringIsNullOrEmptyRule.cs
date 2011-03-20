@@ -79,8 +79,8 @@ namespace Gendarme.Rules.Maintainability {
 
 			// we only want to run this on assemblies that use 2.0 or later
 			// since String.IsNullOrEmpty did not exist before that
-			Runner.AnalyzeAssembly += delegate (object o, RunnerEventArgs e) {
-				Active = (e.CurrentAssembly.Runtime >= TargetRuntime.NET_2_0);
+			Runner.AnalyzeModule += delegate (object o, RunnerEventArgs e) {
+				Active = (e.CurrentModule.Runtime >= TargetRuntime.Net_2_0);
 			};
 		}
 
@@ -183,7 +183,8 @@ namespace Gendarme.Rules.Maintainability {
 				return RuleResult.DoesNotApply;
 
 			// is there any Call or Callvirt instructions in the method
-			if (!OpCodeBitmask.Calls.Intersect (OpCodeEngine.GetBitmask (method)))
+			OpCodeBitmask calls = OpCodeBitmask.Calls;
+			if (!calls.Intersect (OpCodeEngine.GetBitmask (method)))
 				return RuleResult.DoesNotApply;
 
 			// go!
@@ -191,7 +192,7 @@ namespace Gendarme.Rules.Maintainability {
 			// we look for a call to String.Length property (since it's much easier 
 			// than checking a string being compared to null)
 			foreach (Instruction current in method.Body.Instructions) {
-				if (!OpCodeBitmask.Calls.Get (current.OpCode.Code))
+				if (!calls.Get (current.OpCode.Code))
 					continue;
 
 				MethodReference mr = (current.Operand as MethodReference);
@@ -199,7 +200,7 @@ namespace Gendarme.Rules.Maintainability {
 					// now that we found it we check that
 					// 1 - we previously did a check null on the same value (that we already know is a string)
 					Instruction branch = PreLengthCheck (method, current.Previous);
-					if ((branch == null) || (branch.OpCode.Code == Code.Ldc_I4_0))
+					if (branch == null)
 						continue;
 					// 2 - we compare the return value (length) with 0
 					if (PostLengthCheck (current.Next, branch)) {

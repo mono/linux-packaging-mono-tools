@@ -5,9 +5,13 @@ RULEDIRS= Gendarme.Rules.BadPractice \
 	 Gendarme.Rules.Design.Generic \
 	 Gendarme.Rules.Design.Linq \
 	 Gendarme.Rules.Exceptions \
+	 Gendarme.Rules.Globalization \
+	 Gendarme.Rules.Gendarme \
 	 Gendarme.Rules.Interoperability \
+	 Gendarme.Rules.Interoperability.Com \
 	 Gendarme.Rules.Maintainability \
 	 Gendarme.Rules.Naming \
+	 Gendarme.Rules.NUnit \
 	 Gendarme.Rules.Performance \
 	 Gendarme.Rules.Portability \
 	 Gendarme.Rules.Security \

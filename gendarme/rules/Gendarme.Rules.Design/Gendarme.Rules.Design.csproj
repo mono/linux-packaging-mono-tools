@@ -29,7 +29,7 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>..\..\console\bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
+    <DefineConstants>TRACE;RELEASE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <NoWarn>1591</NoWarn>
@@ -64,13 +64,17 @@
     <Compile Include="DontDeclareProtectedFieldsInSealedClassRule.cs" />
     <Compile Include="AvoidEmptyInterfaceRule.cs" />
     <Compile Include="EnsureSymmetryForOverloadedOperatorsRule.cs" />
+    <Compile Include="EnumeratorsShouldBeStronglyTypedRule.cs" />
     <Compile Include="EnumsShouldDefineAZeroValueRule.cs" />
     <Compile Include="EnumsShouldUseInt32Rule.cs" />
     <Compile Include="FinalizersShouldBeProtectedRule.cs" />
     <Compile Include="FlagsShouldNotDefineAZeroValueRule.cs" />
+    <Compile Include="PreferUriOverStringRule.cs" />
+    <Compile Include="StronglyTypeICollectionMembersRule.cs" />
     <Compile Include="ImplementEqualsAndGetHashCodeInPairRule.cs" />
     <Compile Include="ImplementIComparableCorreclyRule.cs" />
     <Compile Include="InternalNamespacesShouldNotExposeTypesRule.cs" />
+    <Compile Include="ListsAreStronglyTypedRule.cs" />
     <Compile Include="MainShouldNotBePublicRule.cs" />
     <Compile Include="MarkAssemblyWithAssemblyVersionRule.cs" />
     <Compile Include="MarkAssemblyWithAttributeRule.cs" />
@@ -83,6 +87,8 @@
     <Compile Include="PreferIntegerOrStringForIndexersRule.cs" />
     <Compile Include="PreferXmlAbstractionsRule.cs" />
     <Compile Include="ProvideAlternativeNamesForOperatorOverloadsRule.cs" />
+    <Compile Include="ProvideTryParseAlternativeRule.cs" />
+    <Compile Include="StronglyTypedRule.cs" />
     <Compile Include="TypesShouldBeInsideNamespacesRule.cs" />
     <Compile Include="TypesWithDisposableFieldsShouldBeDisposableRule.cs" />
     <Compile Include="TypesWithNativeFieldsShouldBeDisposableRule.cs" />
@@ -92,8 +98,8 @@
     <Compile Include="ConsiderAddingInterfaceRule.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\mcs\class\Mono.Cecil\Mono.Cecil.csproj">
-      <Project>{D8F63DFF-5230-43E4-9AB2-DA6E721A1FAE}</Project>
+    <ProjectReference Include="..\..\..\..\cecil\Mono.Cecil.csproj">
+      <Project>{D68133BD-1E63-496E-9EDE-4FBDBF77B486}</Project>
       <Name>Mono.Cecil</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\framework\Gendarme.Framework.csproj">

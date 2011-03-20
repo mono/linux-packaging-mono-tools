@@ -53,12 +53,14 @@ namespace Gendarme.Framework {
 
 		public override AssemblyDefinition Resolve (AssemblyNameReference name)
 		{
+			if (name == null)
+				throw new ArgumentNullException ("name");
+
 			string aname = name.Name;
 			AssemblyDefinition asm = null;
 			if (!assemblies.TryGetValue (aname, out asm)) {
 				try {
 					asm = base.Resolve (name);
-					asm.Resolver = this;
 				}
 				catch (FileNotFoundException) {
 					// note: analysis will be incomplete
@@ -70,9 +72,11 @@ namespace Gendarme.Framework {
 
 		public void CacheAssembly (AssemblyDefinition assembly)
 		{
-			assembly.Resolver = this;
+			if (assembly == null)
+				throw new ArgumentNullException ("assembly");
+
 			assemblies.Add (assembly.Name.Name, assembly);
-			string location = Path.GetDirectoryName (assembly.MainModule.Image.FileInformation.FullName);
+			string location = Path.GetDirectoryName (assembly.MainModule.FullyQualifiedName);
 			AddSearchDirectory (location);
 		}
 

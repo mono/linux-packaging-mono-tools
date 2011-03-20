@@ -29,7 +29,7 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>..\..\console\bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
+    <DefineConstants>TRACE;RELEASE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <NoWarn>1591</NoWarn>
@@ -46,6 +46,7 @@
     <Compile Include="..\..\AssemblyStaticInfo.cs">
       <Link>AssemblyStaticInfo.cs</Link>
     </Compile>
+    <Compile Include="CentralizePInvokesIntoNativeMethodsTypeRule.cs" />
     <Compile Include="DelegatesPassedToNativeCodeMustIncludeExceptionHandlingRule.cs" />
     <Compile Include="DoNotCastIntPtrToInt32Rule.cs" />
     <Compile Include="GetLastErrorMustBeCalledRightAfterPInvokeRule.cs" />
@@ -55,8 +56,8 @@
     <Compile Include="MarshalBooleansInPInvokeDeclarationsRule.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\mcs\class\Mono.Cecil\Mono.Cecil.csproj">
-      <Project>{D8F63DFF-5230-43E4-9AB2-DA6E721A1FAE}</Project>
+    <ProjectReference Include="..\..\..\..\cecil\Mono.Cecil.csproj">
+      <Project>{D68133BD-1E63-496E-9EDE-4FBDBF77B486}</Project>
       <Name>Mono.Cecil</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\framework\Gendarme.Framework.csproj">

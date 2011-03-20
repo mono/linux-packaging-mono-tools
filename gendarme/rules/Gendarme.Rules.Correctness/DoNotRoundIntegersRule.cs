@@ -100,7 +100,7 @@ namespace Gendarme.Rules.Correctness {
 			case Code.Call:
 			case Code.Callvirt:
 				MethodReference mr = (ins.Operand as MethodReference);
-				TypeReference rv = mr.ReturnType.ReturnType;
+				TypeReference rv = mr.ReturnType;
 				// a call that return a decimal or floating point is ok
 				if (rv.IsFloatingPoint ())
 					return null;
@@ -138,15 +138,13 @@ namespace Gendarme.Rules.Correctness {
 				return RuleResult.DoesNotApply;
 
 			foreach (Instruction ins in method.Body.Instructions) {
-				if (ins.OpCode.FlowControl != FlowControl.Call)
-					continue;
-
-				MethodReference mr = (ins.Operand as MethodReference);
+				MethodReference mr = ins.GetMethod ();
 				if ((mr == null) || (mr.DeclaringType.FullName != "System.Math"))
 					continue;
 
 				Instruction value = null;
-				switch (mr.Name) {
+				string name = mr.Name;
+				switch (name) {
 				case "Ceiling":
 				case "Floor":
 				case "Truncate":
@@ -173,7 +171,7 @@ namespace Gendarme.Rules.Correctness {
 				if (type == null)
 					continue;
 
-				string msg = string.Format ("Math.{0} called on a {1}.", mr.Name, type.FullName);
+				string msg = string.Format ("Math.{0} called on a {1}.", name, type.FullName);
 				Runner.Report (method, ins, Severity.Medium, Confidence.Normal, msg);
 			}
 			return Runner.CurrentRuleResult;

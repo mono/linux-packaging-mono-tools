@@ -3,8 +3,10 @@
 //
 // Authors:
 //	Jesse Jones <jesjones@mindspring.com>
+//	Sebastien Pouliot  <sebastien@ximian.com>
 //
 // Copyright (C) 2008 Jesse Jones
+// Copyright (C) 2010 Novell, Inc (http://www.novell.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the
@@ -105,6 +107,11 @@ namespace Gendarme.Rules.Exceptions {
 	/// are called implicitly so it tends to be quite surprising if they throw 
 	/// exceptions.</description>
 	/// </item>
+	/// <item>
+	/// <description><c>TryParse</c> methods - should not throw. These methods
+	/// are designed to be executed without having to catch multiple exceptions
+	/// (unlike the <c>Parse</c> methods).</description>
+	/// </item>
 	/// </list>
 	/// Note that the rule does not complain if a method throws 
 	/// System.NotImplementedException because 
@@ -149,127 +156,135 @@ namespace Gendarme.Rules.Exceptions {
 	[EngineDependency (typeof (OpCodeEngine))]
 	public sealed class DoNotThrowInUnexpectedLocationRule : Rule, IMethodRule {
 
-		private static readonly OpCodeBitmask Throwers = new OpCodeBitmask (0x0, 0x80C8000000000000, 0x3FC17F8000001FF, 0x0);
-		private static readonly OpCodeBitmask AlwaysBadThrowers = new OpCodeBitmask (0x0, 0x0, 0x100000000000, 0x0);
-		private static readonly OpCodeBitmask OverflowThrowers = new OpCodeBitmask (0x0, 0x8000000000000000, 0x3FC17F8000001FF, 0x0);
+		private static readonly OpCodeBitmask Throwers = new OpCodeBitmask (0x0, 0x80C8000000000000, 0x3FC17FC000001FF, 0x0);
+		private static readonly OpCodeBitmask OverflowThrowers = new OpCodeBitmask (0x0, 0x8000000000000000, 0x3FC07F8000001FF, 0x0);
+		private static readonly OpCodeBitmask Casts = new OpCodeBitmask (0x0, 0x48000000000000, 0x400000000, 0x0);
 
 		private static readonly string [] GetterExceptions = new string [] {"System.InvalidOperationException", "System.NotSupportedException"};
 		private static readonly string [] IndexerExceptions = new string [] {"System.InvalidOperationException", "System.NotSupportedException", "System.ArgumentException", "System.Collections.Generic.KeyNotFoundException"};
 		private static readonly string [] EventExceptions = new string [] {"System.InvalidOperationException", "System.NotSupportedException", "System.ArgumentException"};
 		private static readonly string [] HashCodeExceptions = new string [] {"System.ArgumentException"};
-		
-		private TypeReference type;
-		private MethodSignature equalityComparerEquals;
-		private MethodSignature equalityComparerHashCode;
-		private string [] allowedExceptions;
-		private string methodLabel;
 
-		private bool HasCatchBlock (MethodDefinition method)	
+		private static bool CheckAttributes (MethodReference method, MethodAttributes attrs)
 		{
-			foreach (ExceptionHandler handler in method.Body.ExceptionHandlers) {
-				if (handler.Type == ExceptionHandlerType.Catch)
+			MethodDefinition md = method.Resolve ();
+			return ((md == null) || ((md.Attributes & attrs) == attrs));
+		}
+		
+		private static MethodSignature EqualityComparer_Equals = new MethodSignature ("Equals", "System.Boolean", new string [2],
+			(method) => (CheckAttributes (method, MethodAttributes.Public)));
+		private static MethodSignature EqualityComparer_GetHashCode = new MethodSignature ("GetHashCode", "System.Int32", new string [1], 
+			(method) => (CheckAttributes (method, MethodAttributes.Public)));
+		private static readonly MethodSignature GetTypeSig = new MethodSignature ("GetType", "System.Type", new string [0],
+			(method) => (CheckAttributes (method, MethodAttributes.Public)));
+		
+		private MethodSignature equals_signature;
+		private MethodSignature hashcode_signature;
+		private string [] allowedExceptions;
+		private Severity severity;
+		private bool is_equals;
+
+		public override void Initialize (IRunner runner)
+		{
+			base.Initialize (runner);
+
+			Runner.AnalyzeType += delegate (object sender, RunnerEventArgs e) {
+				if (e.CurrentType.Implements ("System.Collections.Generic.IEqualityComparer`1")) {
+					equals_signature = EqualityComparer_Equals;
+					hashcode_signature = EqualityComparer_GetHashCode;
+				} else {
+					equals_signature = null;
+					hashcode_signature = null;
+				}
+			};
+		}
+
+		static bool HasCatchBlock (MethodBody body)	
+		{
+			if (!body.HasExceptionHandlers)
+				return false;
+
+			foreach (ExceptionHandler handler in body.ExceptionHandlers) {
+				if (handler.HandlerType == ExceptionHandlerType.Catch)
 					return true;
 			}
 			
 			return false;
 		}
-		
-		private static readonly string [] AnySingleArg = new string [1];
-		private static readonly string [] AnyTwoArgs = new string [2];
-		
-		private void InitType (TypeReference type)	
+
+		private string PreflightMethod (MethodDefinition method)
 		{
-			if (type.Implements ("System.Collections.Generic.IEqualityComparer`1")) {
-				equalityComparerEquals = new MethodSignature ("Equals", "System.Boolean", AnyTwoArgs, MethodAttributes.Public);
-				equalityComparerHashCode = new MethodSignature ("GetHashCode", "System.Int32", AnySingleArg, MethodAttributes.Public);
-			} else {
-				equalityComparerEquals = null;
-				equalityComparerHashCode = null;
+			if (method.IsSpecialName) {
+				return PreflightSpecialNameMethod (method);
+			} else if (method.IsVirtual) {
+				return PreflightVirtualMethod (method);
+			} else if (method.HasParameters && (method.Name == "Dispose")) {
+				IList<ParameterDefinition> pdc = method.Parameters;
+				if ((pdc.Count == 1) && (pdc [0].ParameterType.FullName == "System.Boolean"))
+					return "Dispose (bool)";
+			} else if (MethodSignatures.TryParse.Matches (method)) {
+				return "TryParse";
 			}
+			
+			return String.Empty;
 		}
 
-		private bool PreflightMethod (MethodDefinition method)
+		private string PreflightSpecialNameMethod (MethodDefinition method)
 		{
-			allowedExceptions = null;
-			bool valid = false;
-			
-			if (MethodSignatures.ToString.Matches (method)) {
-				methodLabel = "Object.ToString";	// these names should match those used within the rule description
-				valid = true;
+			if (method.IsConstructor && method.IsStatic)
+				return "Static constructors";
 
-			} else if (MethodSignatures.Equals.Matches (method)) {
-				methodLabel = "Object.Equals";
-				valid = true;
-
-			} else if (MethodSignatures.GetHashCode.Matches (method)) {
-				methodLabel = "Object.GetHashCode";
-				valid = true;
-
-			} else if (MethodSignatures.Finalize.Matches (method)) {
-				methodLabel = "Finalizers";
-				valid = true;
-
-			} else if (MethodSignatures.Dispose.Matches (method) && method.DeclaringType.Implements ("System.IDisposable")) {
-				methodLabel = "IDisposable.Dispose";
-				valid = true;
-
-			} else if (MethodSignatures.DisposeExplicit.Matches (method) && method.DeclaringType.Implements ("System.IDisposable")) {
-				methodLabel = "IDisposable.Dispose";
-				valid = true;
-
-			} else if (MethodSignatures.op_Equality.Matches (method)) {
-				methodLabel = "operator==";
-				valid = true;
-
-			} else if (MethodSignatures.op_Inequality.Matches (method)) {	
-				methodLabel = "operator!=";
-				valid = true;
-
-			} else if (equalityComparerEquals != null && equalityComparerEquals.Matches (method)) {
-				methodLabel = "IEqualityComparer<T>.Equals";
-				valid = true;
-
-			} else if (equalityComparerHashCode != null && equalityComparerHashCode.Matches (method)) {
-				methodLabel = "IEqualityComparer<T>.GetHashCode";
-				allowedExceptions = HashCodeExceptions;
-				valid = true;
-
-			} else if (method.Name == "Dispose" && method.Parameters.Count == 1 &&  method.Parameters [0].ParameterType.FullName == "System.Boolean") {
-				methodLabel = "Dispose (bool)";
-				valid = true;
-
-			} else if (method.IsConstructor && method.IsStatic) {	
-				methodLabel = "Static constructors";
-				valid = true;
-
-			} else if (method.Name == "op_Implicit") {
-				methodLabel = "Implicit cast operators";
-				valid = true;
-
-			} else if (method.IsSpecialName && method.Name == "get_Item") {
-				methodLabel = "Indexed getters";
+			string name = method.Name;
+			if (name == "get_Item") {
+				severity = Severity.Medium;
 				allowedExceptions = IndexerExceptions;
-				valid = true;
-
+				return "Indexed getters";
 			} else if (method.IsGetter) {
-				methodLabel = "Property getters";
+				severity = Severity.Medium;
 				allowedExceptions = GetterExceptions;
-				valid = true;
-
+				return "Property getters";
 			} else if (method.IsAddOn || method.IsRemoveOn) {
-				methodLabel = "Event accessors";
+				severity = Severity.Medium;
 				allowedExceptions = EventExceptions;
-				valid = true;
-			}		
-			
-			return valid;
+				return "Event accessors";
+			} else if (MethodSignatures.op_Equality.Matches (method)) {
+				return "operator==";
+			} else if (MethodSignatures.op_Inequality.Matches (method)) {	
+				return "operator!=";
+			} else if (name == "op_Implicit") {
+				return "Implicit cast operators";
+			} 
+			return String.Empty;
 		}
-		
+
+		private string PreflightVirtualMethod (MethodDefinition method)
+		{
+			if (MethodSignatures.ToString.Matches (method)) {
+				return "Object.ToString";	// these names should match those used within the rule description
+			} else if (MethodSignatures.Equals.Matches (method)) {
+				is_equals = true;
+				return "Object.Equals";
+			} else if (MethodSignatures.GetHashCode.Matches (method)) {
+				return "Object.GetHashCode";
+			} else if (MethodSignatures.Finalize.Matches (method)) {
+				return "Finalizers";
+			} else if (MethodSignatures.Dispose.Matches (method) || MethodSignatures.DisposeExplicit.Matches (method)) {
+				if (method.DeclaringType.Implements ("System.IDisposable"))
+					return "IDisposable.Dispose";
+			} else if (equals_signature != null && equals_signature.Matches (method)) {
+				return "IEqualityComparer<T>.Equals";
+			} else if (hashcode_signature != null && hashcode_signature.Matches (method)) {
+				allowedExceptions = HashCodeExceptions;
+				return "IEqualityComparer<T>.GetHashCode";
+			}
+			return String.Empty;
+		}
+
 		// It's not always apparent why the code throws so we'll try to explain
 		// the reason here (for example foreach can generate castclass or unbox
 		// instructions and assemblies compiled with checked arithmetic can
 		// throw even if the code doesn't explicitly use an arithmetic operator). 
-		private string ExplainThrow (Instruction ins)
+		static string ExplainThrow (Instruction ins)
 		{
 			switch (ins.OpCode.Code) {
 			case Code.Castclass:
@@ -279,6 +294,7 @@ namespace Gendarme.Rules.Exceptions {
 				return string.Empty;
 
 			case Code.Unbox:
+			case Code.Unbox_Any:
 				return string.Format (" (unbox from {0})", ((TypeReference) ins.Operand).Name);
 				
 			case Code.Ckfinite:
@@ -289,46 +305,42 @@ namespace Gendarme.Rules.Exceptions {
 				return " (checked arithmetic is being used)";
 			}
 		}
-				
-		private List<Instruction> instructions = new List<Instruction> ();
-		private List<Instruction> bad = new List<Instruction> ();
-		private List<Instruction> casts = new List<Instruction> ();
-		public static readonly MethodSignature GetTypeSig = new MethodSignature ("GetType", "System.Type", new string [0], MethodAttributes.Public);
 
-		private void ProcessMethod (MethodDefinition method)
+		static bool AreCastsOk (Instruction ins)
 		{
-			bad.Clear ();
-			casts.Clear ();
+			switch (ins.OpCode.Code) {
+			case Code.Isinst:
+				return true;
+			case Code.Call:
+			case Code.Callvirt:
+				return GetTypeSig.Matches (ins.Operand as MethodReference);
+			default:
+				return false;
+			}
+		}
+				
+		private void ProcessMethod (MethodDefinition method, string methodLabel)
+		{
 			bool casts_are_ok = false;
-			bool is_equals = MethodSignatures.Equals.Matches (method);
 			
 			foreach (Instruction ins in method.Body.Instructions) {
+				if (is_equals && !casts_are_ok)
+					casts_are_ok = AreCastsOk (ins);
+
 				Code code = ins.OpCode.Code;
-				
-				if (is_equals && !casts_are_ok) {
-					if (code == Code.Isinst)
-						casts_are_ok = true;
-	
-					else if (code == Code.Call || code == Code.Callvirt) {
-						MethodReference mr = (MethodReference) ins.Operand;
-						if (GetTypeSig.Matches (mr))
-							casts_are_ok = true;
-					}	
-				}
-				
 				if (Throwers.Get (code)) {
 
 					// A few instructions are bad to the bone.
-					if (AlwaysBadThrowers.Get (code)) {
-						bad.Add (ins);
+					if (code == Code.Ckfinite) {
+						Report (method, ins, methodLabel);
 				
 					// If the instruction is castclass or unbox then we may have a 
 					// problem, but only within Object.Equals (casts occur way too 
 					// often to flag them everywhere, but it's common mistake to
 					// cast the Equals argument without an is or GetType check). 
-					} else if (code == Code.Castclass || code == Code.Unbox) {
+					} else if (Casts.Get (code)) {
 						if (is_equals && !casts_are_ok)
-							casts.Add (ins);
+							Report (method, ins, methodLabel);
 			
 					// If the instruction is a checked math instruction then we have 
 					// a problem, but only in GetHashCode methods (they are 
@@ -337,7 +349,7 @@ namespace Gendarme.Rules.Exceptions {
 					// too many defects if we flag them everywhere).
 					} else if (OverflowThrowers.Get (code)) {
 						if (method.Name == "GetHashCode")
-							bad.Add (ins);
+							Report (method, ins, methodLabel);
 
 					// If the instruction is a throw,
 					} else if (code == Code.Throw) {
@@ -345,58 +357,46 @@ namespace Gendarme.Rules.Exceptions {
 						// and is throwing NotImplementedException then it is OK (this 
 						// is a fairly common case and we'll let DoNotForgetNotImplementedMethodsRule
 						// handle it).
-						if (ins.Previous != null && ins.Previous.OpCode.Code == Code.Newobj) {
+						if (ins.Previous.Is (Code.Newobj)) {
 							MethodReference mr = (MethodReference) ins.Previous.Operand;
-							string name = mr.DeclaringType.FullName;
-							if (name == "System.NotImplementedException" || mr.DeclaringType.Inherits ("System.NotImplementedException"))
+							TypeReference tr = mr.DeclaringType;
+							if (tr.FullName == "System.NotImplementedException" || tr.Inherits ("System.NotImplementedException"))
 								continue;
 						}	
 					
 						// If the method doesn't allow any exceptions then we have a 
 						// problem.
 						if (allowedExceptions == null)
-							bad.Add (ins);
+							Report (method, ins, methodLabel);
 							
 						// If the throw does not one of the enumerated exceptions  (or 
 						// a subclass) then we have a problem.
-						else if (ins.Previous != null && ins.Previous.OpCode.Code == Code.Newobj) {
+						else if (ins.Previous.Is (Code.Newobj)) {
 							MethodReference mr = (MethodReference) ins.Previous.Operand;
 							string name = mr.DeclaringType.FullName;
 							if (Array.IndexOf (allowedExceptions, name) < 0) {
 								if (!allowedExceptions.Any (e => mr.DeclaringType.Inherits (e))) {
-									bad.Add (ins);
+									Report (method, ins, methodLabel);
 								}
 							}
 						}	
 					}
 				}
 			}
-			
-			instructions.Clear ();	
-			instructions.AddRange (bad);
-			if (is_equals && !casts_are_ok)
-				instructions.AddRange (casts);
 		}
-		
-		private void ReportErrors (MethodDefinition method)
+
+		private void Report (MethodDefinition method, Instruction ins, string methodLabel)
 		{
-			foreach (Instruction ins in instructions) {
-				string mesg;
-				if (allowedExceptions == null)
-					mesg = string.Format ("{0} should not throw{1}.", methodLabel, ExplainThrow (ins));
-				else
-					mesg = string.Format ("{0} should only throw {1} or a subclass{2}.", methodLabel, string.Join (", ", allowedExceptions), ExplainThrow (ins));
-				Log.WriteLine (this, "{0:X4}: {1}", ins.Offset, mesg);
-				
-				// We reduce the severity of getters and event accessors because 
-				// it's not quite as bad for a method which allows some exceptions
-				// to throw the wrong exception.
-				Severity severity = method.IsGetter || method.IsAddOn || method.IsRemoveOn ? 
-					Severity.Medium : Severity.High;
-				Runner.Report (method, ins, severity, Confidence.High, mesg);
-			}
+			string mesg;
+			if (allowedExceptions == null)
+				mesg = string.Format ("{0} should not throw{1}.", methodLabel, ExplainThrow (ins));
+			else
+				mesg = string.Format ("{0} should only throw {1} or a subclass{2}.", methodLabel, string.Join (", ", allowedExceptions), ExplainThrow (ins));
+
+			Log.WriteLine (this, "{0:X4}: {1}", ins.Offset, mesg);
+			Runner.Report (method, ins, severity, Confidence.High, mesg);
 		}
-		
+
 		public RuleResult CheckMethod (MethodDefinition method)
 		{
 			if (!method.HasBody)
@@ -405,20 +405,21 @@ namespace Gendarme.Rules.Exceptions {
 			if (!Throwers.Intersect (OpCodeEngine.GetBitmask (method)))
 				return RuleResult.DoesNotApply;
 
-			if (method.DeclaringType != type) {		// note that we cannot use the AnalyzeType event because it is not called with the unit tests
-				InitType (method.DeclaringType);
-				type = method.DeclaringType;
-			}
-											
-			if (!HasCatchBlock (method)) {
-				if (PreflightMethod (method)) { 
+			if (!HasCatchBlock (method.Body)) {
+				// default severity for (most) methods
+				severity = Severity.High;
+				// by default no exceptions are allowed
+				allowedExceptions = null;
+				// special case for Equals
+				is_equals = false;
+
+				string method_label = PreflightMethod (method);
+				if (method_label.Length > 0) { 
 					Log.WriteLine (this);
 					Log.WriteLine (this, "-------------------------------------------");
 					Log.WriteLine (this, method);
-						
-					ProcessMethod (method); 
-					if (instructions.Count > 0)
-						ReportErrors (method);
+
+					ProcessMethod (method, method_label);
 				}
 			}
 			
@@ -433,11 +434,11 @@ namespace Gendarme.Rules.Exceptions {
 			Code.Ckfinite,		// throws ArithmeticException
 		};
 
-		private static readonly Code [] SometimesBad = new Code []
+		private static readonly Code [] Casts = new Code []
 		{
 			Code.Castclass,	// throws InvalidCastException
-			Code.Throw,
 			Code.Unbox,		// throws InvalidCastException or NullReferenceException
+			Code.Unbox_Any,		// throws InvalidCastException or NullReferenceException
 		};
 
 		private static readonly Code [] Overflow = new Code []
@@ -475,15 +476,18 @@ namespace Gendarme.Rules.Exceptions {
 			OpCodeBitmask throwers = new OpCodeBitmask ();
 			OpCodeBitmask alwaysBad = new OpCodeBitmask ();
 			OpCodeBitmask overflow = new OpCodeBitmask ();
+			OpCodeBitmask casts = new OpCodeBitmask ();
 			
 			foreach (Code code in AlwaysBad) {
 				throwers.Set (code);
 				alwaysBad.Set (code);
 			}
 			
-			foreach (Code code in SometimesBad) {
+			foreach (Code code in Casts) {
+				casts.Set (code);
 				throwers.Set (code);
 			}
+			throwers.Set (Code.Throw);
 			
 			foreach (Code code in Overflow) {
 				throwers.Set (code);
@@ -493,6 +497,7 @@ namespace Gendarme.Rules.Exceptions {
 			Console.WriteLine ("throwers: {0}", throwers);
 			Console.WriteLine ("alwaysBad: {0}", alwaysBad);
 			Console.WriteLine ("overflow: {0}", overflow);
+			Console.WriteLine ("casts: {0}", casts);
 		}
 #endif
 	}

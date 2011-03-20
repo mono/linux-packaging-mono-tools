@@ -7,7 +7,7 @@
 //	Sebastien Pouliot <sebastien@ximian.com>
 //
 // Copyright (c) 2005 Aaron Tomb
-// Copyright (C) 2008 Novell, Inc (http://www.novell.com)
+// Copyright (C) 2008, 2010 Novell, Inc (http://www.novell.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the
@@ -148,13 +148,13 @@ namespace Gendarme.Rules.Concurrency {
 					// we only want to run this on assemblies that use either the
 					// 1.0 or 1.1 runtime - since the memory model, at that time,
 					// was not entirely safe for double check locks
-					e.CurrentAssembly.Runtime < TargetRuntime.NET_2_0 &&
+					e.CurrentModule.Runtime < TargetRuntime.Net_2_0 &&
 					
 					// is this module using Monitor.Enter ? (lock in c#)
 					// if not then this rule does not need to be executed for the module
 					// note: mscorlib.dll is an exception since it defines, not refer, System.Threading.Monitor
-					(e.CurrentAssembly.Name.Name == Constants.Corlib ||
-					e.CurrentModule.TypeReferences.ContainsType ("System.Threading.Monitor"));
+					(e.CurrentAssembly.Name.Name == "mscorlib" ||
+					e.CurrentModule.HasTypeReference ("System.Threading.Monitor"));
 			};
 		}
 
@@ -213,7 +213,12 @@ namespace Gendarme.Rules.Concurrency {
 		{
 			if (method.Name != methodName)
 				return false;
-			return (method.DeclaringType.FullName == "System.Threading.Monitor");
+			if (method.DeclaringType.FullName != "System.Threading.Monitor")
+				return false;
+			// exclude Monitor.Enter(object, ref bool) since the comparison would be made
+			// againt the 'lockTaken' parameter and would report failures for every cases.
+			// not a big deal since this rule if active only on code compiled < FX 2.0
+			return (method.Parameters.Count == 1);
 		}
 
 		private static bool EffectivelyEqual (Instruction insn1, Instruction insn2)
