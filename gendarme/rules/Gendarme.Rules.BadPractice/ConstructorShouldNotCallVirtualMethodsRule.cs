@@ -114,7 +114,7 @@ namespace Gendarme.Rules.BadPractice {
 	[Problem ("A constructor calls an unsealed virtual method.")]
 	[Solution ("Avoid calling virtual methods from constructors or seal the the type/method.")]
 	[EngineDependency (typeof (OpCodeEngine))]
-	[FxCopCompatibility ("Microsoft.Usage", "CA2114:DoNotCallOverridableMethodsInConstructors")]
+	[FxCopCompatibility ("Microsoft.Usage", "CA2214:DoNotCallOverridableMethodsInConstructors")]
 	public class ConstructorShouldNotCallVirtualMethodsRule : Rule, ITypeRule {
 
 		private Stack<string> stack = new Stack<string> ();
@@ -126,9 +126,9 @@ namespace Gendarme.Rules.BadPractice {
 				return RuleResult.DoesNotApply;
 
 			// check each constructor
-			foreach (MethodDefinition constructor in type.Constructors) {
+			foreach (MethodDefinition constructor in type.Methods) {
 				// early checks to avoid stack creation
-				if (constructor.IsStatic || !constructor.HasBody)
+				if (!constructor.IsConstructor || constructor.IsStatic || !constructor.HasBody)
 					continue;
 
 				CheckConstructor (constructor);
@@ -139,7 +139,7 @@ namespace Gendarme.Rules.BadPractice {
 		private void CheckConstructor (MethodDefinition constructor)
 		{
 			stack.Clear ();
-			CheckMethod (constructor, stack);
+			CheckMethod (constructor);
 		}
 
 		private static bool IsSubsclass (TypeReference sub, TypeReference type)
@@ -177,7 +177,7 @@ namespace Gendarme.Rules.BadPractice {
 						if (mr.HasThis)
 							parameters++;
 						parameters += mr.Parameters.Count;
-						if (mr.ReturnType.ReturnType.FullName != "System.Void")
+						if (mr.ReturnType.FullName != "System.Void")
 							parameters--;
 					}
 					break;
@@ -187,7 +187,7 @@ namespace Gendarme.Rules.BadPractice {
 			return false;
 		}
 
-		private void CheckMethod (MethodDefinition method, Stack<string> stack)
+		private void CheckMethod (MethodDefinition method)
 		{
 			if (!method.HasBody)
 				return;
@@ -220,12 +220,12 @@ namespace Gendarme.Rules.BadPractice {
 						continue;
 
 					if (md.IsVirtual && !md.IsFinal) {
-						string s = stack.Count == 0 ? method.ToString () : stack.Aggregate ((a1, a2) => a1 + ", " + Environment.NewLine + a2);
+						string s = stack.Count == 0 ? method_name : stack.Aggregate ((a1, a2) => a1 + ", " + Environment.NewLine + a2);
 						s = String.Format ("Calling a virtual method, '{0}' from {1}.", md, s);
 						Runner.Report (method, current, Severity.High, Confidence.High, s);
 					} else {
 						stack.Push (method_name);
-						CheckMethod (md, stack);
+						CheckMethod (md);
 						stack.Pop ();
 					}
 					break;

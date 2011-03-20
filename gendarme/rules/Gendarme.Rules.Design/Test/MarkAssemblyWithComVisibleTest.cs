@@ -46,9 +46,10 @@ namespace Test.Rules.Design {
 		[TestFixtureSetUp]
 		public void FixtureSetUp ()
 		{
-			assembly = AssemblyFactory.DefineAssembly ("ComVisible", AssemblyKind.Dll);
+			assembly = AssemblyDefinition.CreateAssembly (new AssemblyNameDefinition ("ComVisible", new Version ()), "ComVisible", ModuleKind.Dll);
 			comvisible = new CustomAttribute (DefinitionLoader.GetMethodDefinition<ComVisibleAttribute> (".ctor"));
 			clscompliant = new CustomAttribute (DefinitionLoader.GetMethodDefinition<CLSCompliantAttribute> (".ctor"));
+			Runner.Engines.Subscribe ("Gendarme.Framework.Engines.SuppressMessageEngine");
 		}
 
 		[Test]
@@ -73,6 +74,14 @@ namespace Test.Rules.Design {
 			assembly.CustomAttributes.Clear ();
 			assembly.CustomAttributes.Add (clscompliant);
 			AssertRuleFailure (assembly, 1);
+		}
+
+		[Test]
+		public void FxCop_GloballySuppressed ()
+		{
+			AssemblyDefinition assembly = DefinitionLoader.GetAssemblyDefinition (this.GetType ());
+			// see GlobalSuppressions.cs
+			AssertRuleDoesNotApply (assembly);
 		}
 	}
 }

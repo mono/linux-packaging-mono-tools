@@ -124,12 +124,12 @@ namespace Gendarme.Rules.Portability {
 			}
 		}
 
-		private string GetFileName (Version version)
+		private string GetFileName (Version v)
 		{
-			return Path.Combine (DefinitionsFolder, String.Format ("definitions-{0}.zip", version));
+			return Path.Combine (DefinitionsFolder, String.Format ("definitions-{0}.zip", v));
 		}
 
-		private Version GetLastestLocalDefinition ()
+		private Version FindLastestLocalVersion ()
 		{
 			string [] def_files = Directory.GetFiles (DefinitionsFolder, "definitions-*.zip");
 			if (def_files.Length > 1)
@@ -154,7 +154,7 @@ namespace Gendarme.Rules.Portability {
 			// nothing specified ? 
 			if (def_version == null) {
 				// then we'll use the latest local version available
-				def_version = GetLastestLocalDefinition ();
+				def_version = FindLastestLocalVersion ();
 				// if Gendarme version is newer than the definitions then there's likely something new available
 				if (typeof (IRule).Assembly.GetName ().Version > def_version) {
 					// however we don't want to download a (potentially) unexisting file each time we execute 
@@ -173,23 +173,23 @@ namespace Gendarme.Rules.Portability {
 			if (!File.Exists (filename))
 				return;
 
-			using (FileStream fs = File.OpenRead (filename)) {
-				using (ZipInputStream zs = new ZipInputStream (fs)) {
-					ZipEntry ze;
-					while ((ze = zs.GetNextEntry ()) != null) {
-						switch (ze.Name) {
-						case "exception.txt":
-							NotImplementedInternal = Read (new StreamReader (zs));
-							break;
-						case "missing.txt":
-							MissingInternal = Read (new StreamReader (zs));
-							break;
-						case "monotodo.txt":
-							TodoInternal = ReadWithComments (new StreamReader (zs));
-							break;
-						default:
-							break;
-						}
+			using (FileStream fs = File.OpenRead (filename)) 
+			using (ZipInputStream zs = new ZipInputStream (fs))
+			using (StreamReader sr = new StreamReader (zs)) {
+				ZipEntry ze;
+				while ((ze = zs.GetNextEntry ()) != null) {
+					switch (ze.Name) {
+					case "exception.txt":
+						NotImplementedInternal = Read (sr);
+						break;
+					case "missing.txt":
+						MissingInternal = Read (sr);
+						break;
+					case "monotodo.txt":
+						TodoInternal = ReadWithComments (sr);
+						break;
+					default:
+						break;
 					}
 				}
 			}
@@ -199,9 +199,9 @@ namespace Gendarme.Rules.Portability {
 		static byte [] msfinal_key = new byte [] { 0xb0, 0x3f, 0x5f, 0x7f, 0x11, 0xd5, 0x0a, 0x3a };
 		static byte [] winfx_key = new byte [] { 0x31, 0xbf, 0x38, 0x56, 0xad, 0x36, 0xe4, 0x35 };
 		static byte [] silverlight_key = new byte [] { 0x7c, 0xec, 0x85, 0xd7, 0xbe, 0xa7, 0x79, 0x8e };
-		static Version silverlight = new Version (2, 0, 5, 0);
+		static Version coreclr_runtime = new Version (2, 0, 5, 0);
 
-		private bool ComparePublicKeyToken (byte [] pkt1, byte [] pkt2)
+		static bool ComparePublicKeyToken (byte [] pkt1, byte [] pkt2)
 		{
 			for (int i = 0; i < 8; i++) {
 				if (pkt1 [i] != pkt2 [i])
@@ -210,7 +210,7 @@ namespace Gendarme.Rules.Portability {
 			return true;
 		}
 
-		private bool Filter (AssemblyNameReference anr)
+		static bool Filter (AssemblyNameReference anr)
 		{
 			// if the scope is the current assembly, then AssemblyNameReference will be null
 			if (anr == null)
@@ -232,7 +232,7 @@ namespace Gendarme.Rules.Portability {
 				// candidate for 31bf3856ad364e35 which is 'winfx' key - 
 				// but some Silverlight assemblies, Microsoft.VisualBasic.dll and 
 				// System.ServiceModel.dll, use it too
-				return (ComparePublicKeyToken (winfx_key, pkt) && (anr.Version != silverlight));
+				return (ComparePublicKeyToken (winfx_key, pkt) && (anr.Version != coreclr_runtime));
 			case 0x7c:
 				// candidate for 7cec85d7bea7798e which is used by Silverlight
 				// MoMA does not track Silverlight compatibility
@@ -274,7 +274,7 @@ namespace Gendarme.Rules.Portability {
 				using (MoMASubmit ws = new MoMASubmit ()) {
 					string lastest_def = ws.GetLatestDefinitionsVersion ();
 					int s = lastest_def.LastIndexOf ('/') + 1;
-					int e = lastest_def.LastIndexOf ('-');
+					int e = lastest_def.IndexOf ('-', s);
 					v = new Version (lastest_def.Substring (s, e - s));
 					definitionsUri = lastest_def.Split ('|') [2];
 				}
@@ -318,8 +318,8 @@ namespace Gendarme.Rules.Portability {
 			return set;
 		}
 
-		// this correspond to Call, Calli, Callvirt, Newobj, Initobj, Ldftn, Ldvirtftn
-		private static OpCodeBitmask mask = new OpCodeBitmask (0x18000000000, 0x4400000000000, 0x0, 0x40060);
+		// this correspond to Call, Callvirt, Newobj, Initobj, Ldftn, Ldvirtftn
+		private static OpCodeBitmask mask = new OpCodeBitmask (0x8000000000, 0x4400000000000, 0x0, 0x40060);
 		
 		public RuleResult CheckMethod (MethodDefinition method)
 		{

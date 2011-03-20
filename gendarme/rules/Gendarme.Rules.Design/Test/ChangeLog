@@ -1,8 +1,30 @@
+2010-06-04  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* Tests.Rules.Performance.csproj: Fix unit tests for solution
+	(non makefile) builds
+
+2010-05-24  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* GlobalSuppressions.cs:
+	* MarkAssemblyWithAssemblyVersionTest.cs:
+	* MarkAssemblyWithCLSCompliantTest.cs:
+	* MarkAssemblyWithComVisibleTest.cs:
+		Add FxCop compatibility unit tests
+
+2010-01-24  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* ProvideTryParseAlternativeTest.cs: New. Unit tests for
+	ProvideTryParseAlternativeRule
+
+2010-01-19  Jb Evain  <jbevain@novell.com>
+
+	* DisposableTypesShouldHaveFinalizerTest.cs: add test for generated
+	types closing on a native field.
+
 2009-12-13  Sebastien Pouliot  <sebastien@ximian.com>
 
 	* DisposableTypesShouldHaveFinalizerTest.cs: Add test cases for 
 	structs
-	[Backport r148085]
 
 2009-02-21  Jesse Jones  <jesjones@mindspring.com>
 

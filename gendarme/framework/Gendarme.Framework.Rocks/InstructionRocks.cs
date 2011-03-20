@@ -66,6 +66,24 @@ namespace Gendarme.Framework.Rocks {
 		}
 
 		/// <summary>
+		/// Get the MethodReference or MethodDefinition (but not a CallSite) associated with the Instruction
+		/// </summary>
+		/// <param name="self">The Instruction on which the extension method can be called.</param>
+		/// <returns></returns>
+		/// <remarks>Older (pre 0.9) Cecil CallSite did not inherit from MethodReference so this was not an issue</remarks>
+		public static MethodReference GetMethod (this Instruction self)
+		{
+			if ((self == null) || (self.OpCode.FlowControl != FlowControl.Call))
+				return null;
+			// we want to avoid InlineSig which is a CallSite (inheriting from MethodReference) 
+			// but without a DeclaringType
+			if (self.OpCode.OperandType != OperandType.InlineMethod)
+				return null;
+
+			return (self.Operand as MethodReference);
+		}
+
+		/// <summary>
 		/// Return the operand of the Instruction. For macro instruction the operand is constructed.
 		/// </summary>
 		/// <param name="self">The Instruction on which the extension method can be called.</param>
@@ -77,29 +95,31 @@ namespace Gendarme.Framework.Rocks {
 				return null;
 
 			Code code = self.OpCode.Code;
-			int index;
 			switch (code) {
 			case Code.Ldarg_0:
 			case Code.Ldarg_1:
 			case Code.Ldarg_2:
 			case Code.Ldarg_3:
-				index = code - Code.Ldarg_0;
-				if (!method.IsStatic) {
-					index--;
-					if (index < 0)
-						return method.DeclaringType; // this
-				}
-				return method.Parameters [index];
+			case Code.Ldarg:
+			case Code.Ldarg_S:
+			case Code.Ldarga:
+			case Code.Ldarga_S:
+			case Code.Starg:
+			case Code.Starg_S:
+				ParameterDefinition p = self.GetParameter (method);
+				// handle 'this' for instance methods
+				if (p == null)
+					return method.DeclaringType;
+				return p;
 			case Code.Ldloc_0:
 			case Code.Ldloc_1:
 			case Code.Ldloc_2:
 			case Code.Ldloc_3:
-				return method.Body.Variables [code - Code.Ldloc_0];
 			case Code.Stloc_0:
 			case Code.Stloc_1:
 			case Code.Stloc_2:
 			case Code.Stloc_3:
-				return method.Body.Variables [code - Code.Stloc_0];
+				return self.GetVariable (method);
 			case Code.Ldc_I4_M1:
 			case Code.Ldc_I4_0:
 			case Code.Ldc_I4_1:
@@ -150,13 +170,13 @@ namespace Gendarme.Framework.Rocks {
 			case Code.Ldind_R4:
 			case Code.Stelem_R4:
 			case Code.Stind_R4:
-				return PrimitiveReferences.GetSingle (method.DeclaringType.Module);
+				return PrimitiveReferences.GetSingle (method);
 			case Code.Conv_R8:
 			case Code.Ldc_R8:
 			case Code.Ldelem_R8:
 			case Code.Ldind_R8:
 			case Code.Stelem_R8:
-				return PrimitiveReferences.GetDouble (method.DeclaringType.Module);
+				return PrimitiveReferences.GetDouble (method);
 			case Code.Ldloc_0:
 			case Code.Ldloc_1:
 			case Code.Ldloc_2:
@@ -182,7 +202,7 @@ namespace Gendarme.Framework.Rocks {
 			case Code.Call:
 			case Code.Callvirt:
 			case Code.Newobj:
-				return (self.Operand as MethodReference).ReturnType.ReturnType;
+				return (self.Operand as MethodReference).ReturnType;
 			default:
 				return null;
 			}
@@ -234,8 +254,13 @@ namespace Gendarme.Framework.Rocks {
 		/// <param name="method">The method inside which the instruction comes from 
 		/// (needed for StackBehaviour.Varpop).</param>
 		/// <returns>The number of value removed (pop) from the stack for this instruction.</returns>
-		public static int GetPopCount (this Instruction self, MethodDefinition method)
+		public static int GetPopCount (this Instruction self, IMethodSignature method)
 		{
+			if (self == null)
+				throw new ArgumentException ("self");
+			if (method == null)
+				throw new ArgumentException ("method");
+
 			switch (self.OpCode.StackBehaviourPop) {
 			case StackBehaviour.Pop0:
 				return 0;
@@ -266,7 +291,7 @@ namespace Gendarme.Framework.Rocks {
 			case StackBehaviour.Varpop:
 				switch (self.OpCode.FlowControl) {
 				case FlowControl.Return:
-					return method.ReturnType.ReturnType.FullName == "System.Void" ? 0 : 1;
+					return method.ReturnType.FullName == "System.Void" ? 0 : 1;
 
 				case FlowControl.Call:
 					IMethodSignature calledMethod = (IMethodSignature) self.Operand;
@@ -298,6 +323,9 @@ namespace Gendarme.Framework.Rocks {
 		/// <returns>The number of value added (push) to the stack by this instruction.</returns>
 		public static int GetPushCount (this Instruction self)
 		{
+			if (self == null)
+				throw new ArgumentException ("self");
+
 			switch (self.OpCode.StackBehaviourPush) {
 			case StackBehaviour.Push0:
 				return 0;
@@ -316,7 +344,7 @@ namespace Gendarme.Framework.Rocks {
 			case StackBehaviour.Varpush:
 				IMethodSignature calledMethod = (IMethodSignature) self.Operand;
 				if (calledMethod != null)
-					return (calledMethod.ReturnType.ReturnType.FullName == "System.Void") ? 0 : 1;
+					return (calledMethod.ReturnType.FullName == "System.Void") ? 0 : 1;
 
 				throw new NotImplementedException ("Varpush not supported for this Instruction.");
 			default:
@@ -346,13 +374,13 @@ namespace Gendarme.Framework.Rocks {
 			case Code.Ldloc_2:
 			case Code.Ldloc_3:
 				index = self.OpCode.Code - Code.Ldloc_0;
-				return method.Body.Variables [index];
+				break;
 			case Code.Stloc_0:
 			case Code.Stloc_1:
 			case Code.Stloc_2:
 			case Code.Stloc_3:
 				index = self.OpCode.Code - Code.Stloc_0;
-				return method.Body.Variables [index];
+				break;
 			case Code.Ldloc:
 			case Code.Ldloc_S:
 			case Code.Ldloca:
@@ -363,6 +391,21 @@ namespace Gendarme.Framework.Rocks {
 			default:
 				return null;
 			}
+			return method.Body.Variables [index];
+		}
+
+		/// <summary>
+		/// Helper method to avoid patterns like "ins.Previous != null &amp;&amp; ins.Previous.OpCode.Code == Code.Newobj"
+		/// and replace it with a shorter "ins.Previous.Is (Code.Newobj)".
+		/// </summary>
+		/// <param name="self">The Instruction on which the extension method can be called.</param>
+		/// <param name="code">The Code to compare to.</param>
+		/// <returns>True if the instruction's code match the specified argument, False otherwise</returns>
+		public static bool Is (this Instruction self, Code code)
+		{
+			if (self == null)
+				return false;
+			return (self.OpCode.Code == code);
 		}
 
 		/// <summary>
@@ -472,7 +515,7 @@ namespace Gendarme.Framework.Rocks {
 		/// <param name="self">The Instruction on which the extension method can be called.</param>
 		/// <param name="method">The method from which the instruction was extracted.</param>
 		/// <returns>The instruction that match the current instruction.</returns>
-		public static Instruction TraceBack (this Instruction self, MethodDefinition method)
+		public static Instruction TraceBack (this Instruction self, IMethodSignature method)
 		{
 			return TraceBack (self, method, 0);
 		}
@@ -485,11 +528,14 @@ namespace Gendarme.Framework.Rocks {
 		/// <param name="method">The method from which the instruction was extracted.</param>
 		/// <param name="offset">Offset to add the the Pop count. Useful to track several parameters to a method.</param>
 		/// <returns>The instruction that match the current instruction.</returns>
-		public static Instruction TraceBack (this Instruction self, MethodDefinition method, int offset)
+		public static Instruction TraceBack (this Instruction self, IMethodSignature method, int offset)
 		{
 			int n = offset + self.GetPopCount (method);
 			while (n > 0 && self.Previous != null) {
 				self = self.Previous;
+				// we cannot "simply" trace backward over a unconditional branch
+				if (self.OpCode.FlowControl == FlowControl.Branch)
+					return null;
 				n -= self.GetPushCount ();
 				if (n == 0)
 					return self;

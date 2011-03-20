@@ -29,6 +29,7 @@ using System;
 using Mono.Cecil;
 
 using Gendarme.Framework;
+using Gendarme.Framework.Rocks;
 
 namespace Gendarme.Rules.Design {
 
@@ -72,9 +73,9 @@ namespace Gendarme.Rules.Design {
 
 			// rule applies!
 
-			foreach (MethodDefinition ctor in type.Constructors) {
-				if (ctor.IsPublic) {
-					Runner.Report (ctor, Severity.Low, Confidence.Total);
+			foreach (MethodDefinition method in type.Methods) {
+				if (method.IsConstructor && method.IsPublic) {
+					Runner.Report (method, Severity.Low, Confidence.Total);
 				}
 			}
 

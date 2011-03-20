@@ -42,20 +42,17 @@ using Test.Rules.Fixtures;
 namespace Test.Rules.Interoperability {
 
 	[TestFixture]
-	public class DelegatesPassedToNativeCodeMustIncludeExceptionHandlingTest : MethodRuleTestFixture <DelegatesPassedToNativeCodeMustIncludeExceptionHandlingRule> 
+	public class DelegatesPassedToNativeCodeMustIncludeExceptionHandlingTest
 	{
 
 		private DelegatesPassedToNativeCodeMustIncludeExceptionHandlingRule rule;
 		private AssemblyDefinition assembly;
 		private TypeDefinition type;
 		
-		private TestRunner runner {
-			get {
-				return new TestRunner (new DelegatesPassedToNativeCodeMustIncludeExceptionHandlingRule ());
-			}
-		}
-		
 		public delegate void CallbackDelegate ();
+		public delegate byte CallbackDelegateByte ();
+		public delegate void CallbackDelegateOut (out int a);
+		public delegate System.DateTime CallbackDelegateNonVoidStruct ();
 
 		[DllImport ("library.dll")]
 		static extern void PInvokeNormal ();
@@ -69,6 +66,15 @@ namespace Test.Rules.Interoperability {
 		[DllImport ("library.dll")]
 		static extern void PInvokeDelegate3 (CallbackDelegate d1, object obj, CallbackDelegate d3);
 		
+		[DllImport ("library.dll")]
+		static extern void PInvokeDelegate4 (CallbackDelegateByte d);
+		
+		[DllImport ("library.dll")]
+		static extern void PInvokeDelegate5 (CallbackDelegateOut d);
+
+		[DllImport ("library.dll")]
+		static extern void PInvokeDelegate6 (CallbackDelegateNonVoidStruct d);
+		
 #region Callback methods
 		private CallbackDelegate CallbackOK1_Field;
 		private CallbackDelegate CallbackOK1_StaticField;
@@ -77,8 +83,20 @@ namespace Test.Rules.Interoperability {
 			int a, b;
 			try {
 				a = 1;
-			} catch {
+				Console.WriteLine (a);
+			}
+			catch {
 				b = 2;
+			}
+		}
+		
+		private byte CallbackOK_NonVoid ()
+		{
+			try {
+				Console.WriteLine ("try");
+				return 1;
+			} catch {
+				return 2;
 			}
 		}
 		
@@ -89,26 +107,42 @@ namespace Test.Rules.Interoperability {
 			int a, b;
 			try {
 				a = 1;
-			} catch {
+				Console.WriteLine (a);
+			}
+			catch {
 				b = 2;
 			}
+		}
+		
+		private void CallbackOKEmpty ()
+		{
+			// Nothing is done here, so this method is ok.
 		}
 		
 		private CallbackDelegate CallbackFailEmpty_Field;
 		private CallbackDelegate CallbackFailEmpty_StaticField;
 		private void CallbackFailEmpty ()
 		{
+			Console.WriteLine ();
 		}
 
+		private byte CallbackFailEmpty_NonVoid ()
+		{
+			Console.WriteLine ();
+			return 1;
+		}
+	
 		private CallbackDelegate CallbackFailEmptyStatic_Field;
 		private CallbackDelegate CallbackFailEmptyStatic_StaticField;
 		private static void CallbackFailEmptyStatic ()
 		{
+			Console.WriteLine ();
 		}
 		
 		private void CallbackFailNoCatch ()
 		{
 			try {
+				Console.WriteLine ();
 			} finally {
 			}
 		}
@@ -116,13 +150,14 @@ namespace Test.Rules.Interoperability {
 		private void CallbackFailNoEmptyCatch ()
 		{
 			try {
-			} catch (Exception ex) {
+				Console.WriteLine ();
+			} catch (StackOverflowException ex) {
 			}
 		}
 
 		private void CallbackFailNotEntireMethod1 ()
 		{
-			int i = 0;
+			Console.WriteLine ();
 			try {
 			} catch {
 			}
@@ -130,24 +165,23 @@ namespace Test.Rules.Interoperability {
 		
 		private void CallbackFailNotEntireMethod2 ()
 		{
-			int i;
 			try { 
 			} catch {
 			}
-			i = 0;
+			Console.WriteLine ();
 		}
 		
 		private void CallbackFailNoEmptyCatchEntireMethod ()
 		{
 			try {
-				int a = 1;
+				Console.WriteLine ();
 				try {
-					int b = 2;
+					Console.WriteLine ();
 				} catch {
-					int c = 3;
+					Console.WriteLine ();
 				}
-			} catch (Exception ex) {
-				int d = 4;
+			} catch (StackOverflowException ex) {
+				Console.WriteLine ();
 			}
 		}
 		#endregion
@@ -156,30 +190,10 @@ namespace Test.Rules.Interoperability {
 		public void FixtureSetUp ()
 		{
 			string unit = Assembly.GetExecutingAssembly ().Location;
-			assembly = AssemblyFactory.GetAssembly (unit);
-			type = assembly.MainModule.Types ["Test.Rules.Interoperability.DelegatesPassedToNativeCodeMustIncludeExceptionHandlingTest"];
+			assembly = AssemblyDefinition.ReadAssembly (unit);
+			type = assembly.MainModule.GetType ("Test.Rules.Interoperability.DelegatesPassedToNativeCodeMustIncludeExceptionHandlingTest");
 		}
 
-		private MethodDefinition GetTest (string name)
-		{
-			foreach (MethodDefinition method in type.Methods) {
-				if (method.Name == name)
-					return method;
-			}
-			return null;
-		}
-		
-		private TypeDefinition GetTypeTest (string name)
-		{
-			Console.WriteLine ("GetTypeTest ('{1}') NestedType count: {0}", this.type.NestedTypes.Count, name);
-			foreach (TypeDefinition type in this.type.NestedTypes) {
-				Console.WriteLine (" Name: '{0}'", type.Name);
-				if (type.Name == name)
-					return type;
-			}
-			return null;
-		}
-		
 		private void CheckMethod_OK1 ()
 		{
 			CallbackDelegate c = CallbackFailEmpty;
@@ -205,7 +219,13 @@ namespace Test.Rules.Interoperability {
 		private void CheckMethod_AnonymousOK2 ()
 		{
 			CallbackDelegate a = delegate () { };
-			CallbackDelegate b = delegate () { try {} catch {} };
+			CallbackDelegate b = delegate () { 
+				try {
+					Console.WriteLine ("try");
+				} 
+				catch {
+				} 
+			};
 			// Create a bad delegate and a good delegate, pass the good delegate.
 			PInvokeDelegate1 (b);
 		}
@@ -247,35 +267,162 @@ namespace Test.Rules.Interoperability {
 		{
 			// These anonymous delegates will turn out non-static since they access a method variable in outer scope.
 			int o = 7;
-			CallbackDelegate c = delegate () { int a, b; try { a = o; } catch { b = o; } };
+			CallbackDelegate c = delegate () {
+				int a, b; 
+				try { 
+					a = o;
+					Console.WriteLine (a);
+				} 
+				catch { 
+				}
+			};
 			
-			CallbackOKStatic_Field = delegate () { int a, b; try { a = o; } catch { b = o; } };
-			CallbackOKStatic_StaticField = delegate () { int a, b; try { a = o; } catch { b = o; } };
-			PInvokeDelegate1 (delegate () { int a, b; try { a = o; } catch { b = o; } });
-			PInvokeDelegate1 (new CallbackDelegate (delegate () { int a, b; try { a = o; } catch { b = o; } }));
+			CallbackOKStatic_Field = delegate () {
+				int a, b;
+				try {
+					a = o;
+					Console.WriteLine (a);
+				}
+				catch {
+				}
+			};
+
+			CallbackOKStatic_StaticField = delegate () {
+				int a, b;
+				try {
+					a = o;
+					Console.WriteLine (a);
+				}
+				catch {
+				}
+			};
+
+			PInvokeDelegate1 (delegate () {
+								int a, b; 
+				try { 
+					a = o;
+					Console.WriteLine (a);
+				} 
+				catch { 
+				}
+			});
+
+			PInvokeDelegate1 (new CallbackDelegate (delegate () {
+								int a, b; 
+				try { 
+					a = o;
+					Console.WriteLine (a);
+				} 
+				catch { 
+				}
+			}));
 			PInvokeDelegate1 (c);
 			PInvokeDelegate1 (CallbackOKStatic_Field);
 			PInvokeDelegate1 (CallbackOKStatic_StaticField);
-			PInvokeDelegate2 (null, delegate () { int a, b; try { a = o; } catch { b = o; } });
-			PInvokeDelegate2 (new CallbackDelegate (delegate () { int a, b; try { a = o; } catch { b = o; } }), null);
+			PInvokeDelegate2 (null, delegate () {
+				int a, b; 
+				try { 
+					a = o;
+					Console.WriteLine (a);
+				} 
+				catch { 
+				}
+			});
+			PInvokeDelegate2 (new CallbackDelegate (delegate () {
+								int a, b; 
+				try { 
+					a = o;
+					Console.WriteLine (a);
+				} 
+				catch { 
+				}
+			}), null);
 			PInvokeDelegate3 (CallbackOKStatic_Field, null, CallbackOKStatic_StaticField);
 		}
 		
 		private void CheckMethod_AnonymousCallbackOKStatic ()
 		{
 			// These anonymous delegates will turn out static given that they don't access any class/method variables in outer scope.
-			CallbackDelegate c = delegate () { int a, b; try { a = 1; } catch { b = 2; } };
+			CallbackDelegate c = delegate () {
+				int a, b;
+				try {
+					a = 1;
+					Console.WriteLine (a);
+				}
+				catch { 
+					b = 2;
+				}
+			};
 				
-			CallbackOK1_Field = delegate () { int a, b; try { a = 1; } catch { b = 2; } };
-			CallbackOK1_StaticField = delegate () { int a, b; try { a = 1; } catch { b = 2; } };
+			CallbackOK1_Field = delegate () {
+				int a, b;
+				try {
+					a = 1;
+					Console.WriteLine (a);
+				}
+				catch {
+					b = 2;
+				}
+			};
+
+			CallbackOK1_StaticField = delegate () {
+				int a, b;
+				try {
+					a = 1;
+					Console.WriteLine (a);
+				}
+				catch {
+					b = 2;
+				}
+			};
 			
-			PInvokeDelegate1 (delegate () { int a, b; try { a = 1; } catch { b = 2; } });
-			PInvokeDelegate1 (new CallbackDelegate (delegate () { int a, b; try { a = 1; } catch { b = 2; } }));
+			PInvokeDelegate1 (delegate () {
+				int a, b;
+				try {
+					a = 1;
+					Console.WriteLine (a);
+				}
+				catch { 
+					b = 2;
+				}
+			});
+
+			PInvokeDelegate1 (new CallbackDelegate (delegate () {
+				int a, b;
+				try {
+					a = 1;
+					Console.WriteLine (a);
+				}
+				catch { 
+					b = 2;
+				}
+			}));
+
 			PInvokeDelegate1 (c);
 			PInvokeDelegate1 (CallbackOK1_Field);
 			PInvokeDelegate1 (CallbackOK1_StaticField);
-			PInvokeDelegate2 (null, delegate () { int a, b; try { a = 1; } catch { b = 2; } });
-			PInvokeDelegate2 (new CallbackDelegate (delegate () { int a, b; try { a = 1; } catch { b = 2; } }), null);
+			PInvokeDelegate2 (null, delegate () {
+				int a, b;
+				try {
+					a = 1;
+					Console.WriteLine (a);
+				}
+				catch { 
+					b = 2;
+				}
+			});
+
+			PInvokeDelegate2 (new CallbackDelegate (delegate () {
+				int a, b;
+				try {
+					a = 1;
+					Console.WriteLine (a);
+				}
+				catch { 
+					b = 2;
+				}
+			}), null);
+
 			PInvokeDelegate3 (CallbackOK1_Field, null, CallbackOK1_StaticField);
 		}
 		
@@ -286,7 +433,7 @@ namespace Test.Rules.Interoperability {
 		
 		private void CheckMethod_AnonymousCallbackFailEmpty_a ()
 		{
-			PInvokeDelegate1 (delegate () {});
+			PInvokeDelegate1 (delegate () { Console.WriteLine (); });
 		}
 		
 		private void CheckMethod_CallbackFailEmpty_b ()
@@ -296,7 +443,7 @@ namespace Test.Rules.Interoperability {
 		
 		private void CheckMethod_AnonymousCallbackFailEmpty_b ()
 		{
-			PInvokeDelegate1 (new CallbackDelegate (delegate () {}));
+			PInvokeDelegate1 (new CallbackDelegate (delegate () { Console.WriteLine (); }));
 		}
 		
 		private void CheckMethod_CallbackFailEmpty_c ()
@@ -308,7 +455,7 @@ namespace Test.Rules.Interoperability {
 		
 		private void CheckMethod_AnonymousCallbackFailEmpty_c ()
 		{
-			CallbackDelegate c = delegate () {};
+			CallbackDelegate c = delegate () { Console.WriteLine (); };
 			
 			PInvokeDelegate1 (c);
 		}
@@ -322,7 +469,7 @@ namespace Test.Rules.Interoperability {
 		
 		private void CheckMethod_AnonymousCallbackFailEmpty_d ()
 		{			
-			CallbackFailEmptyStatic_Field = delegate () {};
+			CallbackFailEmptyStatic_Field = delegate () { Console.WriteLine (); };
 			
 			PInvokeDelegate1 (CallbackFailEmptyStatic_Field);
 		}
@@ -336,7 +483,7 @@ namespace Test.Rules.Interoperability {
 		
 		private void CheckMethod_AnonymousCallbackFailEmpty_e ()
 		{
-			CallbackFailEmptyStatic_StaticField = delegate () {};
+			CallbackFailEmptyStatic_StaticField = delegate () { Console.WriteLine (); };
 			
 			PInvokeDelegate1 (CallbackFailEmptyStatic_StaticField);
 		}
@@ -348,7 +495,7 @@ namespace Test.Rules.Interoperability {
 		
 		private void CheckMethod_AnonymousCallbackFailEmpty_f ()
 		{
-			PInvokeDelegate2 (null, delegate () {});
+			PInvokeDelegate2 (null, delegate () { Console.WriteLine (); });
 		}
 		
 		private void CheckMethod_CallbackOKEmpty_g ()
@@ -358,7 +505,7 @@ namespace Test.Rules.Interoperability {
 		
 		private void CheckMethod_AnonymousCallbackOKEmpty_g ()
 		{
-			PInvokeDelegate2 (new CallbackDelegate (delegate () {}), null);
+			PInvokeDelegate2 (new CallbackDelegate (delegate () { Console.WriteLine (); }), null);
 		}
 		
 		private void CheckMethod_CallbackFailEmpty_h ()
@@ -371,8 +518,8 @@ namespace Test.Rules.Interoperability {
 		
 		private void CheckMethod_AnonymousCallbackFailEmpty_h ()
 		{			
-			CallbackFailEmptyStatic_Field = delegate () {};
-			CallbackFailEmptyStatic_StaticField = delegate () {};
+			CallbackFailEmptyStatic_Field = delegate () { Console.WriteLine (); };
+			CallbackFailEmptyStatic_StaticField = delegate () { Console.WriteLine (); };
 			
 			PInvokeDelegate3 (CallbackFailEmptyStatic_Field, null, CallbackFailEmptyStatic_StaticField);
 		}
@@ -410,7 +557,7 @@ namespace Test.Rules.Interoperability {
 			}
 			public void Set ()
 			{	// Note that we set the field (textually) after using the pinvoke above.
-				field = delegate () {};
+				field = delegate () { Console.WriteLine (); };
 			}
 		}
 		
@@ -419,7 +566,7 @@ namespace Test.Rules.Interoperability {
 			public void Set ()
 			{
 				// Reverse textual order from instance field test above.
-				field = delegate () {};
+				field = delegate () { Console.WriteLine (); };
 			}
 			public void DoBadA ()
 			{
@@ -434,7 +581,7 @@ namespace Test.Rules.Interoperability {
 		
 		private void CheckMethod_AnonymousCallbackFailEmptyStatic ()
 		{
-			PInvokeDelegate1 (delegate () { });
+			PInvokeDelegate1 (delegate () { Console.WriteLine (); });
 		}
 		
 		private void CheckMethod_CallbackFailNoCatch ()
@@ -444,7 +591,7 @@ namespace Test.Rules.Interoperability {
 		
 		private void CheckMethod_AnonymousCallbackFailNoCatch ()
 		{
-			PInvokeDelegate1 (delegate () { try { } finally {} });
+			PInvokeDelegate1 (delegate () { try { Console.WriteLine (); } finally {} });
 		}
 		
 		private void CheckMethod_CallbackFailNoEmptyCatch ()
@@ -454,7 +601,7 @@ namespace Test.Rules.Interoperability {
 		
 		private void CheckMethod_AnonymousCallbackFailNoEmptyCatch ()
 		{
-			PInvokeDelegate1 (delegate () { try { } catch (Exception ex) { } });
+			PInvokeDelegate1 (delegate () { try { Console.WriteLine (); } catch (StackOverflowException ex) { } });
 		}
 		
 		private void CheckMethod_CallbackFailNotEntireMethod1 ()
@@ -464,7 +611,7 @@ namespace Test.Rules.Interoperability {
 		
 		private void CheckMethod_AnonymousCallbackFailNotEntireMethod1 ()
 		{
-			PInvokeDelegate1 (delegate () { int i = 0; try { } catch { } });
+			PInvokeDelegate1 (delegate () { Console.WriteLine (); try { } catch { } });
 		}
 		
 		private void CheckMethod_CallbackFailNotEntireMethod2 ()
@@ -474,7 +621,7 @@ namespace Test.Rules.Interoperability {
 		
 		private void CheckMethod_AnonymousCallbackFailNotEntireMethod2 ()
 		{
-			PInvokeDelegate1 (delegate () { int i; try { } catch { } i = 0; } );
+			PInvokeDelegate1 (delegate () { try { } catch { } Console.WriteLine (); } );
 		}
 		
 		private void CheckMethod_CallbackFailNoEmptyCatchEntireMethod ()
@@ -484,31 +631,148 @@ namespace Test.Rules.Interoperability {
 		
 		private void CheckMethod_AnonymousCallbackFailNoEmptyCatchEntireMethod ()
 		{
-			PInvokeDelegate1 (delegate () { try { int a = 1; try { int b = 2; } catch { int c = 3; } } catch (Exception ex) { int d = 4; } });
+			PInvokeDelegate1 (delegate () { try { Console.WriteLine (); try { Console.WriteLine (); } catch { Console.WriteLine (); } } catch (Exception ex) { Console.WriteLine (); } });
+		}
+				
+		private void CheckMethod_NonVoidOK ()
+		{
+			PInvokeDelegate4 (CallbackOK_NonVoid);
+		}
+		
+		private void CheckMethod_NonVoidFail ()
+		{
+			PInvokeDelegate4 (CallbackFailEmpty_NonVoid);
+		}
+		
+		private void CheckMethod_TwoFailures_a ()
+		{
+			PInvokeDelegate1 (delegate () { Console.WriteLine (); });
+			PInvokeDelegate1 (delegate () { Console.WriteLine (); });
+		}
+			
+		private void CheckMethod_TwoFailures_b ()
+		{
+			PInvokeDelegate3 (delegate () { Console.WriteLine (); }, null, delegate () { Console.WriteLine (); });
+		}
+		
+		private void CheckMethod_OKOutParams ()
+		{
+			PInvokeDelegate5 (
+				delegate (out int a)
+				{
+					a = 0;
+				}
+			);
+		}
+		
+		private void CheckMethod_FailOutParams ()
+		{
+			PInvokeDelegate5 (
+				delegate (out int a)
+				{
+					Console.WriteLine ();
+					a = 2;
+				}
+			);
+		}
+		
+		private void CheckMethod_OKNonVoidStruct ()
+		{
+			PInvokeDelegate6 (
+				delegate () 
+				{
+					return new DateTime ();
+				}
+			);
+		}
+		
+		private void CheckMethod_OKNonVoidStruct2 ()
+		{
+			PInvokeDelegate6 (
+				delegate () 
+				{
+					return DateTime.MinValue;
+				}
+			);
 		}
 		
 		private void AssertTest (string name)
 		{
-			bool success = name.Contains ("OK");
-			if (success) {
-				AssertRuleSuccess<DelegatesPassedToNativeCodeMustIncludeExceptionHandlingTest> (name);
-			} else {
-				AssertRuleFailure<DelegatesPassedToNativeCodeMustIncludeExceptionHandlingTest> (name);
-			}
+			AssertTest (name, 1);
+		}
+		
+		private void AssertTest (string name, int expectedCount)
+		{
+			TestRunner runner;
+			MethodDefinition method;
+			RuleResult result;
+			RuleResult expected =  name.Contains ("OK") ? RuleResult.Success : RuleResult.Failure;
+
+			if (expected == RuleResult.Success)
+				expectedCount = 0;
+			
+			// Since the rule only reports errors once for each method, and these tests reuse methods,
+			// we need a new test runner for each test.
+			
+			runner = new TestRunner (new DelegatesPassedToNativeCodeMustIncludeExceptionHandlingRule ());
+			runner.Rules.Clear ();
+			method = DefinitionLoader.GetMethodDefinition <DelegatesPassedToNativeCodeMustIncludeExceptionHandlingTest> (name);
+			result = runner.CheckMethod (method);
+			
+			Assert.AreEqual (expected, result);
+			Assert.AreEqual (expectedCount, runner.Defects.Count, "DefectCount");
 		}
 		
 		private void AssertClass<T> ()
 		{
+			TestRunner runner;
 			bool failed = false;
 			RuleResult result;
 			
+			// 
+			// We assert that exactly 1 error is raised among all the methods in the class
+			// 
+			
+			runner = new TestRunner (new DelegatesPassedToNativeCodeMustIncludeExceptionHandlingRule ());
+			
 			foreach (MethodDefinition method in DefinitionLoader.GetTypeDefinition <T> ().Methods) {
-				result = ((TestRunner) Runner).CheckMethod (method);
-				if (result == RuleResult.Failure)
+				result = runner.CheckMethod (method);
+				if (result == RuleResult.Failure) {
+					Assert.IsFalse (failed);
+					Assert.AreEqual (1, runner.Defects.Count);
 					failed = true;
+				}
 			}
 
 			Assert.IsTrue (failed);
+		}
+		
+		[Test]
+		public void Test_NonVoidStruct ()
+		{
+			AssertTest ("CheckMethod_OKNonVoidStruct");
+			AssertTest ("CheckMethod_OKNonVoidStruct2");
+		}
+		
+		[Test]
+		public void Test_OutParams ()
+		{
+			AssertTest ("CheckMethod_OKOutParams");
+			AssertTest ("CheckMethod_FailOutParams", 1);
+		}
+		
+		[Test]
+		public void Test_TwoFailures ()
+		{
+			AssertTest ("CheckMethod_TwoFailures_a", 2);
+			AssertTest ("CheckMethod_TwoFailures_b", 2);
+		}
+		
+		[Test]
+		public void Test_NonVoid ()
+		{
+			AssertTest ("CheckMethod_NonVoidOK");
+			AssertTest ("CheckMethod_NonVoidFail");
 		}
 		
 		[Test]
@@ -592,7 +856,7 @@ namespace Test.Rules.Interoperability {
 		public void Test_CallbackFailEmpty_h ()
 		{
 			AssertTest (MethodInfo.GetCurrentMethod ().Name.Replace ("Test_", "CheckMethod_"));
-			AssertTest (MethodInfo.GetCurrentMethod ().Name.Replace ("Test_", "CheckMethod_Anonymous"));
+			AssertTest (MethodInfo.GetCurrentMethod ().Name.Replace ("Test_", "CheckMethod_Anonymous"), 2);
 		}
 		
 		[Test]

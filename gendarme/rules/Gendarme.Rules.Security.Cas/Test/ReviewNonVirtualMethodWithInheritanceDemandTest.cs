@@ -34,6 +34,7 @@ using System.Security.Permissions;
 using SSP = System.Security.Permissions;
 
 using Gendarme.Framework;
+using Gendarme.Framework.Rocks;
 using Gendarme.Rules.Security.Cas;
 using Mono.Cecil;
 using NUnit.Framework;
@@ -104,7 +105,7 @@ namespace Test.Rules.Security.Cas {
 		public void FixtureSetUp ()
 		{
 			string unit = Assembly.GetExecutingAssembly ().Location;
-			assembly = AssemblyFactory.GetAssembly (unit);
+			assembly = AssemblyDefinition.ReadAssembly (unit);
 			rule = new ReviewNonVirtualMethodWithInheritanceDemandRule ();
 			runner = new TestRunner (rule);
 		}
@@ -112,7 +113,7 @@ namespace Test.Rules.Security.Cas {
 		private TypeDefinition GetTest (string name)
 		{
 			string fullname = "Test.Rules.Security.Cas.ReviewNonVirtualMethodWithInheritanceDemandTest/" + name;
-			return assembly.MainModule.Types[fullname];
+			return assembly.MainModule.GetType (fullname);
 		}
 
 		[Test]
@@ -120,6 +121,8 @@ namespace Test.Rules.Security.Cas {
 		{
 			TypeDefinition type = GetTest ("AbstractMethodsClass");
 			foreach (MethodDefinition method in type.Methods) {
+				if (method.IsConstructor)
+					continue;
 				Assert.AreEqual (RuleResult.Success, runner.CheckMethod (method), method.ToString ());
 			}
 		}
@@ -145,6 +148,8 @@ namespace Test.Rules.Security.Cas {
 		{
 			TypeDefinition type = GetTest ("NoVirtualMethodsClass");
 			foreach (MethodDefinition method in type.Methods) {
+				if (method.IsConstructor)
+					continue;
 				Assert.AreEqual (RuleResult.Failure, runner.CheckMethod (method), method.ToString ());
 			}
 		}
@@ -154,6 +159,8 @@ namespace Test.Rules.Security.Cas {
 		{
 			TypeDefinition type = GetTest ("NotInheritanceDemandClass");
 			foreach (MethodDefinition method in type.Methods) {
+				if (method.IsConstructor)
+					continue;
 				Assert.AreEqual (RuleResult.DoesNotApply, runner.CheckMethod (method), method.ToString ());
 			}
 		}

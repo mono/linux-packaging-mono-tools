@@ -71,6 +71,7 @@ CTAGS = ctags
 DIST_SUBDIRS = $(SUBDIRS)
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
+ACLOCAL_FLAGS = @ACLOCAL_FLAGS@
 AMTAR = @AMTAR@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
@@ -89,6 +90,7 @@ CYGPATH_W = @CYGPATH_W@
 DATADIRNAME = @DATADIRNAME@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
+DMCS = @DMCS@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
@@ -102,6 +104,8 @@ GETTEXT_PACKAGE = @GETTEXT_PACKAGE@
 GMCS = @GMCS@
 GMOFILES = @GMOFILES@
 GMSGFMT = @GMSGFMT@
+GNOME_SHARP_CFLAGS = @GNOME_SHARP_CFLAGS@
+GNOME_SHARP_LIBS = @GNOME_SHARP_LIBS@
 GNUNIT_VERSION = @GNUNIT_VERSION@
 GREP = @GREP@
 GTKHTML_SHARP_CFLAGS = @GTKHTML_SHARP_CFLAGS@
@@ -219,7 +223,7 @@ GENDARME_OPTIONS := $(COMMON_OPTIONS) -warn:4 -warnaserror+
 TESTS_OPTIONS := $(COMMON_OPTIONS) -warn:0
 SUBDIRS = Test
 EXTRA_RULES_OPTIONS := $(GENDARME_OPTIONS)
-EXTRA_TESTS_OPTIONS := $(TESTS_OPTIONS)
+EXTRA_TESTS_OPTIONS := $(TESTS_OPTIONS) -d:CODE_ANALYSIS
 console_runner = ../../bin/gendarme.exe
 framework = ../../bin/Gendarme.Framework.dll
 common_tests = ../Test.Rules/Test.Rules.dll
@@ -266,6 +270,7 @@ rules_sources = \
 	DoNotDeclareVirtualMethodsInSealedTypeRule.cs \
 	DontDeclareProtectedFieldsInSealedClassRule.cs \
 	EnsureSymmetryForOverloadedOperatorsRule.cs \
+	EnumeratorsShouldBeStronglyTypedRule.cs \
 	EnumsShouldDefineAZeroValueRule.cs \
 	EnumsShouldUseInt32Rule.cs \
 	FinalizersShouldBeProtectedRule.cs \
@@ -273,6 +278,7 @@ rules_sources = \
 	ImplementEqualsAndGetHashCodeInPairRule.cs \
 	ImplementIComparableCorreclyRule.cs \
 	InternalNamespacesShouldNotExposeTypesRule.cs \
+	ListsAreStronglyTypedRule.cs \
 	MainShouldNotBePublicRule.cs \
 	MarkAssemblyWithAssemblyVersionRule.cs \
 	MarkAssemblyWithAttributeRule.cs \
@@ -283,8 +289,12 @@ rules_sources = \
 	OverrideEqualsMethodRule.cs \
 	PreferEventsOverMethodsRule.cs \
 	PreferIntegerOrStringForIndexersRule.cs \
+	PreferUriOverStringRule.cs \
 	PreferXmlAbstractionsRule.cs \
 	ProvideAlternativeNamesForOperatorOverloadsRule.cs \
+	ProvideTryParseAlternativeRule.cs \
+	StronglyTypedRule.cs \
+	StronglyTypeICollectionMembersRule.cs \
 	TypesShouldBeInsideNamespacesRule.cs \
 	TypesWithDisposableFieldsShouldBeDisposableRule.cs \
 	TypesWithNativeFieldsShouldBeDisposableRule.cs \
@@ -311,13 +321,16 @@ tests_sources = \
 	DoNotDeclareVirtualMethodsInSealedTypeTest.cs \
 	DontDeclareProtectedFieldsInSealedClassTest.cs \
 	EnsureSymmetryForOverloadedOperatorsTest.cs \
+	EnumeratorsShouldBeStronglyTypedTest.cs \
 	EnumsShouldDefineAZeroValueTest.cs \
 	EnumsShouldUseInt32Test.cs \
 	FinalizersShouldBeProtectedTest.cs \
 	FlagsShouldNotDefineAZeroValueTest.cs \
+	GlobalSuppressions.cs \
 	ImplementEqualsAndGetHashCodeInPairTest.cs \
 	ImplementIComparableCorreclyTest.cs \
 	InternalNamespacesShouldNotExposeTypesTest.cs \
+	ListsAreStronglyTypedTest.cs \
 	MainShouldNotBePublicTest.cs \
 	MarkAssemblyWithAssemblyVersionTest.cs \
 	MarkAssemblyWithCLSCompliantTest.cs \
@@ -327,8 +340,11 @@ tests_sources = \
 	OverrideEqualsMethodTest.cs \
 	PreferEventsOverMethodsTest.cs \
 	PreferIntegerOrStringForIndexersTest.cs \
+	PreferUriOverStringTest.cs \
 	PreferXmlAbstractionsTest.cs \
+	ProvideTryParseAlternativeTest.cs \
 	ProvideAlternativeNamesForOperatorOverloadsTest.cs \
+	StronglyTypeICollectionMembersTest.cs \
 	TypesShouldBeInsideNamespacesTest.cs \
 	TypesWithDisposableFieldsShouldBeDisposableTest.cs \
 	TypesWithNativeFieldsShouldBeDisposableTest.cs \
@@ -692,7 +708,7 @@ $(rules_dll): $(rules_build_sources) $(framework)
 	$(GMCS) -target:library $(EXTRA_RULES_OPTIONS) -nowarn:1591 -doc:$(rules_dll).doc \
 		-r:$(CECIL_ASM) -r:$(framework) -out:$@ $(rules_build_sources)
 
-$(tests_dll): $(tests_build_sources) $(rules_dll)
+$(tests_dll): $(tests_build_sources) $(rules_dll) $(EXTRA_TESTS_DEPS)
 	$(GMCS) -target:library $(EXTRA_TESTS_OPTIONS) -r:$(CECIL_ASM) -r:$(framework) \
 		-r:$(rules_dll) -r:$(common_tests) -pkg:mono-nunit -out:$@ $(tests_build_sources)
 

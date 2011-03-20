@@ -1,3 +1,88 @@
+2010-06-20  Sebastien Pouliot  <sebastien@ximian.com> 
+
+	* ConsiderUsingStopwatchRule.cs:
+	* PreferStringIsNullOrEmptyRule.cs:
+		Apply AvoidRepetitiveCallsToPropertiesRule
+
+2010-06-20  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidComplexMethodsRule.cs: Fix sparse (non consecutive)
+	switch/cases. Use a fast version of CC if no switch is present
+	(based on OpCodeEngine). Handle both xMCS and CSC
+
+2010-06-15  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidUnnecessarySpecializationRule.cs:
+	* RemoveDependenceOnObsoleteCodeRule.cs:
+		Apply AvoidRepetitiveCallsToPropertiesRule
+
+2010-06-15  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidAlwaysNullFieldRule.cs:
+	* AvoidUnnecessarySpecializationRule.cs:
+		Apply AvoidRepetitiveCallsToPropertiesRule
+
+2010-06-09  Sebastien Pouliot  <sebastien@ximian.com> 
+
+	* AvoidUnnecessarySpecializationRule.cs: Split signature gathering
+	from UpdateParameterLeastType (fixing some self-test defects wrt 
+	size). Only compute signatures when we need them - saves 149kb 
+	while executing self-test
+
+2010-06-07  Sebastien Pouliot  <sebastien@ximian.com> 
+
+	* AvoidUnnecessarySpecializationRule.cs: Fix potential false 
+	positives when overriding a base method. Fix potential false
+	positives when analyzing methods assigned to events.
+
+2010-06-07  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidUnnecessarySpecializationRule.cs: Avoid using temporary 
+	List<Instruction> (reduce allocations) and avoid re-checking
+	known parameters.
+
+2010-06-04  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* RemoveDependenceOnObsoleteCodeRule.cs: Apply AvoidUnnecessarySpecializationRule
+
+2010-05-16  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidUnnecessarySpecializationRule.cs: Apply AvoidRepetitive
+	CallsToPropertiesRule. Remove condition check that can never
+	occur at this stage since it is checked earlier by the rule.
+
+2010-05-08  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidUnnecessarySpecializationRule.cs: Fix when "ldarg 0" is 
+	used instead of the, much more common, "ldarg_0"
+
+2010-04-22  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* RemoveDependenceOnObsoleteCodeRule.cs: Fix case where a property
+	setter or getter does not exists (on obsoleted property).
+
+2010-02-15  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidAlwaysNullFieldRule.cs: The rules was ignoring "components" 
+	member for windows forms but not for usercontrol and more generally
+	controls. Patch provided by Antoine V.
+
+2010-01-31  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* Makefile.am: Add new rule and tests to the build
+	* RemoveDependenceOnObsoleteCodeRule.cs: New. Rule to warn you if
+	your code depends on code decorated with the [Obsolete] attribute
+
+2010-01-27  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidUnnecessarySpecializationRule.cs: Use shorter, unambiguous
+	.ctor to create MethodSignature
+
+2010-01-26  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* PreferStringIsNullOrEmptyRule.cs: Fix regression on code compiled
+	using CSC.
+
 2009-08-13  Jesse Jones  <jesjones@mindspring.com>
 
 	* AvoidLackOfCohesionOfMethodsRule.cs, ConsiderUsingStopwatchRule.cs, 

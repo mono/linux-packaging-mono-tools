@@ -50,7 +50,10 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="nunit.framework, Version=2.4.3.0, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL" />
+    <Reference Include="nunit.framework, Version=2.4.8.0, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\cecil\Test\libs\nunit-2.4.8\nunit.framework.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.configuration" />
     <Reference Include="System.Core">
@@ -62,8 +65,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AttributeStringLiteralsShouldParseCorrectlyTest.cs" />
+    <Compile Include="AvoidCodeWithSideEffectsInConditionalCodeTest.cs" />
     <Compile Include="AvoidConstructorsInStaticTypesTest.cs" />
     <Compile Include="AvoidFloatingPointEqualityTest.cs" />
+    <Compile Include="AvoidMethodsWithSideEffectsInConditionalCodeTest.cs" />
     <Compile Include="BadRecursiveInvocationTest.cs" />
     <Compile Include="CallingEqualsWithNullArgTest.cs" />
     <Compile Include="CheckParametersNullityInVisibleMethodsTest.cs" />
@@ -79,6 +84,11 @@
     <Compile Include="ProvideCorrectRegexPatternTest.cs" />
     <Compile Include="ProvideValidXmlStringTest.cs" />
     <Compile Include="ProvideValidXPathExpressionTest.cs" />
+    <Compile Include="Resource.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resource.resx</DependentUpon>
+    </Compile>
     <Compile Include="ReviewCastOnIntegerDivisionTest.cs" />
     <Compile Include="ReviewCastOnIntegerMultiplicationTest.cs" />
     <Compile Include="ReviewDoubleAssignmentTest.cs" />
@@ -87,11 +97,12 @@
     <Compile Include="ReviewUselessControlFlowTest.cs" />
     <Compile Include="ReviewUseOfInt64BitsToDoubleTest.cs" />
     <Compile Include="ReviewUseOfModuloOneOnIntegersTest.cs" />
+    <Compile Include="UseNoInliningWithGetCallingAssemblyTest.cs" />
     <Compile Include="UseValueInPropertySetterTest.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\..\mcs\class\Mono.Cecil\Mono.Cecil.csproj">
-      <Project>{D8F63DFF-5230-43E4-9AB2-DA6E721A1FAE}</Project>
+    <ProjectReference Include="..\..\..\..\..\cecil\Mono.Cecil.csproj">
+      <Project>{D68133BD-1E63-496E-9EDE-4FBDBF77B486}</Project>
       <Name>Mono.Cecil</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\..\framework\Gendarme.Framework.csproj">
@@ -117,6 +128,13 @@
     <BootstrapperPackage Include="Microsoft.Net.Framework.3.5">
       <Visible>False</Visible>
     </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resource.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resource.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -91,7 +91,7 @@ namespace Gendarme.Rules.Performance {
 
 			// this rule cannot execute if debugging information is not available
 			Runner.AnalyzeModule += delegate (object o, RunnerEventArgs e) {
-				Active = e.CurrentModule.HasDebuggingInformation ();
+				Active = e.CurrentModule.HasSymbols;
 			};
 		}
 
@@ -102,9 +102,12 @@ namespace Gendarme.Rules.Performance {
 			if (!method.HasBody || method.IsGeneratedCode ())
 				return RuleResult.DoesNotApply;
 
-			int count = method.Body.Variables.Count;
-			if (count == 0)
+			MethodBody body = method.Body;
+			if (!body.HasVariables)
 				return RuleResult.Success;
+
+			var variables = body.Variables;
+			int count = variables.Count;
 
 			if (used == null) {
 				used = new BitArray (Math.Max (DefaultLength, count));
@@ -113,7 +116,7 @@ namespace Gendarme.Rules.Performance {
 			}
 			used.SetAll (false);
 
-			foreach (Instruction ins in method.Body.Instructions) {
+			foreach (Instruction ins in body.Instructions) {
 				VariableDefinition vd = ins.GetVariable (method);
 				if (vd != null)
 					used [vd.Index] = true;
@@ -125,13 +128,12 @@ namespace Gendarme.Rules.Performance {
 					// using them (e.g. assign only a constant). In this case we need
 					// to determine if the variable is "genuine" or a compiler
 					// (*) seen in a while (true) loop over a switch
-					VariableDefinition variable = method.Body.Variables [i];
-					string var_name = variable.Name;
-					if (var_name.StartsWith ("V_") || var_name.Contains ("$"))
+					VariableDefinition variable = variables [i];
+					if (variable.IsGeneratedName ())
 						continue;
 
 					string s = String.Format ("Variable '{0}' of type '{1}'", 
-						var_name, variable.VariableType.FullName);
+						variable.Name, variable.VariableType.FullName);
 					Runner.Report (method, Severity.Low, Confidence.Normal, s);
 				}
 			}

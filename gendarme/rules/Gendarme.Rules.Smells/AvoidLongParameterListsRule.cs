@@ -29,6 +29,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 using Mono.Cecil;
 using Gendarme.Framework;
@@ -92,17 +93,14 @@ namespace Gendarme.Rules.Smells {
 			}
 		}
 
-		private static MethodDefinition GetSmallerConstructorFrom (TypeDefinition type)
+		private static MethodDefinition GetSmallestConstructorFrom (TypeDefinition type)
 		{
-			if (!type.HasConstructors)
-				return null;
-
-			if (type.Constructors.Count == 1)
-				return type.Constructors[0];
-
 			MethodDefinition smallest = null;
 			int scount = 0;
-			foreach (MethodDefinition constructor in type.Constructors) {
+			foreach (MethodDefinition constructor in type.Methods) {
+				if (!constructor.IsConstructor)
+					continue;
+
 				// skip the static ctor since it will always be the smallest one
 				if (constructor.IsStatic)
 					continue;
@@ -121,12 +119,12 @@ namespace Gendarme.Rules.Smells {
 			return smallest;
 		}
 
-		private bool HasMoreParametersThanAllowed (MethodDefinition method)
+		private bool HasMoreParametersThanAllowed (IMethodSignature method)
 		{
 			return (method.HasParameters ? method.Parameters.Count : 0) >= MaxParameters;
 		}
 
-		private void CheckConstructor (MethodDefinition constructor)
+		private void CheckConstructor (IMethodSignature constructor)
 		{
 			//Skip enums, interfaces, <Module>, static classes ...
 			//All stuff that doesn't contain a constructor
@@ -136,7 +134,7 @@ namespace Gendarme.Rules.Smells {
 				Runner.Report (constructor, Severity.Medium, Confidence.Normal, "This constructor contains a long parameter list.");
 		}
 
-		private void CheckMethod (MethodDefinition method)
+		private void CheckMethod (IMethodSignature method)
 		{
 			if (HasMoreParametersThanAllowed (method))
 				Runner.Report (method, Severity.Medium, Confidence.Normal, "This method contains a long parameter list.");
@@ -144,20 +142,22 @@ namespace Gendarme.Rules.Smells {
 
 		//TODO: Perhaps we can perform this action with linq instead of
 		//loop + hashtable
-		private static IEnumerable<MethodDefinition> GetSmallerOverloaded (TypeDefinition type)
+		private static IEnumerable<MethodDefinition> GetSmallestOverloaded (TypeDefinition type)
 		{
 			IDictionary<string, MethodDefinition> possibleOverloaded = new Dictionary<string, MethodDefinition> ();
 			foreach (MethodDefinition method in type.Methods) {
-				if (method.IsPInvokeImpl)
+				if (method.IsConstructor || method.IsPInvokeImpl)
 					continue;
-				if (!possibleOverloaded.ContainsKey (method.Name))
-					possibleOverloaded.Add (method.Name, method);
+
+				string name = method.Name;
+				if (!possibleOverloaded.ContainsKey (name))
+					possibleOverloaded.Add (name, method);
 				else {
-					MethodDefinition candidate = possibleOverloaded [method.Name];
+					MethodDefinition candidate = possibleOverloaded [name];
 					int ccount = candidate.HasParameters ? candidate.Parameters.Count : 0;
 					int mcount = method.HasParameters ? method.Parameters.Count : 0;
 					if (ccount > mcount)
-						possibleOverloaded [method.Name] = method;
+						possibleOverloaded [name] = method;
 				}
 			}
 			return possibleOverloaded.Values;
@@ -165,14 +165,16 @@ namespace Gendarme.Rules.Smells {
 
 		private static bool OnlyContainsExternalMethods (TypeDefinition type)
 		{
-			if (!type.HasMethods)
-				return false;
-
-			foreach (MethodDefinition method in type.Methods)
+			bool has_methods = false;
+			foreach (MethodDefinition method in type.Methods) {
+				if (method.IsConstructor)
+					continue;
+				has_methods = true;
 				if (!method.IsPInvokeImpl)
 					return false;
+			}
 			// all methods are p/invoke
-			return true;
+			return has_methods;
 		}
 
 		private RuleResult CheckDelegate (TypeReference type)
@@ -194,10 +196,10 @@ namespace Gendarme.Rules.Smells {
 			if (type.IsDelegate ())
 				return CheckDelegate (type);
 
-			CheckConstructor (GetSmallerConstructorFrom (type));
-
 			if (type.HasMethods) {
-				foreach (MethodDefinition method in GetSmallerOverloaded (type)) 
+				CheckConstructor (GetSmallestConstructorFrom (type));
+
+				foreach (MethodDefinition method in GetSmallestOverloaded (type)) 
 					CheckMethod (method);
 			}
 

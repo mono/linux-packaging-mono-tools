@@ -1,3 +1,100 @@
+2010-06-20  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidMessageChainsRule.cs: Apply AvoidRepetitiveCallsToPropertiesRule
+
+2010-06-16  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidLargeClassesRule.cs:
+	* AvoidSpeculativeGeneralityRule.cs:
+		Apply AvoidRepetitiveCallsToPropertiesRule
+
+2010-06-10  Sebastien Pouliot  <sebastien@ximian.com> 
+
+	* AvoidLargeClassesRule.cs: Be more accurate when reporting. E.g.
+	report all common prefixes with a count
+
+2010-06-10  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidLongParameterListsRule.cs: Move HasConstructor check before
+	a call. Rename two methods (Smaller->Smallest)
+	* CodeDuplicatedLocator.cs: Don't create more than one empty List
+	of patterns and avoid some allocations. Saves 74kb on self-test
+	* Pattern.cs: Reuse the instructions array when possible. Saves 
+	1320kb while executing self-test
+
+2010-06-09  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* CodeDuplicatedLocator.cs: Ignore duplicated code located inside
+	generated code.
+	* InstructionMatcher.cs: Refactor AreEquivalent. Parameters and
+	variables do not need to the "at the same index" to be a match.
+	Matching now also include STLOC* (not just LDLOC*)
+	* Pattern.cs: Rework ComputePrefixes to set/reset Target on
+	InstructionMatcher since this could lead to looking at instruction
+	from another method (than Target) leading to exceptions or false
+	positives
+
+2010-06-04  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidCodeDuplicatedInSiblingClassesRule.cs:
+	* AvoidLargeClassesRule.cs:
+	* AvoidLongParameterListsRule.cs:
+	* CodeDuplicatedLocator.cs:
+ 		Apply AvoidUnnecessarySpecializationRule
+	* Pattern.cs:
+		Apply ConsiderConvertingMethodToPropertyRule
+
+2010-05-08  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidLongParameterListsRule.cs: Apply AvoidRepetitiveCallsTo
+	PropertiesRule on the use of TypeDefinition.Constructors property
+	* InstructionMatcher.cs: Fix when "ldarg 0" is used instead of 
+	the, much more common, "ldarg_0"
+
+2010-05-02  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* InstructionMatcher.cs: Rework AreEquivalent to avoid memory
+	allocations when comparing operands (like MethodReferences).
+	This makes the rules using the matcher 2 times faster.
+
+2010-04-29  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidLargeClassesRule.cs: Apply AvoidRepetitiveCallsToProperties
+	Rule on MemberReference::get_Name (6)
+	* AvoidLongParameterListsRule.cs: Apply AvoidRepetitiveCallsTo
+	PropertiesRule on MemberReference::get_Name
+
+2010-04-26  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidMessageChainsRule.cs: Change MaxChainLength from 5 to 4 
+	and condition from >= to > (same effect) so the rule description
+	(and documentation) makes more sense.
+
+2010-03-24  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* CodeDuplicatedLocator.cs: Add [Conditional("DEBUG")] on 
+	WriteToOutput. Fix typo IsExtractableToMethodBlock
+	* InstructionMatcher.cs: Use rocks to cover all LDARG* and LDLOC*
+	* Pattern.cs: Don't try to be too precise when checking compiler
+	generated patterns since this only makes it difficult to support
+	many compilers and adds false positives. New logic is more 
+	permissive (IL wise), more (operand wise) and less (IL wise)
+	precise and should cover more compilers while reducing false 
+	positive (but it could fail to report some cases - which is less
+	problematic than reporting false positive IMO)
+
+2010-03-21  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidLongMethodsRule.cs: Add more types (from Workflow and 
+	Silverlight) that use InitializeComponent to be ignored. Patch
+	by Jeff Craig.
+
+2010-01-24  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidSwitchStatementsRule.cs: Ignore all generated code since 
+	their name will be compiler dependant. Fix unit test under Windows
+	(well when compiled with CSC)
+
 2009-07-07  Jesse Jones  <jesjones@mindspring.com>
 
 	* *Rule.cs: Edited most of the rule descriptions.

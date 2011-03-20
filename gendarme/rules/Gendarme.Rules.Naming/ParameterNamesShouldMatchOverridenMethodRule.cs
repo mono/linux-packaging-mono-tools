@@ -27,6 +27,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 
 using Mono.Cecil;
@@ -84,30 +85,41 @@ namespace Gendarme.Rules.Naming {
 
 			//check if this is a Boo assembly using macros
 			Runner.AnalyzeAssembly += delegate (object o, RunnerEventArgs e) {
-				IsBooAssemblyUsingMacro = (e.CurrentAssembly.MainModule.TypeReferences.ContainsType (BooMacroStatement));
+				IsBooAssemblyUsingMacro = (e.CurrentAssembly.MainModule.HasTypeReference (BooMacroStatement));
 			};
 		}
 
 		private static bool SignatureMatches (MethodReference method, MethodReference baseMethod, bool explicitInterfaceCheck)
 		{
-			if (method.Name != baseMethod.Name) {
+			string name = method.Name;
+			string base_name = baseMethod.Name;
+
+			if (name != base_name) {
 				if (!explicitInterfaceCheck)
 					return false;
-				if (method.Name != baseMethod.DeclaringType.FullName + "." + baseMethod.Name)
+				string full_name = baseMethod.DeclaringType.FullName;
+				if (!name.StartsWith (full_name, StringComparison.Ordinal))
+					return false;
+				if (name [full_name.Length] != '.')
+					return false;
+				if (name.LastIndexOf (base_name, StringComparison.Ordinal) != full_name.Length + 1)
 					return false;
 			}
-			if (method.ReturnType.ReturnType.FullName != baseMethod.ReturnType.ReturnType.FullName)
+			if (method.ReturnType.FullName != baseMethod.ReturnType.FullName)
 				return false;
-			if (method.Parameters.Count != baseMethod.Parameters.Count)
+			if (method.HasParameters != baseMethod.HasParameters)
 				return false;
-			bool paramtersMatch = true;
-			for (int i = 0; i < method.Parameters.Count; i++) {
-				if (method.Parameters [i].ParameterType.ToString () != baseMethod.Parameters [i].ParameterType.ToString ()) {
-					paramtersMatch = false;
-					break;
-				}
+
+			IList<ParameterDefinition> pdc = method.Parameters;
+			IList<ParameterDefinition> base_pdc = baseMethod.Parameters;
+			if (pdc.Count != base_pdc.Count)
+				return false;
+
+			for (int i = 0; i < pdc.Count; i++) {
+				if (pdc [i].ParameterType != base_pdc [i].ParameterType)
+					return false;
 			}
-			return paramtersMatch;
+			return true;
 		}
 
 		private static MethodDefinition GetBaseMethod (MethodDefinition method)
@@ -157,15 +169,16 @@ namespace Gendarme.Rules.Naming {
 			if (baseMethod == null)
 				return RuleResult.Success;
 
+			IList<ParameterDefinition> base_pdc = baseMethod.Parameters;
 			//do not trigger false positives on Boo macros
-			if (IsBooAssemblyUsingMacro && IsBooMacroParameter (baseMethod.Parameters [0]))
+			if (IsBooAssemblyUsingMacro && IsBooMacroParameter (base_pdc [0]))
 				return RuleResult.Success;
 
-			for (int i = 0; i < method.Parameters.Count; i++) {
-				if (method.Parameters [i].Name != baseMethod.Parameters [i].Name) {
-					string s = string.Format (CultureInfo.InstalledUICulture,
-						"The name of parameter #{0} ({1}) does not match the name of the parameter in the overriden method ({2}).", 
-						i + 1, method.Parameters [i].Name, baseMethod.Parameters [i].Name);
+			IList<ParameterDefinition> pdc = method.Parameters;
+			for (int i = 0; i < pdc.Count; i++) {
+				if (pdc [i].Name != base_pdc [i].Name) {
+					string s = string.Format ("The name of parameter #{0} ({1}) does not match the name of the parameter in the overriden method ({2}).", 
+						i + 1, pdc [i].Name, base_pdc [i].Name);
 					Runner.Report (method, Severity.Medium, Confidence.High, s);
 				}
 			}

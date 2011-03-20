@@ -114,39 +114,42 @@ namespace Gendarme.Rules.Naming {
 			if (method.IsConstructor || method.IsOverride ())
 				return RuleResult.DoesNotApply;
 
-			string name = method.Parameters [0].ParameterType.Name;
+			ParameterDefinition p0 = method.Parameters [0];
+			TypeReference p0type = p0.ParameterType;
 
 			//param is out/ref, it is already not obvious (there is a rule for that)
-			if (method.Parameters [0].IsOut || name.EndsWith ("&", StringComparison.Ordinal))
+			if (p0.IsOut || p0type.IsByReference)
 				return RuleResult.DoesNotApply;
 
-			if (name.Length == 1 || method.Name.Length <= name.Length)
+			string name = p0type.Name;
+			string method_name = method.Name;
+			if (name.Length == 1 || method_name.Length <= name.Length)
 				return RuleResult.DoesNotApply;
-			if ((method.Name.Length - name.Length) < 4 && IsVaguePrefix (method.Name)) //suggestion would be too vague anyway (Get/Set/Is)
+			if ((method_name.Length - name.Length) < 4 && IsVaguePrefix (method_name)) //suggestion would be too vague anyway (Get/Set/Is)
 				return RuleResult.DoesNotApply;
 			if (!char.IsUpper (name [0])) //non-compliant naming, cannot go further (PascalWords needed)
 				return RuleResult.DoesNotApply;
 
 			//if the method return the parameter type it is most likely clearer to have it in the name
-			if (method.ReturnType.ReturnType == method.Parameters [0].ParameterType)
+			if (method.ReturnType == p0.ParameterType)
 				return RuleResult.Success;
 
 			//if starting with name it is most likely on purpose
-			if (method.Name.StartsWith (name, StringComparison.Ordinal))
+			if (method_name.StartsWith (name, StringComparison.Ordinal))
 				return RuleResult.Success;
 
-			int pos = method.Name.LastIndexOf (name);
+			int pos = method_name.LastIndexOf (name);
 			if (-1 == pos)
 				return RuleResult.Success;
 
 			Confidence confidence = Confidence.Normal;
-			if (pos >= method.Name.Length - name.Length) //suffix, most common and most verbose case
+			if (pos >= method_name.Length - name.Length) //suffix, most common and most verbose case
 				confidence = Confidence.High;
-			else if (!char.IsUpper (method.Name [pos + name.Length])) //not the end of a 'PascalWord'
+			else if (!char.IsUpper (method_name [pos + name.Length])) //not the end of a 'PascalWord'
 				return RuleResult.Success;
 
 			//if IgnoreAlienNamespaces is True, then check if parameter type is from one of the analyzed namespaces
-			if (IgnoreAlienNamespaces && IsTypeFromAlienNamespace (method.Parameters [0].ParameterType))
+			if (IgnoreAlienNamespaces && IsTypeFromAlienNamespace (p0.ParameterType))
 				return RuleResult.Success; //ignored/out-of-reach, so this is a success
 
 			//main goal is to keep the API as simple as possible so this is more severe for visible methods
@@ -156,7 +159,8 @@ namespace Gendarme.Rules.Naming {
 			string msg;
 			if (method.IsStatic) { //we already have a rule that checks if the method should be static
 				string memberKind = GetSuggestionMemberKind (method);
-				msg = String.Format ("Consider renaming method to '{2}', or extracting method to type '{0}' as {1} '{2}', or making an extension method of that type.", method.Parameters [0].ParameterType, memberKind, suggestion);
+				msg = String.Format ("Consider renaming method to '{2}', or extracting method to type '{0}' as {1} '{2}', or making an extension method of that type.", 
+					p0.ParameterType, memberKind, suggestion);
 			} else {
 				msg = String.Format ("Consider renaming method to '{0}'.", suggestion);
 			}
@@ -165,9 +169,10 @@ namespace Gendarme.Rules.Naming {
 			return RuleResult.Failure;
 		}
 
-		private static string GetSuggestionMethodName (MethodReference method, string name, int posFound)
+		private static string GetSuggestionMethodName (MemberReference method, string name, int posFound)
 		{
-			string suggestion = string.Concat (method.Name.Substring (0, posFound), method.Name.Substring (posFound + name.Length));
+			string method_name = method.Name;
+			string suggestion = string.Concat (method_name.Substring (0, posFound), method_name.Substring (posFound + name.Length));
 			if (suggestion.EndsWith ("In", StringComparison.Ordinal))
 				return suggestion.Substring (0, suggestion.Length - 2);
 			if (suggestion.EndsWith ("For", StringComparison.Ordinal))
@@ -177,9 +182,9 @@ namespace Gendarme.Rules.Naming {
 			return suggestion;
 		}
 
-		private static string GetSuggestionMemberKind (MethodReference method)
+		private static string GetSuggestionMemberKind (IMethodSignature method)
 		{
-			if (method.Parameters.Count == 1 && method.ReturnType.ReturnType.FullName != "System.Void")
+			if (method.Parameters.Count == 1 && method.ReturnType.FullName != "System.Void")
 				return "property";
 			return "method";
 		}

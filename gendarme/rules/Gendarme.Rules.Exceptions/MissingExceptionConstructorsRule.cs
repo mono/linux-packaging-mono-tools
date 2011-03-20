@@ -25,6 +25,7 @@
 // THE SOFTWARE.
 
 using System;
+using System.Collections.Generic;
 
 using Mono.Cecil;
 
@@ -99,10 +100,11 @@ namespace Gendarme.Rules.Exceptions {
 			return (ctor.Parameters [0].ParameterType.FullName == "System.String");
 		}
 
-		private static bool CheckForInnerExceptionConstructor (MethodDefinition ctor)
+		private static bool CheckForInnerExceptionConstructor (IMethodSignature ctor)
 		{
-			string first = ctor.Parameters [0].ParameterType.FullName;
-			string last = ctor.Parameters [ctor.Parameters.Count - 1].ParameterType.FullName;
+			IList<ParameterDefinition> pdc = ctor.Parameters;
+			string first = pdc [0].ParameterType.FullName;
+			string last = pdc [pdc.Count - 1].ParameterType.FullName;
 			return ((first == "System.String") && (last == Exception));
 		}
 
@@ -129,9 +131,9 @@ namespace Gendarme.Rules.Exceptions {
 			bool inner_exception_ctor = false;	// MyException (string message, Exception innerException)
 			bool serialization_ctor = false;	// MyException (SerializationInfo info, StreamingContext context)
 
-			foreach (MethodDefinition ctor in type.Constructors) {
-				// skip cctor
-				if (ctor.IsStatic)
+			foreach (MethodDefinition ctor in type.Methods) {
+				// skip non-constructors and cctor
+				if (!ctor.IsConstructor || ctor.IsStatic)
 					continue;
 
 				if (!ctor.HasParameters) {

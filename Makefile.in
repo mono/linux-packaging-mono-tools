@@ -71,6 +71,7 @@ GZIP_ENV = --best
 distuninstallcheck_listfiles = find . -type f -print
 distcleancheck_listfiles = find . -type f -print
 ACLOCAL = @ACLOCAL@
+ACLOCAL_FLAGS = @ACLOCAL_FLAGS@
 AMTAR = @AMTAR@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
@@ -89,6 +90,7 @@ CYGPATH_W = @CYGPATH_W@
 DATADIRNAME = @DATADIRNAME@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
+DMCS = @DMCS@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
@@ -102,6 +104,8 @@ GETTEXT_PACKAGE = @GETTEXT_PACKAGE@
 GMCS = @GMCS@
 GMOFILES = @GMOFILES@
 GMSGFMT = @GMSGFMT@
+GNOME_SHARP_CFLAGS = @GNOME_SHARP_CFLAGS@
+GNOME_SHARP_LIBS = @GNOME_SHARP_LIBS@
 GNUNIT_VERSION = @GNUNIT_VERSION@
 GREP = @GREP@
 GTKHTML_SHARP_CFLAGS = @GTKHTML_SHARP_CFLAGS@
@@ -212,8 +216,11 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 SUBDIRS = po docbrowser asn1view create-native-map ilcontrast gui-compare \
-	gendarme Mono.Profiler mperfmon gsharp webdoc minvoke
+	gendarme mperfmon gsharp webdoc minvoke Mono.Profiler
 
+
+#capture aclocal flags for autoreconf
+ACLOCAL_AMFLAGS = $(ACLOCAL_FLAGS)
 all: all-recursive
 
 .SUFFIXES:

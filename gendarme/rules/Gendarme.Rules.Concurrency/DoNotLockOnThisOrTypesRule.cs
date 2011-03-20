@@ -91,20 +91,20 @@ namespace Gendarme.Rules.Concurrency {
 		private const string LockThis = "Monitor.Enter(this) or lock(this) in C#";
 		private const string LockType = "Monitor.Enter(typeof({0})) or lock(typeof({0})) in C#";
 
-		public override void Analyze (MethodDefinition method, Instruction ins)
+		public override void Analyze (MethodDefinition method, MethodReference enter, Instruction ins)
 		{
 			Instruction locker = ins.TraceBack (method);
 			if (locker.OpCode.Code == Code.Dup)
 				locker = locker.TraceBack (method);
 
 			string msg = CheckLocker (method, locker);
-			if (msg != null)
+			if (msg.Length > 0)
 				Runner.Report (method, ins, Severity.High, Confidence.High, msg);
 		}
 
 		private static string CheckLocker (MethodDefinition method, Instruction ins)
 		{
-			string msg = null;
+			string msg = String.Empty;
 
 			switch (ins.OpCode.Code) {
 			case Code.Ldarg_0:
@@ -113,14 +113,14 @@ namespace Gendarme.Rules.Concurrency {
 			case Code.Ldarg:
 			case Code.Ldarg_S:
 				ParameterDefinition pd = (ins.Operand as ParameterDefinition);
-				if ((pd == null) || (pd.Sequence != 0))
+				if ((pd == null) || (pd.GetSequence () != 0))
 					msg = LockThis;
 				break;
 			case Code.Call:
 			case Code.Callvirt:
 				MethodReference mr = (ins.Operand as MethodReference);
-				if (mr.ReturnType.ReturnType.FullName != "System.Type")
-					return null;
+				if (mr.ReturnType.FullName != "System.Type")
+					return String.Empty;
 
 				if ((mr.Name == "GetTypeFromHandle") && (mr.DeclaringType.Name == "Type")) {
 					// ldtoken
@@ -136,7 +136,7 @@ namespace Gendarme.Rules.Concurrency {
 				// and this throws off TraceBack
 				Instruction locker = StoreLoadLocal (method, ins);
 				if (locker == null)
-					return null;
+					return String.Empty;
 
 				return CheckLocker (method, locker);
 			}

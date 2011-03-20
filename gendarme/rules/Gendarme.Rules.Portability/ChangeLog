@@ -1,9 +1,47 @@
+2010-07-14  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* NewLineLiteralRule.cs: Fix decimal (needs hexadecimal) for
+	control characters. Remove XML doc (used for rules doc only)
+	and avoid a few allocations since we're using a StringBuilder
+	* Makefile.am: Compile tests without optimizations so GMCS
+	won't replace a "" with String.Empty
+
+2010-07-14  Antoine Vandecreme  <avandecreme@sopragroup.com>
+
+	* NewLineLiteralRule.cs: Format specials char to be
+	human readable and XML compliants
+
+2010-06-22  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* MonoCompatibilityReviewRule.cs: Apply AvoidLargeClassesRule
+
+2010-06-15  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* DoNotHardcodePathsRule.cs:
+	* ExitCodeIsLimitedOnUnixRule.cs:
+		Apply AvoidRepetitiveCallsToPropertiesRule
+
+2010-06-04  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* MonoCompatibilityReviewRule.cs: Rename GetLastestLocalDefinition
+	to FindLastestLocalVersion (apply ConsiderConvertingMethodToPropertyRule)
+
+2010-04-18  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* Makefile.am: Avoid -pkg:dotnet since it refers to assemblies
+	that are not always installed by default (it it's pure laziness
+	to use that ;-)
+
+2010-04-14  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* MonoCompatibilityReviewRule.cs: Static-ify Filter and
+	ComparePublicKeyToken methods (make self-test)
+
 2009-12-13  Sebastien Pouliot  <sebastien@ximian.com>
 
 	* MonoCompatibilityReviewRule.cs: Only check calls on assemblies
 	that are covered by MoMA (e.g. don't check Silverlight platform
 	assemblies, user code...)
-	[Backport r148353]
 
 2009-08-29  Sebastien Pouliot  <sebastien@ximian.com>
 

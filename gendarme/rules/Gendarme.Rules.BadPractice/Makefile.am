@@ -17,10 +17,13 @@ rules_sources =  \
 	ObsoleteMessagesShouldNotBeEmptyRule.cs \
 	OnlyUseDisposeForIDisposableTypesRule.cs \
 	PreferEmptyInstanceOverNullRule.cs \
+	PreferParamsArrayForVariableArgumentsRule.cs \
+	PreferTryParseRule.cs \
 	PreferSafeHandleRule.cs \
 	ReplaceIncompleteOddnessCheckRule.cs \
 	ReturnNullRule.cs \
-	ToStringReturnsNullRule.cs 
+	ToStringReturnsNullRule.cs \
+	UseFileOpenOnlyWithFileAccessRule.cs
 
 tests_sources = \
 	AvoidAssemblyVersionMismatchTest.cs \
@@ -39,6 +42,9 @@ tests_sources = \
 	ObsoleteMessagesShouldNotBeEmptyTest.cs \
 	OnlyUseDisposeForIDisposableTypesTest.cs \
 	PreferEmptyInstanceOverNullTest.cs \
+	PreferParamsArrayForVariableArgumentsTest.cs \
+	PreferTryParseTest.cs \
 	PreferSafeHandleTest.cs \
 	ReplaceIncompleteOddnessCheckTest.cs \
-	ToStringReturnsNullTest.cs 
+	ToStringReturnsNullTest.cs \
+	UseFileOpenOnlyWithFileAccessTest.cs

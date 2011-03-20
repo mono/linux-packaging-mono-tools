@@ -74,6 +74,7 @@ CTAGS = ctags
 DIST_SUBDIRS = $(SUBDIRS)
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
+ACLOCAL_FLAGS = @ACLOCAL_FLAGS@
 AMTAR = @AMTAR@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
@@ -92,6 +93,7 @@ CYGPATH_W = @CYGPATH_W@
 DATADIRNAME = @DATADIRNAME@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
+DMCS = @DMCS@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
@@ -105,6 +107,8 @@ GETTEXT_PACKAGE = @GETTEXT_PACKAGE@
 GMCS = @GMCS@
 GMOFILES = @GMOFILES@
 GMSGFMT = @GMSGFMT@
+GNOME_SHARP_CFLAGS = @GNOME_SHARP_CFLAGS@
+GNOME_SHARP_LIBS = @GNOME_SHARP_LIBS@
 GNUNIT_VERSION = @GNUNIT_VERSION@
 GREP = @GREP@
 GTKHTML_SHARP_CFLAGS = @GTKHTML_SHARP_CFLAGS@
@@ -244,6 +248,7 @@ framework_sources = \
 	../AssemblyStaticInfo.cs \
 	Gendarme.Framework.Engines/NamespaceEngine.cs \
 	Gendarme.Framework.Engines/OpCodeEngine.cs \
+	Gendarme.Framework.Engines/SuppressMessageEngine.cs \
 	Gendarme.Framework.Helpers/Log.cs \
 	Gendarme.Framework.Helpers/MethodPrinter.cs \
 	Gendarme.Framework.Helpers/MethodSignature.cs \
@@ -261,6 +266,8 @@ framework_sources = \
 	Gendarme.Framework.Rocks/InstructionRocks.cs \
 	Gendarme.Framework.Rocks/MethodRocks.cs \
 	Gendarme.Framework.Rocks/ModuleRocks.cs \
+	Gendarme.Framework.Rocks/ParameterRocks.cs \
+	Gendarme.Framework.Rocks/PropertyRocks.cs \
 	Gendarme.Framework.Rocks/TypeRocks.cs \
 	Gendarme.Framework.Rocks/VariableDefinitionRocks.cs \
 	Gendarme.Framework/ApplicabilityScope.cs \
@@ -295,7 +302,10 @@ framework_sources = \
 framework_build_sources = $(addprefix $(srcdir)/, \
 	$(framework_sources)) $(framework_generated_sources)
 framework_test_sources = \
+	GlobalSuppressions.cs \
 	Gendarme.Framework/BitmaskTest.cs \
+	Gendarme.Framework/ThreadModelAttributeTest.cs \
+	Gendarme.Framework.Engines/SuppressMessageAttributeTest.cs \
 	Gendarme.Framework.Helpers/MethodSignatureTest.cs \
 	Gendarme.Framework.Helpers/StackEntryAnalysisTest.cs \
 	Gendarme.Framework.Rocks/RocksTest.cs \
@@ -303,6 +313,7 @@ framework_test_sources = \
 	Gendarme.Framework.Rocks/CustomAttributeRocksTest.cs \
 	Gendarme.Framework.Rocks/InstructionRocksTest.cs \
 	Gendarme.Framework.Rocks/MethodRocksTest.cs \
+	Gendarme.Framework.Rocks/ParameterRocksTest.cs \
 	Gendarme.Framework.Rocks/TypeRocksTest.cs \
 	Gendarme.Framework.Rocks/VariableDefinitionRocksTest.cs \
 	Gendarme.Framework.Rocks/FieldRocksTest.cs
@@ -685,13 +696,14 @@ uninstall-am: uninstall-frameworkSCRIPTS \
 		-out:$@ $(framework_build_sources)
 
 Test.Framework.dll: $(framework_test_build_sources) $(framework_rules_SCRIPTS) ../bin/Gendarme.Framework.dll $(CECIL_ASM)
-	$(GMCS) $(TESTS_OPTIONS) -target:library -r:$(CECIL_ASM) -pkg:mono-nunit -r:../bin/Gendarme.Framework.dll \
+	$(GMCS) $(TESTS_OPTIONS) -target:library -d:CODE_ANALYSIS -pkg:mono-nunit \
+		-r:$(CECIL_ASM) -r:../bin/Gendarme.Framework.dll -r:../rules/Test.Rules/Test.Rules.dll \
 		-out:$@ $(framework_test_build_sources)
 
 test: Test.Framework.dll
 
 run-test: test
-	MONO_PATH=../bin/:$(MONO_PATH) nunit-console2 -noshadow Test.Framework.dll
+	MONO_PATH=../bin/:../rules/Test.Rules/:$(MONO_PATH) nunit-console2 -noshadow Test.Framework.dll
 
 self-test: $(framework_SCRIPTS)
 	mono --debug ../bin/gendarme.exe $(framework_SCRIPTS)

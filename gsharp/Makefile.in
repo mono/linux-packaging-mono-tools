@@ -60,6 +60,7 @@ gsharpDATA_INSTALL = $(INSTALL_DATA)
 DATA = $(desktop_DATA) $(gsharp_DATA)
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
+ACLOCAL_FLAGS = @ACLOCAL_FLAGS@
 AMTAR = @AMTAR@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
@@ -78,6 +79,7 @@ CYGPATH_W = @CYGPATH_W@
 DATADIRNAME = @DATADIRNAME@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
+DMCS = @DMCS@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
@@ -91,6 +93,8 @@ GETTEXT_PACKAGE = @GETTEXT_PACKAGE@
 GMCS = @GMCS@
 GMOFILES = @GMOFILES@
 GMSGFMT = @GMSGFMT@
+GNOME_SHARP_CFLAGS = @GNOME_SHARP_CFLAGS@
+GNOME_SHARP_LIBS = @GNOME_SHARP_LIBS@
 GNUNIT_VERSION = @GNUNIT_VERSION@
 GREP = @GREP@
 GTKHTML_SHARP_CFLAGS = @GTKHTML_SHARP_CFLAGS@
@@ -201,12 +205,14 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 gsharpdir = $(prefix)/lib/gsharp
+@DMCS_PRESENT_FALSE@COMPILER = $(GMCS)
+@DMCS_PRESENT_TRUE@COMPILER = $(DMCS)
 bin_SCRIPTS = gsharp
 gsharp_DATA = gsharp.exe gsharp.exe.config
 desktopdir = $(datadir)/applications
 desktop_DATA = gsharp.desktop
 packages = -pkg:gtk-sharp-2.0 -pkg:glib-sharp-2.0
-assemblies = -r:System -r:Mono.CSharp -r:Mono.Management -r:Mono.Posix -r:System.Drawing -r:System.Xml.Linq -r:System.Core
+assemblies = -r:System -r:Mono.CSharp -r:Mono.Management -r:Mono.Posix -r:System.Drawing -r:System.Xml.Linq -r:System.Core -r:System.Xml
 gsharp_sources = \
         $(srcdir)/AssemblyInfo.cs       			\
 	$(srcdir)/DescribeType.cs				\
@@ -452,7 +458,7 @@ uninstall-am: uninstall-binSCRIPTS uninstall-desktopDATA \
 
 
 gsharp.exe: $(gsharp_sources)
-	$(GMCS) -noconfig -codepage:utf8 -warn:4 -optimize+ -debug -define:DEBUG -target:exe -out:gsharp.exe $(gsharp_sources) $(packages) $(assemblies) -resource:$(srcdir)/close.png,close.png
+	$(COMPILER) -noconfig -codepage:utf8 -warn:4 -optimize+ -debug -define:DEBUG -target:exe -out:gsharp.exe $(gsharp_sources) $(packages) $(assemblies) -resource:$(srcdir)/close.png,close.png
 
 $(desktop_DATA): $(desktop_DATA).in
 	sed -e "s|\@bindir\@|$(bindir)|" $< > $@

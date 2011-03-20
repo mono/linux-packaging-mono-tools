@@ -181,6 +181,11 @@ namespace Test.Rules.Maintainability {
 			Type [] types = new Type [0];
 			return Array.IndexOf<Type> (types, type);
 		}
+
+		public FieldInfo [] OverloadNotSupportedByInterface (Type type)
+		{
+			return type.GetFields ();
+		}
 	}
 
 	public class SpecializedClass {
@@ -275,6 +280,12 @@ namespace Test.Rules.Maintainability {
 		{
 			MemberInfo [] types = new MemberInfo [0];
 			return Array.IndexOf<MemberInfo> (types, type);
+		}
+
+		public FieldInfo [] OverloadNotSupportedByInterface (Type type)
+		{
+			//IReflect support this GetFields overload
+			return type.GetFields (BindingFlags.Public);
 		}
 	}
 
@@ -486,20 +497,6 @@ namespace Test.Rules.Maintainability {
 			AssertRuleSuccess<Bitmask<Confidence>> ("Set");
 		}
 
-		private void SuggestMethodReference(MethodDefinition method)
-		{
-			// test against method that suggest two un-related classes/interfaces from GetBaseImplementor
-			int parametersCount = method.Parameters.Count;
-			Runner.Report (method, Severity.Medium, Confidence.High, "");
-		}
-
-		[Test]
-		public void ShouldSuggestMethodReferenceInsteadOfIMethodSignature ()
-		{
-			AssertRuleFailure<AvoidUnnecessarySpecializationTest> ("SuggestMethodReference");
-			Assert.IsTrue(Runner.Defects [0].Text.IndexOf ("'Mono.Cecil.MethodReference'") > 0);
-		}
-
 		// from AvoidUncalledPrivateCodeRule
 		static Dictionary<TypeDefinition, HashSet<uint>> cache;
 
@@ -509,7 +506,7 @@ namespace Test.Rules.Maintainability {
 			if (!cache.TryGetValue (type, out methods)) {
 				methods = new HashSet<uint> ();
 				cache.Add (type, methods);
-				foreach (MethodDefinition md in type.AllMethods ()) {
+				foreach (MethodDefinition md in type.Methods) {
 					if (!md.HasBody)
 						continue;
 				}
@@ -533,13 +530,6 @@ namespace Test.Rules.Maintainability {
 		}
 
 		[Test]
-		[Ignore ("fails on MS runtime")]
-		public void Events ()
-		{
-			AssertRuleSuccess<AvoidUnnecessarySpecializationTest> ("BuildCustomAttributes");
-		}
-
-		[Test]
 		public void GenericMethodArgument ()
 		{
 			AssertRuleSuccess<GeneralizedClass> ("GenericMethodArgument");
@@ -547,5 +537,99 @@ namespace Test.Rules.Maintainability {
 			Assert.IsTrue(Runner.Defects [0].Text.IndexOf ("'System.Reflection.MemberInfo'") > 0);
 		}
 
+		private bool HasMoreParametersThanAllowed (IMethodSignature method)
+		{
+			return (method.HasParameters ? method.Parameters.Count : 0) >= 1;
+		}
+
+		// extracted from AvoidLongParameterListsRule where IMethodSignature was suggested
+		// but could not be cast (when compiled) into Mono.Cecil.IMetadataTokenProvider
+		private void CheckConstructor (IMethodSignature constructor)
+		{
+			if (HasMoreParametersThanAllowed (constructor))
+				Runner.Report (constructor, Severity.Medium, Confidence.Normal, "This constructor contains a long parameter list.");
+		}
+
+		[Test]
+		public void UncompilableSuggestion ()
+		{
+			AssertRuleSuccess<AvoidUnnecessarySpecializationTest> ("CheckConstructor");
+		}
+
+		// test case based on false positive found on:
+		// System.Void Gendarme.Rules.Concurrency.DoNotLockOnWeakIdentityObjectsRule::Analyze(Mono.Cecil.MethodDefinition,Mono.Cecil.MethodReference,Mono.Cecil.Cil.Instruction)
+		class Base {
+			public virtual void Show (MethodDefinition method)
+			{
+				Console.WriteLine (method.Body.CodeSize);
+			}
+		}
+
+		class Override : Base {
+			// without checking the override the rule would suggest:
+			// Parameter 'method' could be of type 'Mono.Cecil.MemberReference'.
+			// but this would not compile
+			public override void Show (MethodDefinition method)
+			{
+ 				 Console.WriteLine (method.Name);
+			}
+		}
+
+		[Test]
+		public void OverrideTypeCannotBeChanged ()
+		{
+			AssertRuleDoesNotApply<Override> ("Show");
+		}
+
+		public sealed class DecorateThreadsRule : Rule, IMethodRule {
+
+			public override void Initialize (IRunner runner)
+			{
+				base.Initialize (runner);
+				runner.AnalyzeAssembly += this.OnAssembly;
+			}
+
+			// rule suggest HierarchicalEventArgs but we can't change the event definition
+			public void OnAssembly (object sender, RunnerEventArgs e)
+			{
+				Console.WriteLine (e.CurrentAssembly);
+			}
+
+			public RuleResult CheckMethod (MethodDefinition method)
+			{
+				throw new NotImplementedException ();
+			}
+		}
+
+		[Test]
+		public void EventsCannotBeChanged ()
+		{
+			AssertRuleDoesNotApply<DecorateThreadsRule> ("OnAssembly");
+			AssertRuleDoesNotApply<AvoidUnnecessarySpecializationTest> ("BuildCustomAttributes");
+		}
+
+		// this will generate code like:
+		// call instance void !!T[0...,0...]::Set(int32, int32, !!0)
+		// which does not really exists (e.g. can't be resolve into a MethodDefinition)
+		private void Fill<T> (T [,] source, T value)
+		{
+			for (int i = 0; i < source.GetLength (0); i++) {
+				for (int j = 0; j < source.GetLength (1); j++)
+					source [i, j] = value;
+			}
+		}
+
+		[Test]
+		public void MultiDimSet ()
+		{
+			AssertRuleSuccess<AvoidUnnecessarySpecializationTest> ("Fill");
+		}
+
+		[Test]
+		public void OverloadNotSupportedByInterface ()
+		{
+			AssertRuleSuccess<GeneralizedClass> ("OverloadNotSupportedByInterface");
+			AssertRuleFailure<SpecializedClass> ("OverloadNotSupportedByInterface", 1);
+		}
 	}
 }

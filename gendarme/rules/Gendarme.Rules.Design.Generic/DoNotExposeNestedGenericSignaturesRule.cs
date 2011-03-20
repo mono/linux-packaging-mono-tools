@@ -76,8 +76,8 @@ namespace Gendarme.Rules.Design.Generic {
 
 			// we only want to run this on assemblies that use 2.0 or later
 			// since generics were not available before
-			Runner.AnalyzeAssembly += delegate (object o, RunnerEventArgs e) {
-				Active = (e.CurrentAssembly.Runtime >= TargetRuntime.NET_2_0);
+			Runner.AnalyzeModule += delegate (object o, RunnerEventArgs e) {
+				Active = (e.CurrentModule.Runtime >= TargetRuntime.Net_2_0);
 			};
 		}
 
@@ -108,9 +108,10 @@ namespace Gendarme.Rules.Design.Generic {
 			if (!method.IsVisible ())
 				return RuleResult.DoesNotApply;
 
-			Severity? severity = Check (method.ReturnType.ReturnType);
+			MethodReturnType return_type = method.MethodReturnType;
+			Severity? severity = Check (return_type.ReturnType);
 			if (severity.HasValue)
-				Runner.Report (method.ReturnType, severity.Value, Confidence.Total);
+				Runner.Report (return_type, severity.Value, Confidence.Total);
 
 			if (method.HasParameters) {
 				foreach (ParameterDefinition parameter in method.Parameters) {

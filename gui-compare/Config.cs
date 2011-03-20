@@ -40,11 +40,11 @@ namespace GuiCompare
 	
 	public class CompareDefinition {
 		public bool ReferenceIsInfo = true;
-		public string ReferencePath = "";
+		public string ReferencePath = String.Empty;
 		public bool TargetIsInfo = true;
-		public string TargetPath = "";
+		public string TargetPath = String.Empty;
 		public bool IsCustom = false;
-		public string Title = "";
+		public string Title = String.Empty;
 		
 		[XmlElement ("History", typeof (CompareHistory))]
 		public CompareHistory [] History;
@@ -53,11 +53,11 @@ namespace GuiCompare
 		{
 		}
 		
-		public CompareDefinition (bool rmaster, string rpath, bool tmaster, string tpath)
+		public CompareDefinition (bool referenceIsInfo, string rpath, bool targetIsInfo, string tpath)
 		{
-			ReferenceIsInfo = rmaster;
+			ReferenceIsInfo = referenceIsInfo;
 			ReferencePath = rpath;
-			TargetIsInfo = tmaster;
+			TargetIsInfo = targetIsInfo;
 			TargetPath = tpath;
 
 			History = new CompareHistory[0];

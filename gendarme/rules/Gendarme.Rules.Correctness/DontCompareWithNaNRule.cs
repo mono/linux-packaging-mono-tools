@@ -27,6 +27,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -73,7 +74,22 @@ namespace Gendarme.Rules.Correctness {
 		private const string EqualityMessage = "A floating point value is compared (== or !=) with [Single|Double].NaN.";
 		private const string EqualsMessage = "[Single|Double].Equals is called using NaN.";
 
-		private static bool CheckPrevious (InstructionCollection il, int index)
+		private static string[] FloatingPointTypes = { "System.Single", "System.Double" };
+
+		public override void Initialize (IRunner runner)
+		{
+			base.Initialize (runner);
+
+			// we want to avoid checking all methods if the module doesn't refer to either
+			// System.Single or System.Double (big performance difference)
+			// note: mscorlib.dll is an exception since it defines, not refer, System.Single and Double
+			Runner.AnalyzeModule += delegate (object o, RunnerEventArgs e) {
+				Active = (e.CurrentAssembly.Name.Name == "mscorlib") ||
+					e.CurrentModule.HasAnyTypeReference (FloatingPointTypes);
+			};
+		}
+
+		private static bool CheckPrevious (IList<Instruction> il, int index)
 		{
 			for (int i = index; i >= 0; i--) {
 				Instruction ins = il [i];
@@ -113,8 +129,8 @@ namespace Gendarme.Rules.Correctness {
 			if (!Ldc_R.Intersect (OpCodeEngine.GetBitmask (method)))
 				return RuleResult.DoesNotApply;
 
-			InstructionCollection il = method.Body.Instructions;
-			for (int i = 0; i < method.Body.Instructions.Count; i++) {
+			IList<Instruction> il = method.Body.Instructions;
+			for (int i = 0; i < il.Count; i++) {
 				Instruction ins = il [i];
 				switch (ins.OpCode.Code) {
 				// handle == and !=

@@ -4,7 +4,7 @@
 // Authors:
 //	Sebastien Pouliot <sebastien@ximian.com>
 //
-// Copyright (C) 2008 Novell, Inc (http://www.novell.com)
+// Copyright (C) 2008, 2010 Novell, Inc (http://www.novell.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the
@@ -30,7 +30,9 @@ using System;
 using System.Collections.Generic;
 
 using Mono.Cecil;
+using Mono.Cecil.Metadata;
 
+using Gendarme.Framework.Helpers;
 using Gendarme.Framework.Rocks;
 
 namespace Gendarme.Framework {
@@ -40,38 +42,7 @@ namespace Gendarme.Framework {
 	/// </summary>
 	public class BasicIgnoreList : IIgnoreList {
 
-		sealed class Metadata {
-			List<AssemblyDefinition> assemblies;
-			List<TypeDefinition> types;
-			List<MethodDefinition> methods;
-
-			public List<AssemblyDefinition> Assemblies {
-				get {
-					if (assemblies == null)
-						assemblies = new List<AssemblyDefinition> ();
-					return assemblies;
-				}
-			}
-
-			public List<TypeDefinition> Types {
-				get {
-					if (types == null)
-						types = new List<TypeDefinition> ();
-					return types;
-				}
-			}
-
-			public List<MethodDefinition> Methods {
-				get {
-					if (methods == null)
-						methods = new List<MethodDefinition> ();
-					return methods;
-				}
-			}
-		}
-
-		private SortedList<string, Metadata> list;
-		private IRunner runner;
+		private Dictionary<string, HashSet<IMetadataTokenProvider>> ignore;
 
 		// note: we should keep statistics here
 		// e.g. # of times a rule is ignored because it's inactive
@@ -79,159 +50,174 @@ namespace Gendarme.Framework {
 
 		public BasicIgnoreList (IRunner runner)
 		{
-			this.runner = runner;
+			Runner = runner;
+			ignore = new Dictionary<string, HashSet<IMetadataTokenProvider>> ();
 		}
 
-		private Metadata GetMetadata (string rule, bool create)
+		public IRunner Runner {
+			get;
+			private set;
+		}
+
+		public void Add (string rule, IMetadataTokenProvider metadata)
 		{
-			if (rule == null)
-				throw new ArgumentNullException ("rule");
-
-			if (list == null)
-				list = new SortedList<string, Metadata> ();
-			else if (list.ContainsKey (rule))
-				return list [rule];
-
-			if (!create)
-				return null;
-
-			// ensure rule exists
-			foreach (IRule value in runner.Rules) {
-				if (rule == value.FullName) {
-					Metadata meta = new Metadata ();
-					list.Add (rule, meta);
-					return meta;
-				}
+			HashSet<IMetadataTokenProvider> list;
+			if (!ignore.TryGetValue (rule, out list)) {
+				list = new HashSet<IMetadataTokenProvider> ();
+				ignore.Add (rule, list);
 			}
-			return null;
+			list.Add (metadata);
 		}
 
-		private void Add (string rule, AssemblyDefinition assembly)
+		// AssemblyDefinition						AttributeTargets.Assembly
+		//	ModuleDefinition					AttributeTargets.Module
+		//		TypeDefinition					AttributeTargets.Class | Delegate | Enum | Interface | Struct
+		//			EventDefinition				AttributeTargets.Event
+		//			FieldDefinition				AttributeTargets.Field
+		//			GenericParameterDefinition		AttributeTargets.GenericParameter
+		//			PropertyDefinition			AttributeTargets.Property
+		//			MethodDefinition			AttributeTargets.Constructor | Method
+		//				GenericParameterDefinition	AttributeTargets.GenericParameter
+		//				ParameterDefinition		AttributeTargets.Parameter
+		//				MethodReturnType		AttributeTargets.ReturnValue
+		// NamespaceDefinition						special case
+		public bool IsIgnored (IRule rule, IMetadataTokenProvider metadata)
 		{
-			Metadata m = GetMetadata (rule, true);
-			if (m != null)
-				m.Assemblies.Add (assembly);
+			// Note that the Runner tearing_down code may call us with nulls.
+			if (metadata == null)
+				return false;
+
+			if ((rule == null) || !rule.Active)
+				return true;
+
+			HashSet<IMetadataTokenProvider> list;
+			if (!ignore.TryGetValue (rule.FullName, out list))
+				return false; // nothing is ignored for this rule
+
+			return IsIgnored (list, metadata);
 		}
 
-		private void Add (string rule, TypeDefinition type)
+		static bool IsIgnored (ICollection<IMetadataTokenProvider> list, IMetadataTokenProvider metadata)
 		{
-			Metadata m = GetMetadata (rule, true);
-			if (m != null)
-				m.Types.Add (type);
-		}
-
-		private void Add (string rule, MethodDefinition method)
-		{
-			Metadata m = GetMetadata (rule, true);
-			if (m != null)
-				m.Methods.Add (method);
-		}
-
-		protected bool AddAssembly (string rule, string assembly)
-		{
-			foreach (AssemblyDefinition definition in runner.Assemblies) {
-				// check either the full name or only the name (as the version number will likely
-				// change and makes the fullname less useful in a separate ignore file)
-				if ((definition.Name.FullName == assembly) || (definition.Name.Name == assembly)) {
-					Add (rule, definition);
-					return true;
+			MetadataToken token = metadata.MetadataToken;
+			switch (token.TokenType) {
+			case TokenType.Assembly:
+			// NamespaceDefinition is a Gendarme "extention", i.e. not real metadata, but we can ignore defects on them
+			case NamespaceDefinition.NamespaceTokenType:
+				// no parent to check
+				return list.Contains (metadata);
+			case TokenType.Module:
+				// Module == 0, so we need to handle MetadataToken.Zero here
+				if (token.RID == 0) {
+					// if we don't have a valid token then we take the slow path
+					return IsIgnoredUsingCasts (list, metadata);
+				} else {
+					return IsIgnored (list, metadata as ModuleDefinition);
 				}
+			case TokenType.GenericParam:
+				return IsIgnored (list, metadata as GenericParameter);
+			case TokenType.TypeRef:
+			case TokenType.TypeDef:
+				return IsIgnored (list, metadata as TypeReference);
+			case TokenType.Method:
+				return IsIgnored (list, metadata as MethodReference);
+			case TokenType.Event:
+				return IsIgnored (list, metadata as EventDefinition);
+			case TokenType.Field:
+				return IsIgnored (list, metadata as FieldDefinition);
+			case TokenType.Property:
+				return IsIgnored (list, metadata as PropertyDefinition);
+			case TokenType.Param:
+				ParameterDefinition parameter = metadata as ParameterDefinition;
+				if (parameter == null) // return type
+					return IsIgnoredUsingCasts (list, metadata);
+
+				return IsIgnored (list, parameter);
+			default:
+				return IsIgnoredUsingCasts (list, metadata);
 			}
+		}
+
+		static bool IsIgnoredUsingCasts (ICollection<IMetadataTokenProvider> list, IMetadataTokenProvider metadata)
+		{
+			MethodReturnType mrt = (metadata as MethodReturnType);
+			if (mrt != null)
+				return IsIgnored (list, mrt);
+			// well-known types...
+			AssemblyDefinition ad = (metadata as AssemblyDefinition);
+			if (ad != null)
+				return list.Contains (metadata);
+			ModuleDefinition md = (metadata as ModuleDefinition);
+			if (md != null)
+				return IsIgnored (list, md);
+			GenericParameter gp = (metadata as GenericParameter); // needs to be before TypeReference
+			if (gp != null)
+				return IsIgnored (list, gp);
+			TypeReference tr = (metadata as TypeReference);
+			if (tr != null)
+				return IsIgnored (list, tr);
+			MethodReference mr = (metadata as MethodReference);
+			if (mr != null)
+				return IsIgnored (list, mr);
+			EventDefinition ed = (metadata as EventDefinition);
+			if (ed != null)
+				return IsIgnored (list, ed);
+			FieldDefinition fd = (metadata as FieldDefinition);
+			if (fd != null)
+				return IsIgnored (list, fd);
+			PropertyDefinition pd = (metadata as PropertyDefinition);
+			if (pd != null)
+				return IsIgnored (list, pd);
+			ParameterDefinition paramd = (metadata as ParameterDefinition);
+			if (paramd != null)
+				return IsIgnored (list, paramd);
 			return false;
 		}
 
-		protected bool AddType (string rule, string type)
+		static bool IsIgnored (ICollection<IMetadataTokenProvider> list, ModuleDefinition module)
 		{
-			bool found = false;
-			
-			// Note that we don't want to bail once we find the type name
-			// because more than one of the assemblies we're checking may
-			// have that name (this is a bit less likely with namespace
-			// qualified names, but even those may have duplicates especially
-			// for internal types).
-			foreach (AssemblyDefinition assembly in runner.Assemblies) {
-				foreach (ModuleDefinition module in assembly.Modules) {
-					TypeDefinition definition = module.Types [type];
-					if (definition != null) {
-						Add (rule, definition);
-						found = true;
-					}
-				}
-			}
-			return found;
+			return (list.Contains (module) || IsIgnored (list, module.Assembly));
 		}
 
-		protected bool AddMethod (string rule, string method)
+		static bool IsIgnored (ICollection<IMetadataTokenProvider> list, TypeReference type)
 		{
-			foreach (AssemblyDefinition assembly in runner.Assemblies) {
-				foreach (ModuleDefinition module in assembly.Modules) {
-					foreach (TypeDefinition type in module.Types) {
-						foreach (MethodDefinition definition in type.AllMethods ()) {
-							if (method == definition.ToString ()) {
-								Add (rule, definition);
-								return true;
-							}
-						}
-					}
-				}
-			}
-			return false;
+			return (list.Contains (type) || IsIgnored (list, type.Module) || 
+				IsIgnored (list, NamespaceDefinition.GetDefinition (type.Namespace)));
 		}
 
-		private static bool CheckRule (IRule rule)
+		static bool IsIgnored (ICollection<IMetadataTokenProvider> list, EventDefinition evnt)
 		{
-			return ((rule == null) || !rule.Active);
+			return (list.Contains (evnt) || IsIgnored (list, evnt.DeclaringType));
 		}
 
-		public bool IsIgnored (IRule rule, AssemblyDefinition assembly)
+		static bool IsIgnored (ICollection<IMetadataTokenProvider> list, FieldDefinition field)
 		{
-			// Note that the Runner tearing_down code may call us with nulls.
-			if (assembly == null)
-				return false;
-				
-			if (CheckRule (rule))
-				return true;
-
-			Metadata data = GetMetadata (rule.FullName, false);
-			if (data == null)
-				return false;
-			return data.Assemblies.Contains (assembly);
+			return (list.Contains (field) || IsIgnored (list, field.DeclaringType));
 		}
 
-		public bool IsIgnored (IRule rule, TypeDefinition type)
+		static bool IsIgnored (ICollection<IMetadataTokenProvider> list, PropertyDefinition property)
 		{
-			// Note that the Runner tearing_down code may call us with nulls.
-			if (type == null)
-				return false;
-				
-			if (CheckRule (rule))
-				return true;
-
-			Metadata data = GetMetadata (rule.FullName, false);
-			if (data == null)
-				return false;
-			if (data.Types.Contains (type))
-				return true;
-			return (data.Assemblies.Contains (type.Module.Assembly));
+			return (list.Contains (property) || IsIgnored (list, property.DeclaringType));
 		}
 
-		public bool IsIgnored (IRule rule, MethodDefinition method)
+		static bool IsIgnored (ICollection<IMetadataTokenProvider> list, MemberReference member)
 		{
-			// Note that the Runner tearing_down code may call us with nulls.
-			if (method == null)
-				return false;
-				
-			if (CheckRule (rule))
-				return true;
+			return (list.Contains (member) || IsIgnored (list, member.DeclaringType));
+		}
 
-			Metadata data = GetMetadata (rule.FullName, false);
-			if (data == null)
-				return false;
-			if (data.Methods.Contains (method))
-				return true;
-			if (data.Types.Contains (method.DeclaringType.Resolve ()))
-				return true;
-			return (data.Assemblies.Contains (method.DeclaringType.Module.Assembly));
+		static bool IsIgnored (ICollection<IMetadataTokenProvider> list, ParameterDefinition parameter)
+		{
+			return (list.Contains (parameter) || IsIgnored (list, parameter.Method));
+		}
+
+		static bool IsIgnored (ICollection<IMetadataTokenProvider> list, GenericParameter parameter)
+		{
+			return (list.Contains (parameter) || IsIgnored (list, parameter.Owner));
+		}
+
+		static bool IsIgnored (ICollection<IMetadataTokenProvider> list, MethodReturnType returnType)
+		{
+			return (list.Contains (returnType) || IsIgnored (list, returnType.Method));
 		}
 	}
 }

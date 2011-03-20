@@ -1,6 +1,6 @@
 include ../common.make
 
-EXTRA_RULES_OPTIONS += -r:ICSharpCode.SharpZipLib.dll -pkg:dotnet
+EXTRA_RULES_OPTIONS += -r:ICSharpCode.SharpZipLib.dll -r:System.Web.Services.dll
 
 rules_sources =  \
 	DoNotHardcodePathsRule.cs \
@@ -9,6 +9,8 @@ rules_sources =  \
 	MoMAWebService.cs \
 	MonoCompatibilityReviewRule.cs \
 	NewLineLiteralRule.cs
+
+EXTRA_TESTS_OPTIONS += -o-
 
 tests_sources = \
 	DoNotHardcodePathsTest.cs \

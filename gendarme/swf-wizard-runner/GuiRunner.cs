@@ -4,7 +4,7 @@
 // Authors:
 //	Sebastien Pouliot <sebastien@ximian.com>
 //
-// Copyright (C) 2008 Novell, Inc (http://www.novell.com)
+// Copyright (C) 2008-2011 Novell, Inc (http://www.novell.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the
@@ -33,26 +33,33 @@ using System.Reflection;
 using System.Text;
 
 using Gendarme.Framework;
+using Gendarme.Framework.Engines;
 
 using Mono.Cecil;
 
 namespace Gendarme {
 
-	public class GuiRunner : Runner, IIgnoreList {
+	[EngineDependency (typeof (SuppressMessageEngine))]
+	public class GuiRunner : Runner {
 
 		private Wizard wizard;
 		private StringBuilder unexpected = new StringBuilder ();
+		private StringBuilder warnings = new StringBuilder ();
 
 		private static TypeFilter RuleTypeFilter = new TypeFilter (RuleFilter);
 
 		public GuiRunner (Wizard form)
 		{
 			wizard = form;
-			IgnoreList = this;
+			IgnoreList = new BasicIgnoreList (this);
 		}
 
 		public string Error {
 			get { return unexpected.ToString (); }
+		}
+
+		public string Warnings {
+			get { return warnings.ToString (); }
 		}
 
 		private static bool RuleFilter (Type type, object interfaceName)
@@ -124,21 +131,9 @@ namespace Gendarme {
 			wizard.BeginInvoke ((Action) (() => wizard.PostTypeUpdate (e)));
 		}
 
-		// Ignore List is not supported by the Wizard runner
-
-		bool IIgnoreList.IsIgnored (IRule rule, AssemblyDefinition assembly)
+		public void Warn (string warning)
 		{
-			return !rule.Active;
-		}
-
-		bool IIgnoreList.IsIgnored (IRule rule, TypeDefinition type)
-		{
-			return !rule.Active;
-		}
-
-		bool IIgnoreList.IsIgnored (IRule rule, MethodDefinition method)
-		{
-			return !rule.Active;
+			warnings.AppendLine (warning);
 		}
 	}
 }

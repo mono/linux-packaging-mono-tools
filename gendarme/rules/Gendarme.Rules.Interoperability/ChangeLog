@@ -1,3 +1,73 @@
+2010-08-27  Rolf Bjarne Kvinge  <RKvinge@novell.com>
+
+	* DelegatesPassedToNativeCodeMustIncludeExceptionHandlingRule.cs: Mark leave.s
+	as safe (just as leave is safe too).
+
+2010-08-27  Rolf Bjarne Kvinge  <RKvinge@novell.com>
+
+	* DelegatesPassedToNativeCodeMustIncludeExceptionHandlingRule.cs:
+	Make the example code more extensive and explain the rule a bit better.
+	Initialize member variables in the the ctor to avoid null checks all
+	the time. Use HashSet instead of List when we only check for existence.
+	Use bitmasks to exclude methods to process, and generate the bitmasks
+	statically. Change rule logic to mark all code in a method that is
+	covered by a catch-all exception clause as safe - and the remaining
+	code must be included in a list of safe instructions for the rule to
+	accept it. Fix other minor issues as noted by either self-test or
+	peer-review.
+
+2010-06-15  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* DelegatesPassedToNativeCodeMustIncludeExceptionHandlingRule.cs:
+	* DoNotCastIntPtrToInt32Rule.cs:
+	* GetLastErrorMustBeCalledRightAfterPInvokeRule.cs:
+	* MarshalBooleansInPInvokeDeclarationsRule.cs:
+		Apply AvoidRepetitiveCallsToPropertiesRule
+
+2010-06-04  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* CentralizePInvokesIntoNativeMethodsTypeRule.cs:
+	* DelegatesPassedToNativeCodeMustIncludeExceptionHandlingRule.cs:
+		Apply AvoidUnnecessarySpecializationRule
+
+2010-04-28  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* DelegatesPassedToNativeCodeMustIncludeExceptionHandlingRule.cs:
+	Don't assume a FieldDefinition instance after resolving. Fix
+	analysis against Muinshee.exe
+
+2010-04-23  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* DelegatesPassedToNativeCodeMustIncludeExceptionHandlingRule.cs:
+	Check method.HasBody before doing any memory allocation. Check
+	HasExceptionHandlers before iterating the ExceptionHandlers. 
+	Check called_method.HasParameters before iterating them. Don't
+	call GetDelegatePointers, nor access 'stack' if stack_count is 0.
+	The later solve the exception thrown while analyzing the 
+	jts-1.10.dll assembly.
+
+2010-04-14  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* CentralizePInvokesIntoNativeMethodsTypeRule.cs: Static-ify
+	CanInstantiateType (make self-test)
+	* DelegatesPassedToNativeCodeMustIncludeExceptionHandlingRule.cs:
+	Skip if we hit a negative 'stack_count' (workaround for #582823).
+	Fix some "make self-test" defects like: Seal ILRange. Remove some
+	unused parameters. Add #if DEBUG around debugging code. Do not 
+	throw Exception (changed to ArgumentException).
+	* GetLastErrorMustBeCalledRightAfterPInvokeRule.cs: Don't assume 
+	a MethodReference for FlowControl.Call. Calli, while uncommon, 
+	would provide a CallSite.
+	* MarshalStringsInPInvokeDeclarationsRule.cs: Check if PInvokeInfo
+	is null even if IsPInvokeImpl is true since some badly encoded
+	assemblies just do that (flag PInvokeImpl, but has no record in 
+	the ImplMapTable)
+
+2010-01-16  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* CentralizePInvokesIntoNativeMethodsTypeRule.cs: New. Rule to
+	ensure the fx convention on where to define p/invoke declarations
+
 2009-07-31  Jesse Jones  <jesjones@mindspring.com>
 
 	* MarshalBooleansInPInvokeDeclarationsRule.csm 

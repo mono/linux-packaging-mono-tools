@@ -1,6 +1,6 @@
 guicomparedir=$(prefix)/lib/gui-compare
 bin_SCRIPTS = gui-compare
-guicompare_DATA = gui-compare.exe
+guicompare_DATA = gui-compare.exe gui-compare.exe.mdb
 
 CLEANFILES = gui-compare.exe gui-compare.exe.mdb gui-compare
 
@@ -19,7 +19,6 @@ gui_compare_sources = \
 	$(srcdir)/CecilMetadata.cs 			\
 	$(srcdir)/ProviderSelector.cs 			\
 	$(srcdir)/gtk-gui/guicompare.ProviderSelector.cs\
-	$(srcdir)/AssemblyResolver.cs 			\
 	$(srcdir)/Config.cs 				\
 	$(srcdir)/CustomCompare.cs 			\
 	$(srcdir)/gtk-gui/GuiCompare.CustomCompare.cs

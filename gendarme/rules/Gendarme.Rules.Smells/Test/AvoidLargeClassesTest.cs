@@ -124,7 +124,7 @@ namespace Test.Rules.Smells {
 		public void FixtureSetUp () 
 		{
 			string unit = Assembly.GetExecutingAssembly ().Location;
-			assembly = AssemblyFactory.GetAssembly (unit);
+			assembly = AssemblyDefinition.ReadAssembly (unit);
 			rule = new AvoidLargeClassesRule ();
 			runner = new TestRunner (rule);
 		}
@@ -132,85 +132,86 @@ namespace Test.Rules.Smells {
 		[Test]
 		public void LargeClassTest () 
 		{
-			type = assembly.MainModule.Types["Test.Rules.Smells.LargeClass"];
-			Assert.AreEqual (RuleResult.Failure, runner.CheckType (type));
-			Assert.AreEqual (2, runner.Defects.Count);
+			type = assembly.MainModule.GetType ("Test.Rules.Smells.LargeClass");
+			Assert.AreEqual (RuleResult.Failure, runner.CheckType (type), "Test.Rules.Smells.LargeClass failure test");
+			// 'x', 'foo', 'bar', 'f', 'c' and 's' are reported as prefixes
+			Assert.AreEqual (6, runner.Defects.Count, "Test.Rules.Smells.LargeClass defect count check");
 		}
 
 		[Test]
 		public void NotLargeClassTest () 
 		{
-			type = assembly.MainModule.Types["Test.Rules.Smells.NoFieldClass"];
-			Assert.AreEqual (RuleResult.DoesNotApply, runner.CheckType (type));
+			type = assembly.MainModule.GetType ("Test.Rules.Smells.NoFieldClass");
+			Assert.AreEqual (RuleResult.DoesNotApply, runner.CheckType (type), "Test.Rules.Smells.NoFieldClass does not apply test");
 
-			type = assembly.MainModule.Types["Test.Rules.Smells.NotLargeClass"];
-			Assert.AreEqual (RuleResult.Success, runner.CheckType (type));
+			type = assembly.MainModule.GetType ("Test.Rules.Smells.NotLargeClass");
+			Assert.AreEqual (RuleResult.Success, runner.CheckType (type), "Test.Rules.Smells.NotLargeClass success test");
 		}
 
 		
 		[Test]
 		public void ConstantClassTest () 
 		{
-			type = assembly.MainModule.Types["Test.Rules.Smells.ConstantClass"];
+			type = assembly.MainModule.GetType ("Test.Rules.Smells.ConstantClass");
 			Assert.AreEqual (RuleResult.Success, runner.CheckType (type));
 		}
 
 		[Test]
 		public void ClassWithPrefixedFieldsWithCamelCasingTest ()
 		{
-			type = assembly.MainModule.Types["Test.Rules.Smells.ClassWithPrefixedFieldsWithCamelCasing"];
-			Assert.AreEqual (RuleResult.Failure, runner.CheckType (type));
-			Assert.AreEqual (1, runner.Defects.Count);
+			type = assembly.MainModule.GetType ("Test.Rules.Smells.ClassWithPrefixedFieldsWithCamelCasing");
+			Assert.AreEqual (RuleResult.Failure, runner.CheckType (type), "Test.Rules.Smells.ClassWithPrefixedFieldsWithCamelCasing failure test");
+			Assert.AreEqual (1, runner.Defects.Count, "Test.Rules.Smells.ClassWithPrefixedFieldsWithCamelCasing defect count check");
 		}
 			
 		[Test]
 		public void ClassWithoutPrefixedFieldsWithMDashCasingTest () 
 		{
-			type = assembly.MainModule.Types["Test.Rules.Smells.ClassWithoutPrefixedFieldsWithMDashCasing"];
+			type = assembly.MainModule.GetType ("Test.Rules.Smells.ClassWithoutPrefixedFieldsWithMDashCasing");
 			Assert.AreEqual (RuleResult.Success, runner.CheckType (type));
 		}
 
 		[Test]
 		public void ClassWithPrefixedFieldsWithDashCasingTest () 
 		{
-			type = assembly.MainModule.Types ["Test.Rules.Smells.ClassWithPrefixedFieldsWithDashCasing"];
-			Assert.AreEqual (RuleResult.Failure, runner.CheckType (type));
-			Assert.AreEqual (1, runner.Defects.Count);
+			type = assembly.MainModule.GetType ("Test.Rules.Smells.ClassWithPrefixedFieldsWithDashCasing");
+			Assert.AreEqual (RuleResult.Failure, runner.CheckType (type), "Test.Rules.Smells.ClassWithPrefixedFieldsWithDashCasing failure test");
+			Assert.AreEqual (1, runner.Defects.Count, "Test.Rules.Smells.ClassWithPrefixedFieldsWithDashCasing defect count check");
 		}
 
 		[Test]
 		public void ClassWithPrefixedFieldsWithMDashCasingTest () 
 		{
-			type = assembly.MainModule.Types ["Test.Rules.Smells.ClassWithPrefixedFieldsWithMDashCasing"];
-			Assert.AreEqual (RuleResult.Failure, runner.CheckType (type));
-			Assert.AreEqual (1, runner.Defects.Count);
+			type = assembly.MainModule.GetType ("Test.Rules.Smells.ClassWithPrefixedFieldsWithMDashCasing");
+			Assert.AreEqual (RuleResult.Failure, runner.CheckType (type), "Test.Rules.Smells.ClassWithPrefixedFieldsWithMDashCasing failure test");
+			Assert.AreEqual (1, runner.Defects.Count, "Test.Rules.Smells.ClassWithPrefixedFieldsWithMDashCasing defect count check");
 		}
 
 		[Test]
 		public void ClassWithSomeConstantsFields ()
 		{
-			type = assembly.MainModule.Types ["Test.Rules.Smells.ClassWithSomeConstantsFields"];
+			type = assembly.MainModule.GetType ("Test.Rules.Smells.ClassWithSomeConstantsFields");
 			Assert.AreEqual (RuleResult.Success, runner.CheckType (type));
 		}
 
 		[Test]
 		public void ClassWithSomeReadOnlyFields ()
 		{
-			type = assembly.MainModule.Types ["Test.Rules.Smells.ClassWithSomeReadOnlyFields"];
+			type = assembly.MainModule.GetType ("Test.Rules.Smells.ClassWithSomeReadOnlyFields");
 			Assert.AreEqual (RuleResult.Success, runner.CheckType (type));
 		}
 
 		[Test]
 		public void ClassWithAutoImplementedProperties ()
 		{
-			type = assembly.MainModule.Types ["Test.Rules.Smells.AutoImplementedPropertiesClass"];
+			type = assembly.MainModule.GetType ("Test.Rules.Smells.AutoImplementedPropertiesClass");
 			Assert.AreEqual (RuleResult.Success, runner.CheckType (type));
 		}
 
 		[Test]
 		public void EnumsShouldNotBeCheckedTest ()
 		{
-			type = assembly.MainModule.Types ["Test.Rules.Smells.LargeEnum"];
+			type = assembly.MainModule.GetType ("Test.Rules.Smells.LargeEnum");
 			Assert.AreEqual (RuleResult.DoesNotApply, runner.CheckType (type));
 		}
 	}

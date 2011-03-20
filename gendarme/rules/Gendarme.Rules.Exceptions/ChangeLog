@@ -1,3 +1,100 @@
+2010-06-22  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* UseObjectDisposedExceptionRule.cs: Apply AvoidLargeClassesRule
+
+2010-06-13  Sebastien Pouliot  <sebastien@ximian.com> 
+
+	* UseObjectDisposedExceptionRule.cs: Fis bitmask to include
+	Newobj since the rule could applies if the method's IL contains
+	this instruction
+
+2010-06-13  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* DoNotThrowInUnexpectedLocationRule.cs:
+	* InstantiateArgumentExceptionCorrectlyRule.cs:
+	* UseObjectDisposedExceptionRule.cs:
+		Apply AvoidRepetitiveCallsToPropertiesRule
+
+2010-06-09  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* DoNotThrowInUnexpectedLocationRule.cs: Remove InitType hack
+	on use the AnalyzeType event from the runner. Extract AreCastsOk
+	from (too large) ProcessMethod. Rename fields with same prefix
+
+2010-06-04  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* DoNotDestroyStackTraceRule.cs:
+	* InstantiateArgumentExceptionCorrectlyRule.cs:
+	* MissingExceptionConstructorsRule.cs:
+		Apply AvoidUnnecessarySpecializationRule
+
+2010-05-08  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* DontSwallowErrorsCatchingNonspecificExceptionsRule.cs: Turn
+	IsForbiddenTypeInCatches into a static method (self test)
+
+2010-05-02  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* Gendarme.Rules.Exceptions.csproj: Remove deleted files from
+	project
+	* DoNotSwallowErrorsCatchingNonSpecificExceptionsRule.cs: Use
+	OpCodeEngine to detect 'rethrow' instruction and skip
+	ThrowsGeneralException. Quick out using HasExceptionHandlers
+	instead of using Count (which would allocate a collection if
+	empty).
+
+2010-05-01  Sebastien Pouliot  <sebastien@ximian.com> 
+
+	* DoNotThrowInUnexpectedLocationRule.cs: Quick-out optimization
+	in HasCatchBlock using method.Body.HasExceptionHandlers. Split
+	huge PreflightMethod and reduce the number of checks required
+	to get a match (or not). Remove collections (and associated 
+	memory allocations)
+
+2010-05-01  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* DoNotDestroyStackTraceRule.cs: Quick-out optimization using
+	method.Body.HasExceptionHandlers. Simplify and reduce memory 
+	allocations.
+	* Makefile.am: Remove Impl/ExceptionBlockParser.cs and Impl/
+	SEH*.cs from the build
+
+2010-01-28  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* DoNotThrowInUnexpectedLocationTest.cs: Document the addition of
+	the TryParse method.
+
+2010-01-27  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* DoNotThrowInUnexpectedLocationTest.cs: Add TryParse as a 
+	location where exceptions should never be thrown. Fix unbox 
+	by adding unbox.any opcode. Do not use a OpCodeBitmask for a
+	single opcode (ckfinite). Avoid creating equalityComparerEquals
+	and equalityComparerHashCode for each new type.
+
+2010-01-21  Sebastien Pouliot  <sebastien@ximian.com> 
+
+	* AvoidArgumentExceptionDefaultConstructorRule.cs: Apply Avoid
+	RepetitiveCallsToPropertiesRule
+	* DoNotThrowInUnexpectedLocationRule.cs: Apply MethodCanBeMadeStatic
+	Rule
+	* MissingExceptionConstructorsRule.cs: Apply AvoidRepetitiveCallsTo
+	PropertiesRule
+	* UseObjectDisposedExceptionRule.cs: Apply MethodCanBeMadeStaticRule
+
+2010-01-04  Sebastien Pouliot  <sebastien@ximian.com> 
+
+	* DoNotThrowInUnexpectedLocationRule.cs: Fix bitmask to include
+	Code.Unbox_Any. This will fix unit tests under both Mono 2.6 and
+	MS .NET (unbox was likely used in earlier Mono releases)
+
+2010-01-04  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* InstantiateArgumentExceptionCorrectlyRule.cs: Fix bug #567995
+	for indexers. Also reduce to Severity.Low (won't be shown by
+	default) the usage of "value" in properties (since it's somewhat
+	popular even if unhelpful as a name).
+
 2009-07-24  Jesse Jones  <jesjones@mindspring.com>
 
 	* MissingExceptionConstructorsRule.cs: Rewrote the description.

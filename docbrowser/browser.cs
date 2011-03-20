@@ -21,6 +21,10 @@ using System.Xml;
 
 using Mono.Options;
 
+#if MACOS
+using OSXIntegration.Framework;
+#endif
+
 namespace Monodoc {
 class Driver {
 	  
@@ -287,6 +291,14 @@ public class Browser {
 
 	public Browser (string basedir, IEnumerable<string> sources, string engine)
 	{
+#if MACOS
+		try {
+			InitMacAppHandlers();
+		} catch (Exception ex) {
+			Console.Error.WriteLine ("Installing Mac AppleEvent handlers failed. Skipping.\n" + ex);
+		}
+#endif
+	
 		this.engine = engine;		
 		ui = new Glade.XML (null, "browser.glade", "window1", null);
 		ui.Autoconnect (this);
@@ -390,11 +402,61 @@ public class Browser {
 		bookList = new ArrayList ();
 
 		index_browser = IndexBrowser.MakeIndexBrowser (this);
-		
 		MainWindow.ShowAll();
+		
+#if MACOS
+		try {
+			InstallMacMainMenu ();
+			((MenuBar)ui["menubar1"]).Hide ();
+		} catch (Exception ex) {
+			Console.Error.WriteLine ("Installing Mac IGE Main Menu failed. Skipping.\n" + ex);
+		}
+#endif
 	}
 
+#if MACOS
+		void InstallMacMainMenu ()
+		{
+			IgeMacIntegration.IgeMacMenu.GlobalKeyHandlerEnabled = true;
+			IgeMacIntegration.IgeMacMenu.MenuBar = (MenuBar) ui["menubar1"];
+			IgeMacIntegration.IgeMacMenu.QuitMenuItem = (MenuItem) ui["quit1"];
+			var appGroup = IgeMacIntegration.IgeMacMenu.AddAppMenuGroup ();
+			appGroup.AddMenuItem ((MenuItem)ui["quit1"], null);
+			appGroup.AddMenuItem ((MenuItem)ui["about1"], null);
+		}
 
+		void InitMacAppHandlers ()
+		{
+			ApplicationEvents.Quit += delegate (object sender, ApplicationEventArgs e) {
+				Application.Quit ();
+				e.Handled = true;
+			};
+			
+			ApplicationEvents.Reopen += delegate (object sender, ApplicationEventArgs e) {
+				if (MainWindow != null) {
+					MainWindow.Deiconify ();
+					MainWindow.Visible = true;
+					e.Handled = true;
+				}
+			};
+			
+			ApplicationEvents.OpenUrls += delegate (object sender, ApplicationUrlEventArgs e) {
+				if (e.Urls == null || e.Urls.Count == 0)
+					return;
+				string url = e.Urls[0];
+				if (string.IsNullOrEmpty (url) || !url.StartsWith ("monodoc://"))
+					return;
+				url = url.Substring ("monodoc://".Length);
+				if (url.Length == 0)
+					return;
+				url = System.Web.HttpUtility.UrlDecode (url);
+				LoadUrl (url);
+				if (MainWindow != null)
+					MainWindow.Present ();
+				e.Handled = true;
+			};
+		}
+#endif
 
 	// Initianlizes the search index
 	void CreateSearchPanel ()
@@ -2366,7 +2428,15 @@ public class Tab : Notebook {
 		return null;
 	}
 	
-	
+#if MACOS
+	public static IHtmlRender GetRenderer (string engine, Browser browser)
+	{
+		var renderer = new GtkHtmlHtmlRender (browser.help_tree);
+		renderer.Initialize ();
+
+		return renderer;
+	}
+#else
 	public static IHtmlRender GetRenderer (string engine, Browser browser)
 	{
 		IHtmlRender renderer = LoadRenderer (System.IO.Path.Combine (AppDomain.CurrentDomain.BaseDirectory, engine + "HtmlRender.dll"), browser);
@@ -2399,7 +2469,7 @@ public class Tab : Notebook {
 		
 		return null;		
 	}
-	
+#endif
 
 	public Tab(Browser br) 
 	{

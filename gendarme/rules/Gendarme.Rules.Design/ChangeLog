@@ -1,8 +1,72 @@
+2010-06-13  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* ConsiderAddingInterfaceRule.cs:
+	* PreferXmlAbstractionsRule.cs:
+	* TypesWithDisposableFieldsShouldBeDisposableRule.cs:
+	* TypesWithNativeFieldsShouldBeDisposableRule.cs:
+		Apply AvoidRepetitiveCallsToPropertiesRule
+
+2010-06-05  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidSmallNamespaceRule.cs: Use a unique NamespaceDefinition (not
+	a new one each time) when reporting a defect
+
+2010-05-24  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* Makefile.am: Add define for CODE_ANALYSIS on unit tests (required
+	for [SuppressMessage] to be present) and add GlobalSuppressions.cs
+	to the build
+
+2010-05-08  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* ConsiderConvertingMethodToPropertyRule.cs: Apply AvoidRepetitive
+	CallsToPropertiesRule to MethodDefinition.get_Name
+
+2010-01-29  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidPublicInstanceFieldsRule.cs: Apply AvoidRepetitiveCallsToPropertiesRule
+	on FieldDefinition.get_Name
+
+2010-01-28  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* ProvideTryParseAlternativeRule.cs: Simplify and reduce code 
+	duplication by using the new MethodSignatures.[Try]Parse
+
+2010-01-24  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* ProvideTryParseAlternativeRule.cs: New. Rule to suggest adding
+	TryParse method(s) to types that already provide Parse method(s)
+	* Makefile.am: Add new rule and tests to the build
+
+2010-01-23  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* DeclareEventHandlersCorrectlyRule.cs: Apply AvoidUnnecessary
+	SpecializationRule and AvoidRepetitiveCallsToPropertiesRule
+	* UseCorrectDisposeSignaturesRule.cs: Apply MethodCanBeMadeStatic
+	Rule, ProvideCorrectArgumentsToFormattingMethodsRule and Avoid
+	UnusedParametersRule
+	* UseFlagsAttributeRule.cs: Apply MethodCanBeMadeStaticRule
+
+2010-01-19  Jb Evain  <jbevain@novell.com>
+
+	* DisposableTypesShouldHaveFinalizerRule.cs: the rule
+	does not apply on generated types such as generators.
+
+2010-01-17  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AttributeArgumentsShouldHaveAccessorsRule.cs: Avoid boxing 
+	when concatenating strings
+	* AvoidPublicInstanceFieldsRule.cs: Avoid boxing when 
+	concatenating strings
+
+2010-01-01  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidRefAndOutParametersRule.cs: Use new IsRef rock
+
 2009-12-13  Sebastien Pouliot  <sebastien@ximian.com>
 
 	* DisposableTypesShouldHaveFinalizerRule.cs: Report an additional
 	defect for struct, which cannot define a finalizer.
-	[Backport r148085]
 
 2009-08-11  Jesse Jones  <jesjones@mindspring.com>
 

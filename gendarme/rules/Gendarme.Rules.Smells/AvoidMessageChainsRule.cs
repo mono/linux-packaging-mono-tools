@@ -29,6 +29,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 
 using Mono.Cecil;
@@ -76,7 +77,7 @@ namespace Gendarme.Rules.Smells {
 	[Solution ("You can apply the Hide Delegate refactoring or Extract Method to push down the chain.")]
 	[EngineDependency (typeof (OpCodeEngine))]
 	public class AvoidMessageChainsRule : Rule, IMethodRule {
-		private int maxChainLength = 5;
+		private int maxChainLength = 4;
 
 		public int MaxChainLength {
 			get {
@@ -96,7 +97,8 @@ namespace Gendarme.Rules.Smells {
 				return RuleResult.DoesNotApply;
 
 			// no chain are possible without Call[virt] instructions within the method
-			if (!OpCodeBitmask.Calls.Intersect (OpCodeEngine.GetBitmask (method)))
+			OpCodeBitmask calls = OpCodeBitmask.Calls;
+			if (!calls.Intersect (OpCodeEngine.GetBitmask (method)))
 				return RuleResult.DoesNotApply;
 
 			Log.WriteLine (this);
@@ -105,11 +107,11 @@ namespace Gendarme.Rules.Smells {
 			
 			// walk back so we don't process very long chains multiple times
 			// (we don't need to go down to zero since it would not be big enough for a chain to exists)
-			InstructionCollection ic = method.Body.Instructions;
+			IList<Instruction> ic = method.Body.Instructions;
 			for (int i = ic.Count - 1; i >= MaxChainLength; i--) {
 				Instruction ins = ic [i];
 				// continue until we find a Call[virt] instruction
-				if (!OpCodeBitmask.Calls.Get (ins.OpCode.Code))
+				if (!calls.Get (ins.OpCode.Code))
 					continue;
 
 				// operators "break" chains
@@ -128,7 +130,7 @@ namespace Gendarme.Rules.Smells {
 				}
 				Log.WriteLine (this, "chain of length {0} at {1:X4}", counter, ins.Offset);
 
-				if (counter >= MaxChainLength) {
+				if (counter > MaxChainLength) {
 					string msg = String.Format ("Chain length {0} versus maximum of {1}.", counter, MaxChainLength);
 					Runner.Report (method, ins, Severity.Medium, Confidence.Normal, msg);
 				}

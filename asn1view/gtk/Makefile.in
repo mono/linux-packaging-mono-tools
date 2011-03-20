@@ -49,6 +49,7 @@ SOURCES =
 DIST_SOURCES =
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
+ACLOCAL_FLAGS = @ACLOCAL_FLAGS@
 AMTAR = @AMTAR@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
@@ -67,6 +68,7 @@ CYGPATH_W = @CYGPATH_W@
 DATADIRNAME = @DATADIRNAME@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
+DMCS = @DMCS@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
@@ -80,6 +82,8 @@ GETTEXT_PACKAGE = @GETTEXT_PACKAGE@
 GMCS = @GMCS@
 GMOFILES = @GMOFILES@
 GMSGFMT = @GMSGFMT@
+GNOME_SHARP_CFLAGS = @GNOME_SHARP_CFLAGS@
+GNOME_SHARP_LIBS = @GNOME_SHARP_LIBS@
 GNUNIT_VERSION = @GNUNIT_VERSION@
 GREP = @GREP@
 GTKHTML_SHARP_CFLAGS = @GTKHTML_SHARP_CFLAGS@
@@ -198,11 +202,7 @@ top_srcdir = @top_srcdir@
 #   Martin Willemoes Hansen (mwh@sysrq.dk>
 #
 local_flags = -debug+ -debug:full -nologo $(NUNIT_LIBS) $(MCSFLAGS) \
-	$(GTK_SHARP_LIBS)
-gasnview_SCRIPTS = gasnview.exe
-gasnviewdir = $(prefix)/lib/mono/1.0
-CLEANFILES = gasnview.exe gasnview.exe.mdb gasnview
-EXTRA_DIST = $(gasnview_sources_dist) gui.glade script.in
+	$(GTK_SHARP_LIBS) $(GNOME_SHARP_LIBS)
 resources = $(srcdir)/gui.glade \
 	$(srcdir)/../art/export-16.png \
 	$(srcdir)/../art/export.png \
@@ -220,15 +220,19 @@ gasnview_sources_dist = $(gasnview_sources) $(gasnview_sources_in)
 gasnview_sources_build = $(gasnview_sources) $(gasnview_sources_in:.in=)
 
 ###
-ress = $(foreach res,$(resources), $(addprefix -resource:,$(res)),$(notdir $(res)))
-scriptdir = $(bindir)
-script_SCRIPTS = gasnview
-REWRITE = sed \
-	-e 's,@''bindir@,$(bindir),g'				\
-	-e 's,@''mono_one_instdir@,$(gasnviewdir),g'	\
-	-e 's,@''exe_file@,$@.exe,g'				\
-	-e 's,@''RUNTIME@,@RUNTIME@,g'
+@ENABLE_GNOME_TRUE@gasnview_SCRIPTS = gasnview.exe
+@ENABLE_GNOME_TRUE@gasnviewdir = $(prefix)/lib/mono/1.0
+@ENABLE_GNOME_TRUE@ress = $(foreach res,$(resources), $(addprefix -resource:,$(res)),$(notdir $(res)))
+@ENABLE_GNOME_TRUE@CLEANFILES = gasnview.exe gasnview.exe.mdb gasnview
+@ENABLE_GNOME_TRUE@scriptdir = $(bindir)
+@ENABLE_GNOME_TRUE@script_SCRIPTS = gasnview
+@ENABLE_GNOME_TRUE@REWRITE = sed \
+@ENABLE_GNOME_TRUE@	-e 's,@''bindir@,$(bindir),g'				\
+@ENABLE_GNOME_TRUE@	-e 's,@''mono_one_instdir@,$(gasnviewdir),g'	\
+@ENABLE_GNOME_TRUE@	-e 's,@''exe_file@,$@.exe,g'				\
+@ENABLE_GNOME_TRUE@	-e 's,@''RUNTIME@,@RUNTIME@,g'
 
+EXTRA_DIST = $(gasnview_sources_dist) gui.glade script.in
 all: all-am
 
 .SUFFIXES:
@@ -433,12 +437,13 @@ uninstall-am: uninstall-gasnviewSCRIPTS uninstall-scriptSCRIPTS
 	uninstall-gasnviewSCRIPTS uninstall-scriptSCRIPTS
 
 
-gasnview.exe: $(gasnview_sources_build) $(resources)
-	$(MCS) $(MCSFLAGS) $(local_flags) $(ress) -out:$@ $(gasnview_sources_build)
+@ENABLE_GNOME_TRUE@gasnview.exe: $(gasnview_sources_build) $(resources)
+@ENABLE_GNOME_TRUE@	$(MCS) $(MCSFLAGS) $(local_flags) $(ress) -out:$@ $(gasnview_sources_build)
 
-gasnview: $(srcdir)/script.in Makefile
-	$(REWRITE) $(srcdir)/script.in > $@.tmp
-	mv $@.tmp $@
+@ENABLE_GNOME_TRUE@gasnview: $(srcdir)/script.in Makefile
+@ENABLE_GNOME_TRUE@	$(REWRITE) $(srcdir)/script.in > $@.tmp
+@ENABLE_GNOME_TRUE@	mv $@.tmp $@
+@ENABLE_GNOME_FALSE@all:
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

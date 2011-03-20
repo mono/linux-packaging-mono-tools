@@ -25,6 +25,7 @@
 // THE SOFTWARE.
 
 using System;
+using System.Collections.Generic;
 using System.Xml;
 using System.Xml.XPath;
 
@@ -76,8 +77,6 @@ namespace Gendarme.Rules.Correctness {
 	[EngineDependency (typeof (OpCodeEngine))]
 	public sealed class ProvideValidXmlStringRule : Rule, IMethodRule {
 
-		MethodDefinition method;
-
 		const string XmlDocumentClass = "System.Xml.XmlDocument";
 		const string XmlNodeClass = "System.Xml.XmlNode";
 		const string XPathNavigatorClass = "System.Xml.XPath.XPathNavigator";
@@ -97,7 +96,7 @@ namespace Gendarme.Rules.Correctness {
 			};
 		}
 
-		void CheckString (Instruction ins, int argumentOffset)
+		void CheckString (MethodDefinition method, Instruction ins, int argumentOffset)
 		{
 			Instruction ld = ins.TraceBack (method, argumentOffset);
 			if (null == ld)
@@ -105,20 +104,20 @@ namespace Gendarme.Rules.Correctness {
 
 			switch (ld.OpCode.Code) {
 			case Code.Ldstr:
-				CheckString (ins, (string) ld.Operand);
+				CheckString (method, ins, (string) ld.Operand);
 				break;
 			case Code.Ldsfld:
 				FieldReference f = (FieldReference) ld.Operand;
 				if (f.Name == "Empty" && f.DeclaringType.FullName == "System.String")
-					CheckString (ins, null);
+					CheckString (method, ins, null);
 				break;
 			case Code.Ldnull:
-				CheckString (ins, null);
+				CheckString (method, ins, null);
 				break;
 			}
 		}
 
-		void CheckString (Instruction ins, string xml)
+		void CheckString (MethodDefinition method, Instruction ins, string xml)
 		{
 			if (string.IsNullOrEmpty (xml)) {
 				Runner.Report (method, ins, Severity.High, Confidence.Total, "XML string is null or empty.");
@@ -133,7 +132,7 @@ namespace Gendarme.Rules.Correctness {
 			}
 		}
 
-		void CheckCall (Instruction ins, MethodReference mref)
+		void CheckCall (MethodDefinition method, Instruction ins, MethodReference mref)
 		{
 			if (null == mref || !mref.HasParameters)
 				return;
@@ -141,22 +140,23 @@ namespace Gendarme.Rules.Correctness {
 			switch (mref.Name) {
 			case "LoadXml":
 				if (mref.DeclaringType.FullName == XmlDocumentClass)
-					CheckString (ins, -1);
+					CheckString (method, ins, -1);
 				break;
 			case "set_InnerXml":
 			case "set_OuterXml":
-				if (mref.DeclaringType.Inherits (XmlNodeClass)
-					|| mref.DeclaringType.Inherits (XPathNavigatorClass))
-					CheckString (ins, -1);
+				TypeReference tr = mref.DeclaringType;
+				if (tr.Inherits (XmlNodeClass) || tr.Inherits (XPathNavigatorClass))
+					CheckString (method, ins, -1);
 				break;
 			case "AppendChild":
 			case "PrependChild":
 			case "InsertAfter":
 			case "InsertBefore":
-				if (mref.Parameters.Count == 1
-					&& mref.Parameters [0].ParameterType.FullName == "System.String"
+				IList<ParameterDefinition> pdc = mref.Parameters;
+				if (pdc.Count == 1
+					&& pdc [0].ParameterType.FullName == "System.String"
 					&& mref.DeclaringType.Inherits (XPathNavigatorClass))
-					CheckString (ins, -1);
+					CheckString (method, ins, -1);
 				break;
 			}
 		}
@@ -166,17 +166,16 @@ namespace Gendarme.Rules.Correctness {
 			if (!method.HasBody)
 				return RuleResult.DoesNotApply;
 
-			this.method = method;
-
 			//is there any interesting opcode in the method?
-			if (!OpCodeBitmask.Calls.Intersect (OpCodeEngine.GetBitmask (method)))
+			OpCodeBitmask calls = OpCodeBitmask.Calls;
+			if (!calls.Intersect (OpCodeEngine.GetBitmask (method)))
 				return RuleResult.DoesNotApply;
 
 			foreach (Instruction ins in method.Body.Instructions) {
-				if (!OpCodeBitmask.Calls.Get (ins.OpCode.Code))
+				if (!calls.Get (ins.OpCode.Code))
 					continue;
 
-				CheckCall (ins, (MethodReference) ins.Operand);
+				CheckCall (method, ins, (MethodReference) ins.Operand);
 			}
 
 			return Runner.CurrentRuleResult;

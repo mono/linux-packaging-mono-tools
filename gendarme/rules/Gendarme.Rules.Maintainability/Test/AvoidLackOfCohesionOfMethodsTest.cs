@@ -3,8 +3,10 @@
 //
 // Authors:
 //      Cedric Vivier <cedricv@neonux.com>
+//	Sebastien Pouliot <sebastien@ximian.com>
 //
-//      (C) 2008 Cedric Vivier
+// (C) 2008 Cedric Vivier
+// Copyright (C) 2011 Novell, Inc (http://www.novell.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the
@@ -28,6 +30,7 @@
 
 using System;
 using System.Reflection;
+using System.Runtime.Serialization;
 
 using Gendarme.Framework;
 using Gendarme.Rules.Maintainability;
@@ -38,7 +41,7 @@ using Test.Rules.Fixtures;
 using Test.Rules.Helpers;
 
 
-namespace Test.Rules.Smells {
+namespace Test.Rules.Maintainability {
 
 	[AttributeUsage(AttributeTargets.Class)]
 	public sealed class ExpectedCohesivenessAttribute : Attribute
@@ -46,14 +49,25 @@ namespace Test.Rules.Smells {
 		public ExpectedCohesivenessAttribute(double c)
 		{
 			_c = c;
+			_d = Double.Epsilon;
 		}
 
-		public double Value
+		public ExpectedCohesivenessAttribute (double c, double delta)
 		{
+			_c = c;
+			_d = delta;
+		}
+
+		public double Value {
 			get { return _c; }
 		}
 
-		private double _c = 0;
+		public double Delta {
+			get { return _d; }
+		}
+
+		private double _c;
+		private double _d;
 	}
 
 	#pragma warning disable 414, 169
@@ -190,7 +204,8 @@ namespace Test.Rules.Smells {
 		}
 	}
 
-	[ExpectedCohesiveness(0.17)]
+	// CSC 9.x result varies if /o (optimize) is ON or OFF and we want the test to pass in both cases
+	[ExpectedCohesiveness (0.17, 0.2)]
 	public class VeryBadCohesion
 	{
 		int x;
@@ -284,6 +299,108 @@ namespace Test.Rules.Smells {
 			x = 1;
 		}
 	}
+
+	[DataContract]
+	[ExpectedCohesiveness (0)] // all fields and geteter/setters are marked as generated code
+	public class Address {
+		[DataMember]
+		public string StreetNumber { get; set; }
+		[DataMember]
+		public string StreetName { get; set; }
+		[DataMember]
+		public string City { get; set; }
+		[DataMember]
+		public string State { get; set; }
+		[DataMember]
+		public string ZipCode { get; set; }
+		[DataMember]
+		public string Country { get; set; }
+	}
+
+	[DataContract]
+	[ExpectedCohesiveness (0.78)]
+	public class Address_WithExtraMethods_High {
+		[DataMember]
+		public string StreetNumber { get; set; }
+		[DataMember]
+		public string StreetName { get; set; }
+		[DataMember]
+		public string City { get; set; }
+		[DataMember]
+		public string State { get; set; }
+		[DataMember]
+		public string ZipCode { get; set; }
+		[DataMember]
+		public string Country { get; set; }
+
+		public void Validate ()
+		{
+			if (StreetNumber.Length == 0)
+				throw new InvalidDataContractException ();
+			if (StreetName.Length == 0)
+				throw new InvalidDataContractException ();
+			if (City.Length == 0)
+				throw new InvalidDataContractException ();
+			if (State.Length == 0)
+				throw new InvalidDataContractException ();
+			if (ZipCode.Length == 0)
+				throw new InvalidDataContractException ();
+			if (Country.Length == 0)
+				throw new InvalidDataContractException ();
+		}
+
+		public void Reset ()
+		{
+			StreetNumber = String.Empty;
+			StreetName = String.Empty;
+			City = String.Empty;
+			State = String.Empty;
+			ZipCode = String.Empty;
+			Country = String.Empty;
+		}
+
+		public void AutoComplete ()
+		{
+			if (State == "QC")
+				Country = "Canada";
+		}
+	}
+
+	[DataContract]
+	[ExpectedCohesiveness (0.42)]
+	public class Address_WithExtraMethods_Low {
+		[DataMember]
+		public string StreetNumber { get; set; }
+		[DataMember]
+		public string StreetName { get; set; }
+		[DataMember]
+		public string City { get; set; }
+		[DataMember]
+		public string State { get; set; }
+		[DataMember]
+		public string ZipCode { get; set; }
+		[DataMember]
+		public string Country { get; set; }
+
+		public void Validate ()
+		{
+			if (StreetNumber.Length == 0)
+				throw new InvalidDataContractException ();
+		}
+
+		public void Reset ()
+		{
+			StreetNumber = String.Empty;
+			StreetName = String.Empty;
+		}
+
+		public void AutoComplete ()
+		{
+			if (State == "QC")
+				Country = "Canada";
+		}
+	}
+
 	#pragma warning restore 414, 169
 
 
@@ -312,9 +429,9 @@ namespace Test.Rules.Smells {
 							DefinitionLoader.GetTypeDefinition (type));
 
 				Assert.IsTrue (
-					Math.Abs(coh - expectedCoh.Value) <= double.Epsilon,
-					"Cohesiveness for type '{0}' is {1} but should have been {2}.",
-					type, coh, expectedCoh.Value);
+					Math.Abs (coh - expectedCoh.Value) <= expectedCoh.Delta,
+					"Cohesiveness for type '{0}' is {1} but should have been {2} +/- {3}.",
+					type, coh, expectedCoh.Value, expectedCoh.Delta);
 			}
 		}
 
@@ -324,14 +441,18 @@ namespace Test.Rules.Smells {
 			AssertRuleSuccess<PerfectCohesion> ();
 			AssertRuleSuccess<GoodCohesion> ();
 			AssertRuleSuccess<AverageCohesionLimitBecauseOfHighNumberOfMethods> ();
+			// automatic properties - with "real" methods, high cohesion
+			AssertRuleSuccess<Address_WithExtraMethods_High> ();
 		}
 
 		[Test]
 		public void BadCohesionsTest ()
 		{
-			AssertRuleFailure<BadCohesion> ();
-			AssertRuleFailure<VeryBadCohesion> ();
-			AssertRuleFailure<BadCohesionNotVeryBadBecauseOfInheritance> ();
+			AssertRuleFailure<BadCohesion> (1);
+			AssertRuleFailure<VeryBadCohesion> (1);
+			AssertRuleFailure<BadCohesionNotVeryBadBecauseOfInheritance> (1);
+			// automatic properties - with "real" methods, low cohesion
+			AssertRuleFailure<Address_WithExtraMethods_Low> (1);
 		}
 
 		[Test]
@@ -344,6 +465,8 @@ namespace Test.Rules.Smells {
 			AssertRuleDoesNotApply<ClassWithProtectedField> ();
 			AssertRuleDoesNotApply<ClassWithStaticMethod> ();
 			AssertRuleDoesNotApply<ClassWithMethodUsingStaticField> ();
+			// automatic properties - no "real" methods
+			AssertRuleDoesNotApply<Address> ();
 		}
 	}
 }

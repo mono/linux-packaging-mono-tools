@@ -74,8 +74,8 @@ namespace Gendarme.Rules.Design.Generic {
 
 			// we only want to run this on assemblies that use 2.0 or later
 			// since generics were not available before
-			Runner.AnalyzeAssembly += delegate (object o, RunnerEventArgs e) {
-				Active = (e.CurrentAssembly.Runtime >= TargetRuntime.NET_2_0);
+			Runner.AnalyzeModule += delegate (object o, RunnerEventArgs e) {
+				Active = (e.CurrentModule.Runtime >= TargetRuntime.Net_2_0);
 			};
 		}
 
@@ -83,6 +83,10 @@ namespace Gendarme.Rules.Design.Generic {
 		{
 			// rule does not apply to properties, events, without parameters or for generated code
 			if (method.IsSpecialName || !method.HasParameters || method.IsGeneratedCode ())
+				return RuleResult.DoesNotApply;
+
+			// exclude the "bool Try* (ref)" pattern from the rule
+			if (method.Name.StartsWith ("Try", StringComparison.Ordinal) && (method.ReturnType.FullName == "System.Boolean"))
 				return RuleResult.DoesNotApply;
 
 			foreach (ParameterDefinition parameter in method.Parameters) {

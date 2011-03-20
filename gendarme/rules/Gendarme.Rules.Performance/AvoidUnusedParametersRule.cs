@@ -6,7 +6,7 @@
 //	Sebastien Pouliot <sebastien@ximian.com>
 //
 //  (C) 2007 Néstor Salceda
-// Copyright (C) 2008 Novell, Inc (http://www.novell.com)
+// Copyright (C) 2008, 2010 Novell, Inc (http://www.novell.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the
@@ -29,6 +29,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -77,7 +78,7 @@ namespace Gendarme.Rules.Performance {
 	[Problem ("The method contains one or more unused parameters.")]
 	[Solution ("You should remove or use the unused parameters.")]
 	[EngineDependency (typeof (OpCodeEngine))]
-	[FxCopCompatibility ("Microsoft.Performance", "CA1801:ReviewUnusedParameters")]
+	[FxCopCompatibility ("Microsoft.Usage", "CA1801:ReviewUnusedParameters")]
 	public class AvoidUnusedParametersRule : Rule, IMethodRule {
 
 		private static bool ContainsReferenceDelegateInstructionFor (MethodDefinition method, MethodDefinition delegateMethod)
@@ -102,7 +103,7 @@ namespace Gendarme.Rules.Performance {
 			if (declaringType == null)
 				return false;
 
-			foreach (var method in declaringType.AllMethods ())
+			foreach (var method in declaringType.Methods)
 				if (ContainsReferenceDelegateInstructionFor (method, delegateMethod))
 					return true;
 
@@ -120,7 +121,6 @@ namespace Gendarme.Rules.Performance {
 				return RuleResult.DoesNotApply;
 
 			// rule doesn't apply to virtual, overrides or generated code
-
 			// doesn't apply to code referenced by delegates (note: more complex check moved last)
 			if (method.IsVirtual || method.HasOverrides || method.IsGeneratedCode ())
 				return RuleResult.DoesNotApply;
@@ -131,10 +131,17 @@ namespace Gendarme.Rules.Performance {
 			if (method.IsEventCallback () || IsReferencedByDelegate (method))
 				return RuleResult.DoesNotApply;
 
+			// methods with [Conditional] can be empty (not using any parameter) IL-wise but not source-wise, ignore them
+			if (method.HasCustomAttributes) {
+				if (method.CustomAttributes.ContainsType ("System.Diagnostics.ConditionalAttribute"))
+					return RuleResult.DoesNotApply;
+			}
+
 			// rule applies
 
-			// we limit ourselves to the first 64 parameters
-			int pcount = method.Parameters.Count;
+			// we limit ourselves to the first 64 parameters (so we can use a bitmask)
+			IList<ParameterDefinition> pdc = method.Parameters;
+			int pcount = pdc.Count;
 			if (pcount > 64)
 				pcount = 64;
 			ulong mask = 0;
@@ -144,7 +151,7 @@ namespace Gendarme.Rules.Performance {
 				ParameterDefinition parameter = ins.GetParameter (method);
 				if (parameter == null)
 					continue;
-				mask |= ((ulong)1 << (parameter.Sequence - 1));
+				mask |= ((ulong)1 << (parameter.GetSequence () - 1));
 			}
 
 			// quick out based on value - i.e. every parameter is being used
@@ -154,7 +161,7 @@ namespace Gendarme.Rules.Performance {
 
 			for (int i = 0; i < pcount; i++) {
 				if ((mask & ((ulong) 1 << i)) == 0) {
-					ParameterDefinition parameter = method.Parameters [i];
+					ParameterDefinition parameter = pdc [i];
 					string text = String.Format ("Parameter '{0}' of type '{1}' is never used in the method.",
 						parameter.Name, parameter.ParameterType);
 					Runner.Report (parameter, Severity.Medium, Confidence.Normal, text);

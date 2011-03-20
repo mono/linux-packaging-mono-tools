@@ -27,6 +27,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 
 using Mono.Cecil;
 
@@ -69,8 +70,8 @@ namespace Gendarme.Rules.Design.Generic {
 
 			// we only want to run this on assemblies that use 2.0 or later
 			// since generics were not available before
-			Runner.AnalyzeAssembly += delegate (object o, RunnerEventArgs e) {
-				Active = (e.CurrentAssembly.Runtime >= TargetRuntime.NET_2_0);
+			Runner.AnalyzeModule += delegate (object o, RunnerEventArgs e) {
+				Active = (e.CurrentModule.Runtime >= TargetRuntime.Net_2_0);
 			};
 		}
 
@@ -85,13 +86,18 @@ namespace Gendarme.Rules.Design.Generic {
 			if (invoke == null)
 				return RuleResult.DoesNotApply;
 
-			if (invoke.ReturnType.ReturnType.FullName != "System.Void")
+			if (invoke.ReturnType.FullName != "System.Void")
 				return RuleResult.Success;
-			if (!invoke.HasParameters || (invoke.Parameters.Count != 2))
+
+			if (!invoke.HasParameters)
 				return RuleResult.Success;
-			if (invoke.Parameters [0].ParameterType.FullName != "System.Object")
+
+			IList<ParameterDefinition> pdc = invoke.Parameters;
+			if (pdc.Count != 2)
 				return RuleResult.Success;
-			if (!invoke.Parameters [1].ParameterType.Inherits ("System.EventArgs"))
+			if (pdc [0].ParameterType.FullName != "System.Object")
+				return RuleResult.Success;
+			if (!pdc [1].ParameterType.Inherits ("System.EventArgs"))
 				return RuleResult.Success;
 
 			Runner.Report (type, Severity.Medium, Confidence.High);

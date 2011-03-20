@@ -1,3 +1,134 @@
+2010-06-20  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidRepetitiveCallsToPropertiesRule.cs: Fix properties access
+	* ReviewLinqMethodRule.cs: Apply AvoidRepetitiveCallsToPropertiesRule
+
+2010-06-14  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidRepetitiveCallsToPropertiesRule.cs: Filter out some well 
+	known properties that are often called several times
+
+2010-06-10  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidReturningArraysOnPropertiesRule.cs: Skip rule if the type 
+	has no properties.
+
+2010-06-06  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* PreferCharOverloadRule.cs: Apply AvoidUnnecessarySpecializationRule
+
+2010-06-04  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidConcatenatingCharsRule.cs:
+	* AvoidRepetitiveCallsToPropertiesRule.cs:
+	* PreferCharOverloadRule.cs:
+	* ReviewLinqMethodRule.cs:
+ 		Apply AvoidUnnecessarySpecializationRule
+
+2010-05-24  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidUnusedParametersRule.cs: Documented (MSDN) as a Performance
+	rule but it's actually in the Usage category (e.g. when suppressing
+	a defect) and we need to be compatible with the later.
+	* Makefile.am: Add define for CODE_ANALYSIS on unit tests (required
+	for [SuppressMessage] to be present) and add GlobalSuppressions.cs
+	to the build
+
+2010-05-14  Antoine Vandecreme  <avandecreme@sopragroup.com>
+
+	* ReviewLinqMethodRule.cs: Add support to detect use of
+	Count() instead of Any() in conditions
+
+2010-05-14  Antoine Vandecreme  <avandecreme@sopragroup.com> 
+
+	* ReviewLinqMethodRule.cs: Fix NullReferenceException,
+	I haven't analysed the reason of the null value but I
+	guess it happens in Linq queries such as :
+	myEnumerable.Where(v => v.IsCondition()).OrderBy(v => v.Value)
+	when searching the type of the object on which OrderBy is
+	applied (actually, always IEnumerable<T>, so no defect possible)
+
+2010-05-14  Antoine Vandecreme  <avandecreme@sopragroup.com>
+
+	* ReviewLinqMethodRule.cs: Fix the optimisation test
+	which was skipping .Net 3.5 assemblies.
+
+2010-04-28  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidUnusedParametersRule.cs: Ignore methods decorated with a 
+	[Conditional] attribute.
+
+2010-04-27  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidUncalledPrivateCodeRule.cs: Ignore methods decorated with
+	a [Conditional] attribute.
+	* AvoidUninstantiatedInternalClassesRule.cs: Ignore internal types
+	named NamespaceDoc since they are used by monodoc to include
+	namespace-related documentation (suggested by Jesse Jones)
+
+2010-04-13  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidRepetitiveCallsToPropertiesRule.cs: Don't assume a 
+	MethodReference for FlowControl.Call. Calli, while uncommon, 
+	would provide a CallSite.
+
+2010-01-31  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidRepetitiveCallsToPropertiesRule.cs: Fix false positives on
+	long message chains. Make InlineLimit a configurable property.
+
+2010-01-30  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidConcatenatingCharsRule.cs: Apply AvoidMessageChainsRule and 
+	make the check safer against names starting with Object*
+	* AvoidUncalledPrivateCodeRule.cs: Apply AvoidRepetitive
+	CallsToPropertiesRule
+	* AvoidUninstantiatedInternalClassesRule.cs: Apply AvoidRepetitive
+	CallsToPropertiesRule
+	* AvoidUnneededCallsOnStringRule.cs: Apply PreferEmptyInstanceOver
+	NullRule
+	* AvoidUnneededUnboxingRule.cs: Apply PreferEmptyInstanceOverNullRule
+	* AvoidUnsealedUninheritedInternalClassesRule.cs: Apply Avoid
+	RepetitiveCallsToPropertiesRule
+	* AvoidUnusedParametersRule.cs: Apply AvoidRepetitiveCallsTo
+	PropertiesRule
+	* MathMinMaxCandidateRule.cs: Apply PreferEmptyInstanceOverNullRule
+	* PreferCharOverloadRule.cs: Apply AvoidRepetitiveCallsToProperties
+	Rule and add extra HasParameters check
+	* RemoveUnusedLocalVariablesRule.cs: Apply AvoidRepetitiveCallsTo
+	PropertiesRule
+
+2010-01-20  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidRepetitiveCallsToPropertiesRule.cs: Apply 
+	MethodCanBeMadeStaticRule
+	* ReviewLinqMethodRule.cs: Apply AvoidUnusedParametersRule and
+	AvoidRepetitiveCallsToPropertiesRule
+
+2010-01-17  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidConcatenatingCharsRule.cs: New. Rule will warn if boxing
+	is required to concatenate string.
+	* Makefile.am: Add new rule and tests to the build.
+
+2010-01-10  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidRepetitiveCallsToPropertiesRule.cs: New rule to warn if a
+	virtual or non-likely inline-able properties (getter) are called
+	several times by a method.
+	* Makefile.am: Add new rule and tests to the build.
+
+2010-01-04  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* Makefile.am: Add new rule and tests to the build.
+
+2010-01-03  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidLocalDataStoreSlotRule.cs: New. Rule to promote the use of
+	[ThreadStatic] and [ContextStatic] attributes over the slower 
+	LocalDataStoreSlot-based API.
+	* Makefile.am: Add new rule and tests to the build.
+
 2009-08-16  Jesse Jones  <jesjones@mindspring.com>
 
 	* AvoidLargeNumberOfLocalVariablesRule.cs, 

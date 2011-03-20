@@ -1,5 +1,4 @@
 include ../common.make
-common_tests=../Test.Rules/Test.Rules.dll,System.Configuration
 
 rules_sources =  \
 	AttributeStringLiteralsShouldParseCorrectlyRule.cs \
@@ -30,7 +29,20 @@ rules_sources =  \
 	ReviewUselessControlFlowRule.cs \
 	ReviewUseOfInt64BitsToDoubleRule.cs \
 	ReviewUseOfModuloOneOnIntegersRule.cs \
+	UseNoInliningWithGetCallingAssemblyRule.cs \
 	UseValueInPropertySetterRule.cs
+
+EXTRA_TESTS_OPTIONS += -r:System.Configuration -d:DEBUG -resource:Test/Resources.resources,Tests.Rules.Correctness.Resource.resources
+
+EXTRA_DIST += Test/Resource.resx
+
+tests_resource_resx = Test/Resource.resx
+tests_resource_prefix_resx = $(addprefix $(srcdir)/, $(tests_resource_resx))
+
+Test/Resources.resources: $(tests_resource_resx)
+	resgen2 -usesourcepath -compile $(tests_resource_resx),Test/Resources.resources;
+
+EXTRA_TESTS_DEPS = Test/Resources.resources
 
 tests_sources = \
 	AttributeStringLiteralsShouldParseCorrectlyTest.cs \
@@ -53,6 +65,7 @@ tests_sources = \
 	ProvideCorrectRegexPatternTest.cs \
 	ProvideValidXmlStringTest.cs \
 	ProvideValidXPathExpressionTest.cs \
+	Resource.Designer.cs \
 	ReviewCastOnIntegerDivisionTest.cs \
 	ReviewCastOnIntegerMultiplicationTest.cs \
 	ReviewDoubleAssignmentTest.cs \
@@ -60,4 +73,5 @@ tests_sources = \
 	ReviewUselessControlFlowTest.cs \
 	ReviewUseOfInt64BitsToDoubleTest.cs \
 	ReviewUseOfModuloOneOnIntegersTest.cs \
+	UseNoInliningWithGetCallingAssemblyTest.cs \
 	UseValueInPropertySetterTest.cs

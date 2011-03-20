@@ -69,7 +69,7 @@ namespace Gendarme.Rules.Interoperability {
 
 		private static bool IsStringOrSBuilder (TypeReference reference)
 		{
-			switch (reference.GetOriginalType ().FullName) {
+			switch (reference.GetElementType ().FullName) {
 			case "System.String":
 			case "System.Text.StringBuilder":
 				return true;
@@ -84,13 +84,17 @@ namespace Gendarme.Rules.Interoperability {
 			if (!method.IsPInvokeImpl)
 				return RuleResult.DoesNotApply;
 
-			if (!method.PInvokeInfo.IsCharSetNotSpec || !method.HasParameters)
+			PInvokeInfo info = method.PInvokeInfo;
+			if (info == null)
+				return RuleResult.DoesNotApply;
+
+			if (!info.IsCharSetNotSpec || !method.HasParameters)
 				return RuleResult.Success;
 
 			foreach (ParameterDefinition parameter in method.Parameters) {
-				if (IsStringOrSBuilder (parameter.ParameterType) && (parameter.MarshalSpec == null)) {
+				if (IsStringOrSBuilder (parameter.ParameterType) && (parameter.MarshalInfo == null)) {
 					string text = string.Format ("Parameter '{0}', of type '{1}', does not have [MarshalAs] attribute, yet no [DllImport CharSet=] is set for the method '{2}'.",
-						parameter.Name, parameter.ParameterType.Name, parameter.Method.Name);
+						parameter.Name, parameter.ParameterType.Name, method.Name);
 					Runner.Report (parameter, Severity.High, Confidence.Total, text);
 				}
 			}

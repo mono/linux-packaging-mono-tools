@@ -97,8 +97,12 @@ namespace Gendarme.Rules.Performance {
 	public sealed class ReviewLinqMethodRule : Rule, IMethodRule {
 
 		private const string EnumerableName = "System.Linq.Enumerable";
-		private readonly OpCodeBitmask Comparisons = new OpCodeBitmask (0x0, 0x0, 0x0, 0xB);
-		
+
+		//private readonly OpCodeBitmask Comparisons = ComparisonsBitmask ();
+		//private readonly OpCodeBitmask Conditions = ConditionsBitmask ();
+		private readonly OpCodeBitmask Comparisons = new OpCodeBitmask (0x2801400000000000, 0x0, 0x0, 0xB);
+		private readonly OpCodeBitmask Conditions = new OpCodeBitmask (0x300180000000000, 0x0, 0x0, 0x0);
+
 		public readonly MethodSignature CountProperty = new MethodSignature ("get_Count", null, new string [0]);
 		public readonly MethodSignature LengthProperty = new MethodSignature ("get_Length", null, new string [0]);
 		public readonly MethodSignature Subscript = new MethodSignature ("get_Item", null, new string [] {"System.Int32"});
@@ -113,27 +117,28 @@ namespace Gendarme.Rules.Performance {
 			return td != null && td.BaseType != null && HasMethod (td.BaseType, method);
 		}
 		
-		private void CheckForCountProperty (TypeDefinition type, MethodDefinition method, Instruction ins)
+		private void CheckForCountProperty (TypeReference type, MethodDefinition method, Instruction ins)
 		{
 			if (HasMethod (type, CountProperty)) {
 				string message = "Use the Count property instead of the Count () method.";
 				Log.WriteLine (this, "{0:X4} {1}", ins.Offset, message);
 				Runner.Report (method, ins, Severity.Medium, Confidence.High, message);
 
-			} else if (HasMethod (type, LengthProperty)) {
+			} else if (type.IsArray || HasMethod (type, LengthProperty)) {
+				// note: arrays [] always have a Length property but resolving arrays return the element type
 				string message = "Use the Length property instead of the Count () method.";
 				Log.WriteLine (this, "{0:X4} {1}", ins.Offset, message);
 				Runner.Report (method, ins, Severity.Medium, Confidence.High, message);
 			}
 		}
 
-		private void CheckForAny (TypeDefinition type, MethodDefinition method, Instruction ins)
+		private void CheckForAny (MethodDefinition method, Instruction ins)
 		{			
 			// call System.Int32 System.Linq.Enumerable::Count<System.String>(System.Collections.Generic.IEnumerable`1<!!0>)
 			// ldc.i4.0
-			// cgt, clt, or ceq
+			// cgt, clt, ceq, ble, ble.s, bge or bge.s
 			Instruction n1 = ins.Next;
-			Instruction n2 = n1 !=null ? n1.Next : null;
+			Instruction n2 = n1 != null ? n1.Next : null;
 			if (n1 != null && n2 != null) {
 				object rhs = n1.GetOperand (method);
 				if (rhs != null && rhs.Equals (0)) {
@@ -148,7 +153,7 @@ namespace Gendarme.Rules.Performance {
 			// ldc.i4.0
 			// ldarg.1
 			// call System.Int32 System.Linq.Enumerable::Count<System.String>(System.Collections.Generic.IEnumerable`1<!!0>)
-			// cgt, clt, or ceq
+			// cgt, clt, ceq, ble, ble.s, bge or bge.s
 			Instruction p1 = ins.Previous;
 			Instruction p2 = p1 != null ? p1.Previous : null;
 			if (p1 != null && p2 != null && n1 != null) {
@@ -161,11 +166,21 @@ namespace Gendarme.Rules.Performance {
 					}
 				}
 			}
+
+			// call System.Int32 System.Linq.Enumerable::Count<System.String>(System.Collections.Generic.IEnumerable`1<!!0>)
+			// brtrue, brtrue.s, brfalse or brfalse.s
+			if (n1 != null) {
+				if (Conditions.Get(n1.OpCode.Code)) {
+					string message = "Use Any () instead of Count ().";
+					Log.WriteLine (this, "{0:X4} {1}", ins.Offset, message);
+					Runner.Report (method, ins, Severity.Medium, Confidence.High, message);
+				}
+			}
 		}
 		
 		private void CheckForSubscript (TypeReference type, MethodDefinition method, Instruction ins, string name)
 		{
-			if (type.IsArray ()) {
+			if (type.IsArray) {
 				string message = string.Format ("Use operator [] instead of the {0} method.", name);
 				Log.WriteLine (this, "{0:X4} {1}", ins.Offset, message);
 				Runner.Report (method, ins, Severity.Medium, Confidence.High, message);
@@ -182,7 +197,7 @@ namespace Gendarme.Rules.Performance {
 		
 		private void CheckForSort (TypeReference type, MethodDefinition method, Instruction ins, string name)
 		{
-			if (type.IsArray ()) {
+			if (type.IsArray) {
 				string message = string.Format ("Use Array.Sort instead of the {0} method.", name);
 				Log.WriteLine (this, "{0:X4} {1}", ins.Offset, message);
 				Runner.Report (method, ins, Severity.Medium, Confidence.High, message);
@@ -201,11 +216,19 @@ namespace Gendarme.Rules.Performance {
 		{
 			base.Initialize (runner);
 
-			// The IEnumerable<T> extension methods were introduced in .NET 3.5
-			// so disable the rule if the assembly is targeting something earlier.
+			// The IEnumerable<T> extension methods were introduced in .NET 3.5 (but runtime 2 !)
+			// so disable the rule if the assembly can't have Linq
 			Runner.AnalyzeAssembly += (object o, RunnerEventArgs e) => {
-				Active = e.CurrentAssembly.Runtime > TargetRuntime.NET_2_0;
+				Active = CanHasLinq (e.CurrentAssembly);
 			};
+		}
+
+		private static bool CanHasLinq (AssemblyDefinition assembly)
+		{
+			if (assembly.MainModule.Runtime < TargetRuntime.Net_2_0)
+				return false;
+
+			return assembly.References ("System.Core");
 		}
 
 		public RuleResult CheckMethod (MethodDefinition method)
@@ -213,7 +236,8 @@ namespace Gendarme.Rules.Performance {
 			if (!method.HasBody)
 				return RuleResult.DoesNotApply;
 
-			if (!OpCodeBitmask.Calls.Intersect (OpCodeEngine.GetBitmask (method)))
+			OpCodeBitmask calls = OpCodeBitmask.Calls;
+			if (!calls.Intersect (OpCodeEngine.GetBitmask (method)))
 				return RuleResult.DoesNotApply;
 								
 			Log.WriteLine (this, "--------------------------------------");
@@ -221,39 +245,38 @@ namespace Gendarme.Rules.Performance {
 			
 			// Loop through each instruction,
 			foreach (Instruction ins in method.Body.Instructions) {
-			
 				// if we're calling a method,
-				if (OpCodeBitmask.Calls.Get (ins.OpCode.Code)) {
+				if (!calls.Get (ins.OpCode.Code))
+					continue;
 				
-					// and the method is a System.Linq.Enumerable method then,
-					var target = ins.Operand as MethodReference;
-					if (target != null && target.DeclaringType.FullName == EnumerableName) {
-					
-						// see if we can use a more efficient method.
-						if (target.Name == "Count" && target.Parameters.Count == 1) {
-							TypeReference tr = ins.Previous.GetOperandType (method);
-							TypeDefinition td = tr.Resolve ();
+				// and the method is a System.Linq.Enumerable method then,
+				var target = ins.Operand as MethodReference;
+				if ((target == null) || (target.DeclaringType.FullName != EnumerableName))
+					continue;
 
-							if (td != null) {
-								CheckForCountProperty (td, method, ins);
-								CheckForAny (td, method, ins);
-							}
-
-						} else if ((target.Name == "ElementAt" || target.Name == "ElementAtOrDefault") && target.Parameters.Count == 2) {
-							Instruction arg = ins.TraceBack (method);
-							TypeReference tr = arg.GetOperandType (method);
-							CheckForSubscript (tr, method, ins, target.Name);
-
-						} else if ((target.Name == "Last" || target.Name == "LastOrDefault") && target.Parameters.Count == 1) {
-							TypeReference tr = ins.Previous.GetOperandType (method);
-							CheckForSubscript (tr, method, ins, target.Name);
-
-						} else if (target.Name == "OrderBy" || target.Name == "OrderByDescending") {
-							Instruction arg = ins.TraceBack (method);
-							TypeReference tr = arg.GetOperandType (method);
-							CheckForSort (tr, method, ins, target.Name);
-						}
+				string tname = target.Name;
+				int tcount = target.HasParameters ? target.Parameters.Count : 0;
+				// see if we can use a more efficient method.
+				if (tname == "Count" && tcount == 1) {
+					TypeReference tr = ins.Previous.GetOperandType (method);
+					if (tr != null) {
+						CheckForCountProperty (tr, method, ins);
+						CheckForAny (method, ins);
 					}
+				} else if ((tname == "ElementAt" || tname == "ElementAtOrDefault") && tcount == 2) {
+					Instruction arg = ins.TraceBack (method);
+					TypeReference tr = arg.GetOperandType (method);
+					if (tr != null)
+						CheckForSubscript (tr, method, ins, tname);
+				} else if ((tname == "Last" || tname == "LastOrDefault") && tcount == 1) {
+					TypeReference tr = ins.Previous.GetOperandType (method);
+					if (tr != null)
+						CheckForSubscript (tr, method, ins, tname);
+				} else if (tname == "OrderBy" || tname == "OrderByDescending") {
+					Instruction arg = ins.TraceBack (method);
+					TypeReference tr = arg.GetOperandType (method);
+					if (tr != null)
+						CheckForSort (tr, method, ins, tname);
 				}
 			}
 
@@ -261,13 +284,29 @@ namespace Gendarme.Rules.Performance {
 		}
 		
 #if false
-		private void Bitmask ()
+		private static OpCodeBitmask ComparisonsBitmask ()
 		{
 			OpCodeBitmask mask = new OpCodeBitmask ();
 			mask.Set (Code.Cgt);
 			mask.Set (Code.Ceq);
 			mask.Set (Code.Clt);
-			Console.WriteLine (mask);
+			mask.Set (Code.Ble);
+			mask.Set (Code.Ble_S);
+			mask.Set (Code.Bge);
+			mask.Set (Code.Bge_S);
+			Console.WriteLine ("ComparisonsBitmask : " + mask);
+			return mask;
+		}
+
+		private static OpCodeBitmask ConditionsBitmask ()
+		{
+			OpCodeBitmask mask = new OpCodeBitmask ();
+			mask.Set (Code.Brtrue);
+			mask.Set (Code.Brtrue_S);
+			mask.Set (Code.Brfalse);
+			mask.Set (Code.Brfalse_S);
+			Console.WriteLine ("ConditionsBitmask : " + mask);
+			return mask;
 		}
 #endif
 	}

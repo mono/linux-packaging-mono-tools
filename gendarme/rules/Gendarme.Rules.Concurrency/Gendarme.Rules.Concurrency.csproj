@@ -48,7 +48,7 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>..\..\console\bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
+    <DefineConstants>TRACE;RELEASE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <NoWarn>1591</NoWarn>
@@ -65,12 +65,14 @@
     <Compile Include="..\..\AssemblyStaticInfo.cs">
       <Link>AssemblyStaticInfo.cs</Link>
     </Compile>
+    <Compile Include="DecorateThreadsRule.cs" />
     <Compile Include="DoNotLockOnThisOrTypesRule.cs" />
     <Compile Include="DoNotLockOnWeakIdentityObjectsRule.cs" />
     <Compile Include="DoNotUseThreadStaticWithInstanceFieldsRule.cs" />
     <Compile Include="DoubleCheckLockingRule.cs" />
     <Compile Include="LockAnalyzerRule.cs" />
     <Compile Include="NonConstantStaticFieldsShouldNotBeVisibleRule.cs" />
+    <Compile Include="ThreadRocks.cs" />
     <Compile Include="WriteStaticFieldFromInstanceMethodRule.cs" />
     <Compile Include="DoNotUseMethodImplOptionsSynchronizedRule.cs" />
     <Compile Include="DontUseLockedRegionOutsideMethodRule.cs" />
@@ -78,8 +80,8 @@
     <Compile Include="ProtectCallToEventDelegatesRule.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\mcs\class\Mono.Cecil\Mono.Cecil.csproj">
-      <Project>{D8F63DFF-5230-43E4-9AB2-DA6E721A1FAE}</Project>
+    <ProjectReference Include="..\..\..\..\cecil\Mono.Cecil.csproj">
+      <Project>{D68133BD-1E63-496E-9EDE-4FBDBF77B486}</Project>
       <Name>Mono.Cecil</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\framework\Gendarme.Framework.csproj">

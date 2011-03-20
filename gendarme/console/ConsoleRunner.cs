@@ -4,7 +4,7 @@
 // Authors:
 //	Sebastien Pouliot <sebastien@ximian.com>
 //
-// Copyright (C) 2005-2008 Novell, Inc (http://www.novell.com)
+// Copyright (C) 2005-2011 Novell, Inc (http://www.novell.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the
@@ -38,11 +38,13 @@ using System.Xml;
 using Mono.Cecil;
 
 using Gendarme.Framework;
+using Gendarme.Framework.Engines;
 
 using NDesk.Options;
 
 namespace Gendarme {
 
+	[EngineDependency (typeof (SuppressMessageEngine))]
 	public class ConsoleRunner : Runner {
 
 		private string config_file;
@@ -240,13 +242,33 @@ namespace Gendarme {
 
 		void AddAssembly (string filename)
 		{
+			string warning = null;
+
 			try {
 				string assembly_name = Path.GetFullPath (filename);
-				AssemblyDefinition ad = AssemblyFactory.GetAssembly (assembly_name);
-				Assemblies.Add (ad);
+				AssemblyDefinition ad = AssemblyDefinition.ReadAssembly (
+					assembly_name,
+					new ReaderParameters { AssemblyResolver = AssemblyResolver.Resolver });
+				// this will force cecil to load all the modules, which will throw (like old cecil) a FNFE
+				// if a .netmodule is missing (otherwise this exception will occur later in several places)
+				if (ad.Modules.Count > 0)
+					Assemblies.Add (ad);
 			}
-			catch (ArgumentException) {
-				Console.Error.WriteLine ("Could not load assembly '{0}'.", filename);
+			catch (BadImageFormatException) {
+				warning = "Invalid assembly format";
+			}
+			catch (FileNotFoundException fnfe) {
+				// e.g. .netmodules
+				warning = fnfe.Message;
+			}
+			catch (ArgumentException e) {
+				warning = e.ToString ();
+			}
+
+			// show warning (quiet or not) but continue loading & analyzing assemblies
+			if (warning != null) {
+				Console.Error.WriteLine ("warning: could not load assembly '{0}', reason: {1}{2}",
+					filename, warning, Environment.NewLine);
 			}
 		}
 
@@ -389,11 +411,24 @@ namespace Gendarme {
 
 			base.Run ();
 
+			if (!quiet)
+				local.Stop ();
+		}
+
+		public override void TearDown ()
+		{
+			if (!quiet) {
+				Console.WriteLine (": {0}", TimeToString (local.Elapsed));
+				local.Start ();
+				local.Reset ();
+			}
+			
+			base.TearDown ();
+
 			if (!quiet) {
 				local.Stop ();
 				total.Stop ();
-
-				Console.WriteLine (": {0}", TimeToString (local.Elapsed));
+				Console.WriteLine ("TearDown: {0}", TimeToString (local.Elapsed));
 				Console.WriteLine ();
 				if (Assemblies.Count == 1)
 					Console.WriteLine ("One assembly processed in {0}.",
@@ -407,7 +442,7 @@ namespace Gendarme {
 					List<string> files = new List<string> (new string [] { log_file, xml_file, html_file });
 					files.RemoveAll (string.IsNullOrEmpty);
 					hint = string.Format ("Report{0} written to: {1}.",
-						(files.Count > 1) ? "s": string.Empty,
+						(files.Count > 1) ? "s" : string.Empty,
 						string.Join (",", files.Select (file => string.Format ("`{0}'", file)).ToArray ()));
 				}
 
@@ -430,7 +465,7 @@ namespace Gendarme {
 				}
 			
 				// next assembly
-				Console.Write (e.CurrentAssembly.MainModule.Image.FileInformation.Name);
+				Console.Write (Path.GetFileName (e.CurrentAssembly.MainModule.FullyQualifiedName));
 				local.Start ();
 			}
 			

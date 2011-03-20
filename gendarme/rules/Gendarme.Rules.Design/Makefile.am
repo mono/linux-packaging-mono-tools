@@ -20,6 +20,7 @@ rules_sources =  \
 	DoNotDeclareVirtualMethodsInSealedTypeRule.cs \
 	DontDeclareProtectedFieldsInSealedClassRule.cs \
 	EnsureSymmetryForOverloadedOperatorsRule.cs \
+	EnumeratorsShouldBeStronglyTypedRule.cs \
 	EnumsShouldDefineAZeroValueRule.cs \
 	EnumsShouldUseInt32Rule.cs \
 	FinalizersShouldBeProtectedRule.cs \
@@ -27,6 +28,7 @@ rules_sources =  \
 	ImplementEqualsAndGetHashCodeInPairRule.cs \
 	ImplementIComparableCorreclyRule.cs \
 	InternalNamespacesShouldNotExposeTypesRule.cs \
+	ListsAreStronglyTypedRule.cs \
 	MainShouldNotBePublicRule.cs \
 	MarkAssemblyWithAssemblyVersionRule.cs \
 	MarkAssemblyWithAttributeRule.cs \
@@ -37,14 +39,20 @@ rules_sources =  \
 	OverrideEqualsMethodRule.cs \
 	PreferEventsOverMethodsRule.cs \
 	PreferIntegerOrStringForIndexersRule.cs \
+	PreferUriOverStringRule.cs \
 	PreferXmlAbstractionsRule.cs \
 	ProvideAlternativeNamesForOperatorOverloadsRule.cs \
+	ProvideTryParseAlternativeRule.cs \
+	StronglyTypedRule.cs \
+	StronglyTypeICollectionMembersRule.cs \
 	TypesShouldBeInsideNamespacesRule.cs \
 	TypesWithDisposableFieldsShouldBeDisposableRule.cs \
 	TypesWithNativeFieldsShouldBeDisposableRule.cs \
 	UseFlagsAttributeRule.cs \
 	UseCorrectDisposeSignaturesRule.cs \
 	UsingCloneWithoutImplementingICloneableRule.cs
+
+EXTRA_TESTS_OPTIONS += -d:CODE_ANALYSIS
 
 tests_sources = \
 	AbstractTypesShouldNotHavePublicConstructorsTest.cs \
@@ -65,13 +73,16 @@ tests_sources = \
 	DoNotDeclareVirtualMethodsInSealedTypeTest.cs \
 	DontDeclareProtectedFieldsInSealedClassTest.cs \
 	EnsureSymmetryForOverloadedOperatorsTest.cs \
+	EnumeratorsShouldBeStronglyTypedTest.cs \
 	EnumsShouldDefineAZeroValueTest.cs \
 	EnumsShouldUseInt32Test.cs \
 	FinalizersShouldBeProtectedTest.cs \
 	FlagsShouldNotDefineAZeroValueTest.cs \
+	GlobalSuppressions.cs \
 	ImplementEqualsAndGetHashCodeInPairTest.cs \
 	ImplementIComparableCorreclyTest.cs \
 	InternalNamespacesShouldNotExposeTypesTest.cs \
+	ListsAreStronglyTypedTest.cs \
 	MainShouldNotBePublicTest.cs \
 	MarkAssemblyWithAssemblyVersionTest.cs \
 	MarkAssemblyWithCLSCompliantTest.cs \
@@ -81,8 +92,11 @@ tests_sources = \
 	OverrideEqualsMethodTest.cs \
 	PreferEventsOverMethodsTest.cs \
 	PreferIntegerOrStringForIndexersTest.cs \
+	PreferUriOverStringTest.cs \
 	PreferXmlAbstractionsTest.cs \
+	ProvideTryParseAlternativeTest.cs \
 	ProvideAlternativeNamesForOperatorOverloadsTest.cs \
+	StronglyTypeICollectionMembersTest.cs \
 	TypesShouldBeInsideNamespacesTest.cs \
 	TypesWithDisposableFieldsShouldBeDisposableTest.cs \
 	TypesWithNativeFieldsShouldBeDisposableTest.cs \

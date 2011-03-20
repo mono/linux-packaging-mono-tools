@@ -71,6 +71,7 @@ CTAGS = ctags
 DIST_SUBDIRS = $(SUBDIRS)
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
+ACLOCAL_FLAGS = @ACLOCAL_FLAGS@
 AMTAR = @AMTAR@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
@@ -89,6 +90,7 @@ CYGPATH_W = @CYGPATH_W@
 DATADIRNAME = @DATADIRNAME@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
+DMCS = @DMCS@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
@@ -102,6 +104,8 @@ GETTEXT_PACKAGE = @GETTEXT_PACKAGE@
 GMCS = @GMCS@
 GMOFILES = @GMOFILES@
 GMSGFMT = @GMSGFMT@
+GNOME_SHARP_CFLAGS = @GNOME_SHARP_CFLAGS@
+GNOME_SHARP_LIBS = @GNOME_SHARP_LIBS@
 GNUNIT_VERSION = @GNUNIT_VERSION@
 GREP = @GREP@
 GTKHTML_SHARP_CFLAGS = @GTKHTML_SHARP_CFLAGS@
@@ -221,7 +225,7 @@ SUBDIRS = Test
 EXTRA_RULES_OPTIONS := $(GENDARME_OPTIONS)
 
 # turn off optimization for tests since gmcs (unlike MS csc) now turns "" into String.Empty when optimizing is on
-EXTRA_TESTS_OPTIONS := $(TESTS_OPTIONS) -unsafe -o-
+EXTRA_TESTS_OPTIONS := $(TESTS_OPTIONS) -unsafe -o- -d:CODE_ANALYSIS
 console_runner = ../../bin/gendarme.exe
 framework = ../../bin/Gendarme.Framework.dll
 common_tests = ../Test.Rules/Test.Rules.dll
@@ -249,14 +253,18 @@ rules_doc = $(rules_doc_zip) $(rules_doc_source) $(rules_doc_tree)
 generated_doc = doc/generated/index.xml
 tests_build_sources = $(addprefix $(srcdir)/Test/, $(tests_sources))
 rules_sources = \
+	AvoidConcatenatingCharsRule.cs \
 	AvoidLargeNumberOfLocalVariablesRule.cs \
 	AvoidLargeStructureRule.cs \
-	AvoidMethodWithLargeMaximumStackSize.cs \
+	AvoidLocalDataStoreSlotRule.cs \
+	AvoidMethodWithLargeMaximumStackSizeRule.cs \
+	AvoidRepetitiveCallsToPropertiesRule.cs \
 	AvoidRepetitiveCastsRule.cs \
 	AvoidReturningArraysOnPropertiesRule.cs \
 	AvoidTypeGetTypeForConstantStringsRule.cs \
 	AvoidUncalledPrivateCodeRule.cs \
 	AvoidUninstantiatedInternalClassesRule.cs \
+	AvoidUnnecessaryOverridesRule.cs \
 	AvoidUnneededCallsOnStringRule.cs \
 	AvoidUnneededFieldInitializationRule.cs \
 	AvoidUnneededUnboxingRule.cs \
@@ -273,6 +281,7 @@ rules_sources = \
 	MathMinMaxCandidateRule.cs \
 	OverrideValueTypeDefaultsRule.cs \
 	PreferCharOverloadRule.cs \
+	PreferInterfaceConstraintOnGenericParameterForPrimitiveInterfaceRule.cs \
 	PreferLiteralOverInitOnlyFieldsRule.cs \
 	RemoveUnusedLocalVariablesRule.cs \
 	ReviewLinqMethodRule.cs \
@@ -281,9 +290,14 @@ rules_sources = \
 	UseTypeEmptyTypesRule.cs
 
 tests_sources = \
+	AvoidConcatenatingCharsTest.cs \
 	AvoidLargeNumberOfLocalVariablesTest.cs \
+	AvoidLocalDataStoreSlotTest.cs \
+	AvoidRepetitiveCallsToPropertiesTest.cs \
+	AvoidUnnecessaryOverridesTest.cs \
 	AvoidUnneededFieldInitializationTest.cs \
 	EmptyDestructorTest.cs \
+	GlobalSuppressions.cs \
 	IDisposableWithDestructorWithoutSuppressFinalizeTest.cs \
 	UseStringEmptyTest.cs \
 	UseTypeEmptyTypesTest.cs \
@@ -309,6 +323,7 @@ tests_sources = \
 	AvoidRepetitiveCastsTest.cs \
 	AvoidUnusedPrivateFieldsTest.cs \
 	PreferCharOverloadTest.cs \
+	PreferInterfaceConstraintOnGenericParameterForPrimitiveInterfaceTest.cs \
 	PreferLiteralOverInitOnlyFieldsTest.cs \
 	ReviewLinqMethodTest.cs
 
@@ -668,7 +683,7 @@ $(rules_dll): $(rules_build_sources) $(framework)
 	$(GMCS) -target:library $(EXTRA_RULES_OPTIONS) -nowarn:1591 -doc:$(rules_dll).doc \
 		-r:$(CECIL_ASM) -r:$(framework) -out:$@ $(rules_build_sources)
 
-$(tests_dll): $(tests_build_sources) $(rules_dll)
+$(tests_dll): $(tests_build_sources) $(rules_dll) $(EXTRA_TESTS_DEPS)
 	$(GMCS) -target:library $(EXTRA_TESTS_OPTIONS) -r:$(CECIL_ASM) -r:$(framework) \
 		-r:$(rules_dll) -r:$(common_tests) -pkg:mono-nunit -out:$@ $(tests_build_sources)
 

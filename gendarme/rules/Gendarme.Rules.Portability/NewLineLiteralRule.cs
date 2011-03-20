@@ -27,6 +27,7 @@
 //
 
 using System;
+using System.Text;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -86,15 +87,37 @@ namespace Gendarme.Rules.Portability {
 					continue;
 
 				if (s.IndexOfAny (InvalidChar) >= 0) {
-					// make the invalid char visible on output
-					s = s.Replace ("\n", "\\n");
-					s = s.Replace ("\r", "\\r");
-					s = String.Format ("Found string: \"{0}\"", s);
-					Runner.Report (method, ins, Severity.Low, Confidence.High, s);
+					Runner.Report (method, ins, Severity.Low, Confidence.High, FormatStringForDisplay (s));
 				}
 			}
 
 			return Runner.CurrentRuleResult;
+		}
+
+		// Format the string to looks like in the C# source code
+		// For example the character \x01 is converted to the "\x01" string
+		// This operation avoid crash with special characters when applying the XSL
+		// transform to produce the html report
+		private static string FormatStringForDisplay (string value)
+		{
+			StringBuilder result = new StringBuilder ("Found string: \"");
+			foreach (char c in value) {
+				if (!Char.IsControl (c)) {
+					result.Append (c);
+					continue;
+				}
+
+				// make the invalid char visible on output
+				if (c == '\n')
+					result.Append ("\\n");
+				else if (c == '\r')
+					result.Append ("\\r");
+				else if (c == '\t')
+					result.Append ("\\t");
+				else
+					result.AppendFormat ("\\x").Append (((short) c).ToString ("x"));
+			}
+			return result.Append ("\".").ToString ();
 		}
 	}
 }

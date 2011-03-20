@@ -6,6 +6,8 @@ using Mono.Cecil.Cil;
 namespace Gendarme.Rules.Exceptions.Impl {
 
 	internal sealed class ExecutionPathFactory {
+
+		const int MaxLimit = 1000;
 	
 		public ExecutionPathFactory ()
 		{
@@ -15,17 +17,21 @@ namespace Gendarme.Rules.Exceptions.Impl {
 		{
 			if (start == null)
 				throw new ArgumentNullException ("start");
-			if (end == null)
-				throw new ArgumentNullException ("end");
 
 			List<ExecutionPathCollection> paths = new List<ExecutionPathCollection> ();
 			CreatePathHelper (start, end, new ExecutionPathCollection (), paths);
+			// we were not able to build all code paths within a reasonable amount of memory
+			if (paths.Count >= MaxLimit)
+				paths.Clear ();
 			return paths;
 		}
 
 		private void CreatePathHelper (Instruction start, Instruction end, 
 			ExecutionPathCollection path, List<ExecutionPathCollection> completedPaths)
 		{
+			if (completedPaths.Count >= MaxLimit)
+				return;
+
 			ExecutionBlock curBlock = new ExecutionBlock ();
 			curBlock.First = start;
 
@@ -79,8 +85,6 @@ namespace Gendarme.Rules.Exceptions.Impl {
 					path.Add (curBlock);
 					completedPaths.Add (path);
 					stop = true;
-					break;
-				default:
 					break;
 				}
 

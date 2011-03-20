@@ -99,22 +99,22 @@ namespace Gendarme.Rules.Interoperability {
 			switch (ins.OpCode.Code) {
 			case Code.Conv_I1:
 			case Code.Conv_Ovf_I1:
-				return Constants.SByte;
+				return "System.SByte";
 			case Code.Conv_U1:
 			case Code.Conv_Ovf_U1:
-				return Constants.Byte;
+				return "System.Byte";
 			case Code.Conv_I2:
 			case Code.Conv_Ovf_I2:
-				return Constants.Int16;
+				return "System.Int16";
 			case Code.Conv_U2:
 			case Code.Conv_Ovf_U2:
-				return Constants.UInt16;
+				return "System.UInt16";
 			case Code.Conv_I4:
 			case Code.Conv_Ovf_I4:
-				return Constants.Int32;
+				return "System.Int32";
 			case Code.Conv_U4:
 			case Code.Conv_Ovf_U4_Un:
-				return Constants.UInt32;
+				return "System.UInt32";
 			default:
 				return String.Empty;
 			}
@@ -124,12 +124,14 @@ namespace Gendarme.Rules.Interoperability {
 		{
 			// check for calls to IntPtr.ToInt32, UIntPtr.ToUInt32 or 
 			// cast to anything other than [U]IntPtr, [U]Int64 or Void*
-			if (intptr && (mr.Name == "ToInt32")) {
+			string name = mr.Name;
+			if (intptr && (name == "ToInt32")) {
 				Runner.Report (method, ins, Severity.High, Confidence.Normal, "Call to 'IntPtr.ToInt32()'.");
-			} else if (uintptr && (mr.Name == "ToUInt32")) {
+			} else if (uintptr && (name == "ToUInt32")) {
 				Runner.Report (method, ins, Severity.High, Confidence.Normal, "Call to 'UIntPtr.ToUInt32()'.");
-			} else if (mr.Name == "op_Explicit") {
-				switch (mr.ReturnType.ReturnType.FullName) {
+			} else if (name == "op_Explicit") {
+				string rtfullname = mr.ReturnType.FullName;
+				switch (rtfullname) {
 				case "System.Int64":
 				case "System.UInt64":
 					// valid cases unless (like [g]mcs does) it's followed by a convertion
@@ -144,7 +146,7 @@ namespace Gendarme.Rules.Interoperability {
 					break;
 				default:
 					// problematic cases
-					Report (method, ins, mr.ReturnType.ReturnType.FullName);
+					Report (method, ins, rtfullname);
 					break;
 				}
 			}
@@ -164,7 +166,7 @@ namespace Gendarme.Rules.Interoperability {
 					return;
 
 				string msg = String.Format ("A '{0}' value is casted into an '{1}' when reading marshalled memory.",
-					mr.ReturnType.ReturnType.FullName, m.Parameters [0].ParameterType.FullName);
+					mr.ReturnType.FullName, m.Parameters [0].ParameterType.FullName);
 				Runner.Report (method, ins, Severity.High, Confidence.Normal, msg);
 			}
 		}
@@ -183,7 +185,7 @@ namespace Gendarme.Rules.Interoperability {
 				return RuleResult.DoesNotApply;
 
 			foreach (Instruction ins in method.Body.Instructions) {
-				MethodReference mr = (ins.Operand as MethodReference);
+				MethodReference mr = ins.GetMethod ();
 				if (mr == null)
 					continue;
 

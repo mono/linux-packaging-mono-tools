@@ -35,6 +35,7 @@ using Mono.Cecil.Cil;
 using Gendarme.Framework;
 using Gendarme.Framework.Engines;
 using Gendarme.Framework.Helpers;
+using Gendarme.Framework.Rocks;
 
 namespace Gendarme.Rules.Performance {
 
@@ -128,15 +129,15 @@ namespace Gendarme.Rules.Performance {
 			case Code.Ldloc_3:
 				kind = "Variable";
 				int vindex = previous_op_code - Code.Ldloc_0;
-				name = method.Body.Variables [vindex].Name;
+				name = method.Body.Variables [vindex].GetName ();
 				break;
 			case Code.Ldloc:
 			case Code.Ldloc_S:
 				kind = "Variable";
-				name = (ins.Operand as VariableDefinition).Name;
+				name = (ins.Operand as VariableDefinition).GetName ();
 				break;
 			default:
-				return null;
+				return String.Empty;
 			}
 			return String.Format ("{0} '{1}' unboxed to type '{2}' {{0}} times.", kind, name, type);
 		}
@@ -170,7 +171,7 @@ namespace Gendarme.Rules.Performance {
 				case Code.Unbox:
 				case Code.Unbox_Any:
 					string previous = Previous (method, ins);
-					if (previous == null)
+					if (previous.Length == 0)
 						continue;
 
 					int num;

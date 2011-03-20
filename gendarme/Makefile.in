@@ -36,7 +36,7 @@ host_triplet = @host@
 target_triplet = @target@
 subdir = gendarme
 DIST_COMMON = README $(srcdir)/AssemblyInfo.cs.in \
-	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
+	$(srcdir)/Makefile.am $(srcdir)/Makefile.in $(srcdir)/gd2i.in \
 	$(srcdir)/gendarme-wizard.in $(srcdir)/gendarme.in AUTHORS \
 	ChangeLog NEWS TODO
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -44,7 +44,7 @@ am__aclocal_m4_deps = $(top_srcdir)/configure.in
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
-CONFIG_CLEAN_FILES = AssemblyInfo.cs gendarme gendarme-wizard
+CONFIG_CLEAN_FILES = AssemblyInfo.cs gendarme gendarme-wizard gd2i
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pixmapdir)"
 binSCRIPT_INSTALL = $(INSTALL_SCRIPT)
 SCRIPTS = $(bin_SCRIPTS)
@@ -72,6 +72,7 @@ CTAGS = ctags
 DIST_SUBDIRS = $(SUBDIRS)
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
+ACLOCAL_FLAGS = @ACLOCAL_FLAGS@
 AMTAR = @AMTAR@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
@@ -90,6 +91,7 @@ CYGPATH_W = @CYGPATH_W@
 DATADIRNAME = @DATADIRNAME@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
+DMCS = @DMCS@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
@@ -103,6 +105,8 @@ GETTEXT_PACKAGE = @GETTEXT_PACKAGE@
 GMCS = @GMCS@
 GMOFILES = @GMOFILES@
 GMSGFMT = @GMSGFMT@
+GNOME_SHARP_CFLAGS = @GNOME_SHARP_CFLAGS@
+GNOME_SHARP_LIBS = @GNOME_SHARP_LIBS@
 GNUNIT_VERSION = @GNUNIT_VERSION@
 GREP = @GREP@
 GTKHTML_SHARP_CFLAGS = @GTKHTML_SHARP_CFLAGS@
@@ -213,23 +217,15 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 TESTDIRS = framework rules
-SUBDIRS = $(TESTDIRS) console swf-wizard-runner man win32-setup
-bin_SCRIPTS = gendarme gendarme-wizard
-EXTRA_DIST = gendarme.in gendarme-wizard.in AssemblyInfo.cs.in MIT.X11 gendarme.sln self-test.ignore gendarme.svg options.make
+SUBDIRS = $(TESTDIRS) console swf-wizard-runner man wix tools
+bin_SCRIPTS = gendarme gendarme-wizard gd2i
+EXTRA_DIST = gendarme.in gendarme-wizard.in AssemblyInfo.cs.in MIT.X11 gendarme.sln self-test.ignore mono-options.ignore gendarme.svg options.make
 CLEANFILES = gendarme gendarme-wizard bin/rules.xml
 pixmapdir = $(datadir)/pixmaps
 pixmap_DATA = gendarme.svg
 DISTCLEANFILES = \
 	AssemblyInfo.cs \
-	configure \
-	config.guess \
-	config.sub \
-	Makefile.in \
-	install-sh \
-	aclocal.m4 \
-	INSTALL \
-	COPYING \
-	missing
+	Makefile.in
 
 wdir = $(shell pwd)
 test1_file = $(shell find rules -name "\.svn" -prune -o  -name "*$(TEST1)*" -print)
@@ -272,6 +268,8 @@ AssemblyInfo.cs: $(top_builddir)/config.status $(srcdir)/AssemblyInfo.cs.in
 gendarme: $(top_builddir)/config.status $(srcdir)/gendarme.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 gendarme-wizard: $(top_builddir)/config.status $(srcdir)/gendarme-wizard.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
+gd2i: $(top_builddir)/config.status $(srcdir)/gd2i.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 install-binSCRIPTS: $(bin_SCRIPTS)
 	@$(NORMAL_INSTALL)
@@ -612,8 +610,15 @@ run-test: bin/gendarme.exe.config
 
 self-test: all bin/gendarme.exe.config
 	rm -f gendarme.log; \
-	mono --debug bin/gendarme.exe --config rules/rules.xml --set self-test --html bin/self-test.html --ignore=self-test.ignore \
-		--severity=all --confidence=all bin/gendarme.exe bin/gendarme-wizard.exe bin/Gendarme.*.dll
+	mono --debug bin/gendarme.exe --config rules/rules.xml --set self-test --xml bin/self-test.xml --html bin/self-test.html \
+		--ignore=self-test.ignore --severity=all --confidence=all bin/gendarme.exe bin/gendarme-wizard.exe bin/Gendarme.*.dll
+
+check-test: all bin/gendarme.exe.config test
+	mono --debug bin/gendarme.exe --config rules/rules.xml --set unit-test --xml bin/unit-test.xml --html bin/unit-test.html \
+		--ignore=unit-test.ignore --severity=all --confidence=all @unit-test.list
+
+test-regress: all
+	mono --debug bin/gendarme.exe --config rules/rules.xml --set self-test --log regress.log testcases/*.dll testcases/*.exe
 
 TEST1 ?= AvoidVisibleConstantFieldTest
 
@@ -671,9 +676,13 @@ instruct.xsd:
 
 push: instruct.xsd
 	xmllint --schema instruct.xsd gendarme.xml
-	scp gendarme-2.6-bin.zip $(USER)@upload.ohloh.net:gendarme/files; \
-	scp gendarme-2.6-win32-setup.zip $(USER)@upload.ohloh.net:gendarme/files; \
-	scp gendarme.xml $(USER)@upload.ohloh.net:gendarme/instructs
+#	scp gendarme-2.8preview1-bin.zip $(USER)@upload.ohloh.net:gendarme/files; \
+#	scp gendarme-2.8preview1-win32-setup.zip $(USER)@upload.ohloh.net:gendarme/files; \
+#	scp gendarme.xml $(USER)@upload.ohloh.net:gendarme/instructs
+
+pull-log:
+	scp $(USER)@upload.ohloh.net:gendarme/logs/upload.log .
+	cat upload.log
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

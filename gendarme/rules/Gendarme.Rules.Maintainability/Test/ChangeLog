@@ -1,3 +1,35 @@
+2010-06-20  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidComplexMethodsTest.cs: Add test case with a switch that has
+	non consecutive cases entries.
+
+2010-06-07  Sebastien Pouliot  <sebastien@ximian.com> 
+
+	* AvoidUnnecessarySpecializationTest.cs: Merge both event-related
+	test cases together and mark them as DoesNotApply.
+
+2010-06-07  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidUnnecessarySpecializationTest.cs: Add [Ignore]d test case
+	with two conflicting interfaces. Add test case for overriding
+	and event handlers.
+
+2010-06-06  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* AvoidUnnecessarySpecializationTest.cs: Remove [Ignore] on a
+	test since it seems to work properly now
+
+2010-01-31  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* RemoveDependenceOnObsoleteCodeTest.cs: New. Unit tests for
+	RemoveDependenceOnObsoleteCodeRule
+
+2010-01-26  Sebastien Pouliot  <sebastien@ximian.com>
+
+	* PreferStringIsNullOrEmptyTest.cs: Run Argument_InvertedCondition
+	only if not compiled by *MCS (i.e. works with CSC). Ignore 
+	StrictlyEmpty since it cannot be reliably detected.
+
 2009-02-15  Sebastien Pouliot  <sebastien@ximian.com>
 
 	* AvoidAlwaysNullFieldTest.cs: TestFixture must be public

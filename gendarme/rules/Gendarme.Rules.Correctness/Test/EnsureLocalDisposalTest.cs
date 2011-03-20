@@ -30,6 +30,7 @@ using System.Xml;
 using System.Collections.Generic;
 using NUnit.Framework;
 
+using Gendarme.Framework;
 using Gendarme.Rules.Correctness;
 
 using Test.Rules.Fixtures;
@@ -42,6 +43,8 @@ namespace Test.Rules.Correctness {
 		string foo;
 		StreamReader sr;
 
+		StreamReader StreamReader { get; set; }
+
 		string DoesNotApply1 () { //no call/newobj/stloc
 			return foo;
 		}
@@ -49,10 +52,6 @@ namespace Test.Rules.Correctness {
 		StreamReader DoesNotApply2 () { //returns IDisposable
 			var sr = new StreamReader ("bar.xml");
 			return sr;
-		}
-
-		void DoesNotApply3 () {
-			sr = new StreamReader ("bar.xml"); //field
 		}
 
 		string Success0 () {
@@ -119,6 +118,14 @@ namespace Test.Rules.Correctness {
 			yield return "bar";
 		}
 
+		void Success7 () {
+			sr = new StreamReader ("bar.xml"); //field
+		}
+
+		void Success8 () {
+			StreamReader = new StreamReader ("bar.xml"); //property
+		}
+
 		void Failure0 () {
 			var reader = XmlReader.Create ("foo.xml");
 			Console.WriteLine (reader.ToString ());
@@ -174,6 +181,20 @@ namespace Test.Rules.Correctness {
 			Success3 (reader);
 			reader = XmlReader.Create ("bar.xml");
 		}
+
+		void Failure7 () {
+			new XmlTextReader ("foo.xml");
+		}
+
+		void Failure8 () {
+			var xslt = new System.Xml.Xsl.XslCompiledTransform ();
+			xslt.Load (new XmlTextReader ("foo.xml"));
+		}
+
+		void Failure9 () {
+			var xslt = new System.Xml.Xsl.XslCompiledTransform ();
+			xslt.Load (XmlTextReader.Create ("foo.xml"));
+		}
 	}
 
 	[TestFixture]
@@ -183,6 +204,7 @@ namespace Test.Rules.Correctness {
 		public void DoesNotApply0 ()
 		{
 			AssertRuleDoesNotApply (SimpleMethods.EmptyMethod);
+			AssertRuleDoesNotApply (SimpleMethods.ExternalMethod);
 		}
 
 		[Test]
@@ -195,12 +217,6 @@ namespace Test.Rules.Correctness {
 		public void DoesNotApply2 ()
 		{
 			AssertRuleDoesNotApply<DisposalCases> ("DoesNotApply2");
-		}
-
-		[Test]
-		public void DoesNotApply3 ()
-		{
-			AssertRuleDoesNotApply<DisposalCases> ("DoesNotApply3");
 		}
 
 		[Test]
@@ -243,6 +259,18 @@ namespace Test.Rules.Correctness {
 		public void Success6 ()
 		{
 			AssertRuleSuccess<DisposalCases> ("Success6");
+		}
+
+		[Test]
+		public void Success7 ()
+		{
+			AssertRuleSuccess<DisposalCases> ("Success7");
+		}
+
+		[Test]
+		public void Success8 ()
+		{
+			AssertRuleSuccess<DisposalCases> ("Success8");
 		}
 
 		[Test]
@@ -291,6 +319,74 @@ namespace Test.Rules.Correctness {
 		public void Failure6 ()
 		{
 			AssertRuleFailure<DisposalCases> ("Failure6", 2);
+		}
+
+		[Test]
+		public void Failure7 ()
+		{
+			AssertRuleFailure<DisposalCases> ("Failure7", 1);
+		}
+
+		[Test]
+		public void Failure8 ()
+		{
+			AssertRuleFailure<DisposalCases> ("Failure8", 1);
+		}
+
+		[Test]
+		public void Failure9 ()
+		{
+			AssertRuleFailure<DisposalCases> ("Failure9", 1);
+		}
+
+		// test case based on:
+		// https://github.com/Iristyle/mono-tools/commit/2cccfd0efd406434e1309d0740826ff06d32de20
+
+		string FluentTestCase ()
+		{
+			using (StringWriter sw = new StringWriter ()) {
+				// while analyzing 'FluentTestCase' we cannot know what's inside
+				// 'NestedFluentCall[Two|Three]' except that they _looks_like_ fluent APIs
+				return NestedFluentCall (sw).ToString () + 
+					NestedFluentCallTwo (sw).ToString () +
+					NestedFluentCallThree (sw).ToString ();
+			}
+		}
+
+		StringWriter NestedFluentCall (StringWriter stringWriter)
+		{
+			// same instance is returned and does not need to be disposed (the caller does it)
+			return stringWriter;
+		}
+
+		StringWriter NestedFluentCallTwo (StringWriter stringWriter)
+		{
+			// a new instance is being returned and someone should be disposing it
+			// without source code or (good) documentation it behaves exactly like
+			// the previous method
+			StringWriter sw = new StringWriter ();
+			sw.Write (stringWriter);
+			return sw;
+		}
+
+		StringWriter NestedFluentCallThree (StringWriter stringWriter)
+		{
+			// really bad code to show that we cannot determine with 100% exactitude
+			// what some methods returns to us
+			if (stringWriter.GetHashCode () % 2 == 1)
+				return NestedFluentCall (stringWriter);
+			else
+				return NestedFluentCallTwo (stringWriter);
+		}
+
+		[Test]
+		public void FluentApi ()
+		{
+			AssertRuleFailure<EnsureLocalDisposalTest> ("FluentTestCase", 3);
+			// confidence is lower (normal instead of high) for fluent-like API
+			Assert.AreEqual (Confidence.Normal, Runner.Defects [0].Confidence, "0");
+			Assert.AreEqual (Confidence.Normal, Runner.Defects [1].Confidence, "1");
+			Assert.AreEqual (Confidence.Normal, Runner.Defects [2].Confidence, "2");
 		}
 	}
 }

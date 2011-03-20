@@ -28,36 +28,51 @@
 
 using System;
 using System.Collections.Generic;
+
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Gendarme.Framework.Rocks;
 
 namespace Gendarme.Rules.Smells {
 	internal static class InstructionMatcher {
-		static MethodDefinition current;
-		static MethodDefinition target;
 
 		internal static MethodDefinition Current {
-			get {
-				return current;
-			}
-			set {
-				current = value;
-			}
+			get;
+			set;
 		}
 
 		internal static MethodDefinition Target {
-			get {
-				return target;
-			}
-		 	set {
-				target = value;
-			}
+			get;
+			set;
+		}
+
+		static bool AreEquivalent (ParameterReference source, ParameterReference target)
+		{
+			if ((source == null) || (target == null))
+				return false;
+
+			int ss = source.GetSequence () - 1;
+			int ts = target.GetSequence () - 1;
+			if ((ss <= 0) || (ts <= 0))
+				return false;
+
+			IList<ParameterDefinition> cp = Current.Parameters;
+			IList<ParameterDefinition> tp = Target.Parameters;
+			return ((cp.Count > ss) && (tp.Count > ts)) ?
+				cp [ss].ParameterType.Equals (tp [ts].ParameterType) : false;
+		}
+
+		static bool AreEquivalent (VariableReference source, VariableReference target)
+		{
+			IList<VariableDefinition> cv = Current.Body.Variables;
+			IList<VariableDefinition> tv = Target.Body.Variables;
+			return cv.Count > source.Index && tv.Count > target.Index ?
+				cv [source.Index].VariableType.Equals (tv [target.Index].VariableType) : false;
 		}
 
 		internal static bool AreEquivalent (Instruction source, Instruction target)
 		{
-			if (source.OpCode != target.OpCode)
+			if (source.OpCode.Code != target.OpCode.Code)
 				return false;
 
 			if (source.OpCode.Code == Code.Ldstr)
@@ -66,41 +81,16 @@ namespace Gendarme.Rules.Smells {
 			//Check the types in ldarg stuff.  Sometimes this scheme
 			//could lead us to false positives.  We need an analysis
 			//which depends on the context.
-			if (source.OpCode.Code == Code.Ldarg_1)
-				return Current.Parameters.Count > 0 && Target.Parameters.Count > 0 ? 
-					Current.Parameters[0].ParameterType.Equals (Target.Parameters[0].ParameterType) : 
-					false;
+			if (source.IsLoadArgument ()) {
+				// case where 'ldarg this' is used (p.GetSequence () would be 0)
+				if (!Current.HasParameters && !Target.HasParameters)
+					return true;
+				return AreEquivalent (source.GetParameter (Current), target.GetParameter (Target));
+			}
 
-			if (source.OpCode.Code == Code.Ldarg_2)
-				return Current.Parameters.Count > 1 && Target.Parameters.Count > 1 ?
-					Current.Parameters[1].ParameterType.Equals (Target.Parameters[1].ParameterType) :
-					false;
-
-			if (source.OpCode.Code == Code.Ldarg_3)
-				return Current.Parameters.Count > 2 && Target.Parameters.Count > 2 ?
-					Current.Parameters[2].ParameterType.Equals (Target.Parameters[2].ParameterType) : 
-					false;
-
-			//TODO: The same for ldloc / stloc
-			if (source.OpCode.Code == Code.Ldloc_0) 
-				return Current.Body.Variables.Count > 0 && Target.Body.Variables.Count > 0 ? 
-					Current.Body.Variables[0].VariableType.Equals (Target.Body.Variables[0].VariableType):
-					false;
-			
-			if (source.OpCode.Code == Code.Ldloc_1) 
-				return Current.Body.Variables.Count > 1 && Target.Body.Variables.Count > 1 ?
-					Current.Body.Variables[1].VariableType.Equals (Target.Body.Variables[1].VariableType):
-					false;
-
-			if (source.OpCode.Code == Code.Ldloc_2) 
-				return Current.Body.Variables.Count > 2 && Target.Body.Variables.Count > 2 ?
-					Current.Body.Variables[2].VariableType.Equals (Target.Body.Variables[2].VariableType):
-					false;
-
-			if (source.OpCode.Code == Code.Ldloc_3) 
-				return Current.Body.Variables.Count > 3 && Target.Body.Variables.Count > 3 ?
-					Current.Body.Variables[3].VariableType.Equals (Target.Body.Variables[3].VariableType):
-					false;
+			// The same for ldloc / stloc
+			if (source.IsLoadLocal () || source.IsStoreLocal ())
+				return AreEquivalent (source.GetVariable (Current), target.GetVariable (Target));
 
 			//WARNING: Dirty Evil Hack: this should be in the
 			//Pattern class
@@ -112,13 +102,16 @@ namespace Gendarme.Rules.Smells {
 			
 			//if (source.Operand != target.Operand)
 			if (source.Operand != null && target.Operand != null) {
-				if (source.Operand is Instruction)
-					return ((Instruction) source.Operand).Offset == ((Instruction) target.Operand).Offset;
-				//See the tests for more reference.
-				//Alloc in comparisons isn't a nice idea :(
-				//REFS: Perhaps for each method that cecil
-				//reads, it creates a new instance for each
-				//operator as FieldDefinition?
+				// we're sure that target.Operand is of the same type as source.Operand (same OpCode is used)
+				Instruction si = (source.Operand as Instruction);
+				if (si != null)
+					return (si.Offset == ((Instruction) target.Operand).Offset);
+				IMetadataTokenProvider sm = (source.Operand as IMetadataTokenProvider);
+				if (sm != null)
+					return sm.Equals (target.Operand as IMetadataTokenProvider);
+				if (source.Operand == target.Operand)
+					return true;
+				// last chance: we do call ToString
 				if (source.Operand.ToString () != target.Operand.ToString ())
 					return false;
 			}
@@ -130,10 +123,11 @@ namespace Gendarme.Rules.Smells {
 		//Mono.Cecil.Cil.Instruction instead of characters, and a
 		//InstructionCollection instead of string.  I think it's a nice
 		//metaphor :)
-		internal static bool Match (Pattern pattern, InstructionCollection target)
+		internal static bool Match (Pattern pattern, IList<Instruction> target)
 		{
 			int instructionsMatched = 0;
 
+			pattern.ComputePrefixes (Current);
 			for (int index = 0; index < target.Count; index++) {
 				while (instructionsMatched > 0 && !AreEquivalent (pattern[instructionsMatched], target[index]))
 					instructionsMatched = pattern.Prefixes[instructionsMatched - 1];

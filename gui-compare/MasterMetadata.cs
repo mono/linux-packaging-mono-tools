@@ -151,12 +151,16 @@ namespace GuiCompare {
 			switch (name) {
 				case "System.Diagnostics.CodeAnalysis.SuppressMessageAttribute":
 				case "System.NonSerializedAttribute":
-			    	case "System.Runtime.CompilerServices.CompilerGeneratedAttribute":
+				case "System.Runtime.CompilerServices.CompilerGeneratedAttribute":
 				case "System.Security.SecuritySafeCriticalAttribute":
 				case "System.Security.SecurityCriticalAttribute":
 				case "System.Diagnostics.DebuggerHiddenAttribute":
 				case "System.Diagnostics.DebuggerStepThroughAttribute":
 				case "System.Runtime.CompilerServices.InternalsVisibleToAttribute":
+				case "System.Runtime.TargetedPatchingOptOutAttribute":
+				case "System.Runtime.InteropServices.ComVisibleAttribute":
+				case "System.Runtime.AssemblyTargetedPatchBandAttribute":
+				case "System.Diagnostics.DebuggableAttribute":
 				return true;
 			}
 				
@@ -167,10 +171,15 @@ namespace GuiCompare {
 		{
 			List<CompNamed> rv = new List<CompNamed>();
 			if (attributes != null) {
+				XMLAttributeProperties properties;
+				
 				foreach (string key in attributes.keys.Keys) {
 					if (IsImplementationSpecificAttribute (key))
 						continue;
-					rv.Add (new MasterAttribute ((string)attributes.keys[key]));
+
+					if (!attributes.Properties.TryGetValue (key, out properties))
+						properties = null;
+					rv.Add (new MasterAttribute ((string)attributes.keys[key], properties));
 				}
 			}
 			return rv;
@@ -188,11 +197,21 @@ namespace GuiCompare {
 					
 				var constraints = gparams.constraints [key];
 				
-				list.Add (new MasterGenericTypeParameter (key, constraints.attributes, attributes));
+				list.Add (new MasterGenericTypeParameter (key, constraints, attributes));
 			}
 			
 			return list;
 		}
+		
+		public static List<CompParameter> GetParameters (XMLParameters parameters)
+		{
+			var list = new List<CompParameter> ();
+			foreach (XMLParameter key in parameters.keys.Values) {
+				list.Add (new MasterParameter (key.Name, key.type, key.isOptional, key.attributes));
+			}
+			
+			return list;
+		}		
 	}
 	
 	public class MasterAssembly : CompAssembly {
@@ -286,7 +305,7 @@ namespace GuiCompare {
 
 	public class MasterInterface : CompInterface {
 		public MasterInterface (XMLClass xml_cls)
-			: base (xml_cls.name)
+			: base (FormatName (xml_cls))
 		{
 			this.xml_cls = xml_cls;
 			
@@ -318,6 +337,12 @@ namespace GuiCompare {
 			fields = new List<CompNamed>();
 			events = new List<CompNamed>();
 			attributes = new List<CompNamed>();
+		}
+		
+		static string FormatName (XMLClass iface)
+		{
+			string name = iface.name;
+			return name;
 		}
 
 		public override string GetBaseType()
@@ -386,6 +411,20 @@ namespace GuiCompare {
 		{
 			return MasterUtils.GetAttributes (xml_cls.attributes);
 		}
+		
+		public override List<CompNamed> GetConstructors ()
+		{
+			List<CompNamed> ctor_list = new List<CompNamed> ();
+			MasterUtils.PopulateMethodList (xml_cls.constructors, ctor_list);
+			return ctor_list;
+		}
+		
+		public override List<CompNamed> GetMethods ()
+		{
+			List<CompNamed> method_list = new List<CompNamed> ();
+			MasterUtils.PopulateMethodList (xml_cls.methods, method_list);
+			return method_list;
+		}
 
 		public override string GetBaseType ()
 		{
@@ -416,6 +455,39 @@ namespace GuiCompare {
 			                                 fields,
 			                                 null);
 
+			if (fields == null || fields.Count == 0)
+				return;
+
+			List <MasterField> masterFields = new List<MasterField> ();
+			foreach (CompNamed f in fields) {
+				MasterField field = f as MasterField;
+				if (field == null)
+					continue;
+
+				masterFields.Add (field);
+			}
+
+			if (masterFields.Count == 0)
+				return;
+
+			masterFields.Sort ((MasterField left, MasterField right) => {
+				if (left == null && right == null)
+					return 0;
+
+				if (left == null)
+					return 1;
+
+				if (right == null)
+					return -1;
+
+				return String.Compare (left.GetLiteralValue (), right.GetLiteralValue (), StringComparison.Ordinal);
+			});
+
+			StringBuilder sb = new StringBuilder ();
+			sb.Append ("<b>Members:</b>\n");
+			foreach(MasterField field in masterFields)
+				sb.AppendFormat ("\t\t<i>{0}</i> = {1}\n", field.Name, field.GetLiteralValue ());
+			ExtraInfo = sb.ToString ();
 		}
 
 		public override string GetBaseType()
@@ -734,6 +806,11 @@ namespace GuiCompare {
 		{
 			return MasterUtils.GetTypeParameters (genericParameters);
 		}
+		
+		public override List<CompParameter> GetParameters ()
+		{
+			return MasterUtils.GetParameters (parameters);
+		}
 
 		XMLMethods.SignatureFlags signatureFlags;
 		string returnType;
@@ -743,20 +820,73 @@ namespace GuiCompare {
 		XMLAttributes attributes;
 	}
 			         
-	public class MasterAttribute : CompAttribute {
-		public MasterAttribute (string name)
-			: base (name)
+	public class MasterAttribute : CompAttribute
+	{
+		string FormatStringValue (string value)
 		{
+			if (value == null)
+				return "null";
+
+			return "\"" + value + "\"";
+		}
+
+		public MasterAttribute (string name, XMLAttributeProperties properties) : base(name)
+		{
+			var sb = new StringBuilder ();
+
+			if (properties == null)
+				return;
+
+			IDictionary<string, string> props = properties.Properties;
+			if (props.Count == 0)
+				return;
+
+			if (name == "System.Runtime.CompilerServices.TypeForwardedToAttribute") {
+				string dest;
+				if (props.TryGetValue ("Destination", out dest) && !String.IsNullOrEmpty (dest))
+					sb.AppendFormat ("[assembly: TypeForwardedToAttribute (typeof ({0}))]", dest);
+			} else {
+				sb.Append ("<b>Properties:</b>\n");
+				foreach (var prop in props)
+					sb.AppendFormat ("\t\t<i>{0}</i> == {1}\n", prop.Key, FormatStringValue (prop.Value));
+				sb.Append ('\n');
+			}
+
+			ExtraInfo = sb.ToString ();
+		}
+	}
+	
+	public class MasterParameter : CompParameter
+	{
+		XMLAttributes attributes;		
+		
+		public MasterParameter (string name, string type, bool optional, XMLAttributes attributes)
+			: base (name, type, optional)
+		{
+			this.attributes = attributes;
+		}
+		
+		public override List<CompNamed> GetAttributes ()
+		{
+			return MasterUtils.GetAttributes (attributes);
 		}
 	}
 	
 	public class MasterGenericTypeParameter : CompGenericParameter {
+		XMLGenericParameterConstraints constraints;
 		XMLAttributes attributes;
 		
-		public MasterGenericTypeParameter (string name, string genericAttribute, XMLAttributes attributes)
-			: base (name, (Mono.Cecil.GenericParameterAttributes)Enum.Parse (typeof (Mono.Cecil.GenericParameterAttributes), genericAttribute))
+		public MasterGenericTypeParameter (string name, XMLGenericParameterConstraints constraints, XMLAttributes attributes)
+			: base (name, (Mono.Cecil.GenericParameterAttributes)Enum.Parse (typeof (Mono.Cecil.GenericParameterAttributes), constraints.attributes))
 		{
+			this.constraints = constraints;
 			this.attributes = attributes;
+		}
+		
+		public override bool HasConstraints {
+			get {
+				return constraints.keys != null;
+			}
 		}
 		
 		public override List<CompNamed> GetAttributes ()

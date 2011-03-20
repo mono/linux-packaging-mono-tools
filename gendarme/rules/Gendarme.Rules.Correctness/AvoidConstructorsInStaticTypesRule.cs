@@ -86,18 +86,16 @@ namespace Gendarme.Rules.Correctness {
 			if (type == null)
 				return false;
 
-			if (type.HasConstructors) {
-				foreach (MethodDefinition ctor in type.Constructors) {
-					// let's the default ctor pass (since it's always here for 1.x code)
-					if (!ctor.IsStatic && ctor.HasParameters)
-						return false;
-				}
-			}
-
 			if (type.HasMethods) {
 				foreach (MethodDefinition method in type.Methods) {
-					if (!method.IsStatic)
-						return false;
+					if (method.IsConstructor) {
+						// let's the default ctor pass (since it's always here for 1.x code)
+						if (!method.IsStatic && method.HasParameters)
+							return false;
+					} else {
+						if (!method.IsStatic)
+							return false;
+					}
 				}
 			}
 
@@ -129,8 +127,8 @@ namespace Gendarme.Rules.Correctness {
 
 			// rule applies!
 
-			foreach (MethodDefinition ctor in type.Constructors) {
-				if (!ctor.IsStatic && ctor.IsVisible ()) {
+			foreach (MethodDefinition ctor in type.Methods) {
+				if (ctor.IsConstructor && !ctor.IsStatic && ctor.IsVisible ()) {
 					Runner.Report (ctor, Severity.Low, Confidence.High);
 				}
 			}

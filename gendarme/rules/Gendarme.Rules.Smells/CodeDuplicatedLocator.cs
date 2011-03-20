@@ -28,23 +28,29 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Gendarme.Framework;
+using Gendarme.Framework.Helpers;
 using Gendarme.Framework.Rocks;
 
 namespace Gendarme.Rules.Smells {
 
 	internal sealed class CodeDuplicatedLocator {
+
+		static ReadOnlyCollection<Pattern> Empty = new ReadOnlyCollection<Pattern> (new List<Pattern> ());
+
 		HashSet<string> methods = new HashSet<string> ();
 		HashSet<string> types = new HashSet<string> ();
 		Dictionary<MethodDefinition, IList<Pattern>> patternsCached = new Dictionary<MethodDefinition, IList<Pattern>> ();
-		IRule rule;
+		IRule parent_rule;
 
 		internal CodeDuplicatedLocator (IRule rule) 
 		{
-			this.rule = rule;
+			parent_rule = rule;
 		}
 
 		internal ICollection<string> CheckedMethods {
@@ -70,10 +76,13 @@ namespace Gendarme.Rules.Smells {
 			if (CheckedTypes.Contains (targetType.Name)) 
 				return;
 			
-			foreach (MethodDefinition target in targetType.AllMethods()) {
+			foreach (MethodDefinition target in targetType.Methods) {
+				if (target.IsConstructor || target.IsGeneratedCode ())
+					continue;
+
 				Pattern duplicated = GetDuplicatedCode (current, target);
 				if (duplicated != null && duplicated.Count > 0)
-					rule.Runner.Report (current, duplicated[0], Severity.High, Confidence.Normal, String.Format ("Duplicated code with {0}", target));
+					parent_rule.Runner.Report (current, duplicated[0], Severity.High, Confidence.Normal, String.Format ("Duplicated code with {0}", target));
 			}
 		}
 
@@ -84,33 +93,35 @@ namespace Gendarme.Rules.Smells {
 				current != target;
 		}
 
+		[Conditional ("DEBUG")]
 		void WriteToOutput (MethodDefinition current, MethodDefinition target, Pattern found) 
 		{
-			if (rule.Runner.VerbosityLevel > 0) {
-				Console.WriteLine ("Found pattern in {0} and {1}", current, target);
-				Console.WriteLine ("\t Pattern");
-				for (int index = 0; index < found.Count; index++) 
-					Console.WriteLine ("\t\t{0} - {1}",
-						found[index].OpCode.Code,
-						found[index].Operand != null? found[index].Operand : "No operator");
-			}
+			Log.WriteLine (this, "Found pattern in {0} and {1}", current, target);
+			Log.WriteLine (this, "\t Pattern");
+			for (int index = 0; index < found.Count; index++) 
+				Log.WriteLine (this, "\t\t{0} - {1}",
+					found[index].OpCode.Code,
+					found[index].Operand != null? found[index].Operand : "No operator");
 		}
 
 		Pattern GetDuplicatedCode (MethodDefinition current, MethodDefinition target)
 		{
 			if (!CanCompareMethods (current, target))
 				return null;
+
+			IList<Pattern> patterns = GetPatterns (current);
+			if (patterns.Count == 0)
+				return null;
 			
 			InstructionMatcher.Current = current;
 			InstructionMatcher.Target = target;
 
-			foreach (Pattern pattern in GetPatterns (current)) {
-				if (pattern.IsCompilerGeneratedBlock || !pattern.IsExtraibleToMethodBlock)
+			foreach (Pattern pattern in patterns) {
+				if (pattern.IsCompilerGeneratedBlock || !pattern.IsExtractableToMethodBlock)
 					continue;
 
 				if (InstructionMatcher.Match (pattern, target.Body.Instructions)) {
-					if (rule.Runner.VerbosityLevel > 0) 
-						WriteToOutput (current, target, pattern);
+					WriteToOutput (current, target, pattern);
 					return pattern;
 				}
 			}
@@ -121,8 +132,8 @@ namespace Gendarme.Rules.Smells {
 
 		IList<Pattern> GetPatterns (MethodDefinition method) 
 		{
-			IList<Pattern> patterns = null;
-			if (!patternsCached.TryGetValue(method, out patterns)) {
+			IList<Pattern> patterns = Empty;
+			if (!patternsCached.TryGetValue (method, out patterns)) {
 				patterns = GeneratePatterns (method);
 				patternsCached.Add (method, patterns);
 			}
@@ -137,9 +148,10 @@ namespace Gendarme.Rules.Smells {
 			Stack<Stack<Instruction>> result = new Stack<Stack<Instruction>> ();
 			Stack<Instruction> current = new Stack<Instruction> ();
 			int stackCounter = 0;
-			
-			for (int index = method.Body.Instructions.Count - 1; index >= 0; index--) {
-				Instruction currentInstruction = method.Body.Instructions[index];
+
+			var instructions = method.Body.Instructions;
+			for (int index = instructions.Count - 1; index >= 0; index--) {
+				Instruction currentInstruction = instructions [index];
 				stackCounter += currentInstruction.GetPushCount ();
 				stackCounter -= currentInstruction.GetPopCount (method);	
 				
@@ -157,6 +169,9 @@ namespace Gendarme.Rules.Smells {
 			//We can remove the first ocurrence
 			if (result.Count != 0)
 				result.Pop ();
+
+			if (result.Count == 0)
+				return Empty;
 
 			IList<Pattern> res = new List<Pattern> ();
 			foreach (Stack<Instruction> stack in result) 
