@@ -92,8 +92,5 @@ get-orig-source:
 		--destdir . \
 		--force-download \
 		--rename
-	bzcat ./$(DEB_SOURCE_NAME)_$(VERSION).orig.tar.bz2 | \
-		gzip -9fn -c - > ./$(DEB_SOURCE_NAME)_$(VERSION).orig.tar.gz
-	rm ./$(DEB_SOURCE_NAME)_$(VERSION).orig.tar.bz2
 
 .PHONY: build clean clean-patched binary-indep binary install
