@@ -19,7 +19,7 @@ Build-Depends-Indep: cli-common-dev (>= 0.8~exp2~),
  monodoc-base (>= 1.1.9),
  dh-xsp,
  mono-csharp-shell
-Standards-Version: 3.8.4
+Standards-Version: 3.9.2
 Vcs-Svn: svn://svn.debian.org/svn/pkg-mono/mono-tools/trunk
 Vcs-Browser: http://svn.debian.org/wsvn/pkg-mono/mono-tools/trunk/
 
