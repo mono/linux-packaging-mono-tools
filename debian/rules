@@ -34,5 +34,3 @@ get-orig-source:
 
 %:
 	dh --with quilt,autoreconf,xsp $@
-
-.PHONY: build clean clean-patched binary-indep binary install
