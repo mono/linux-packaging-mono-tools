@@ -12,15 +12,6 @@ DEB_SOURCE_NAME = $(shell dpkg-parsechangelog -l$(DEBIAN_DIR)/changelog | grep ^
 VERSION = $(shell echo $(DEB_VERSION) | cut -d"-" -f1 | sed 's/+dfsg.*//')
 
 
-configure: 
-	dh_testdir
-	
-	aclocal
-	autoconf
-	automake --add-missing --copy
-	
-	./configure --prefix=/usr
-	
 build: 
 	dh_testdir
 	$(MAKE)
@@ -86,6 +77,6 @@ get-orig-source:
 		--rename
 
 %:
-	dh --with quilt $@
+	dh --with quilt,autoreconf $@
 
 .PHONY: build clean clean-patched binary-indep binary install
