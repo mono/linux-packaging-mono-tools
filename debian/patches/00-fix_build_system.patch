@@ -1,22 +1,24 @@
 Index: mono-tools.git/configure.in
 ===================================================================
---- mono-tools.git.orig/configure.in	2010-06-07 20:19:05.000000000 +0100
-+++ mono-tools.git/configure.in	2010-06-07 20:23:30.000000000 +0100
-@@ -7,8 +7,8 @@
- AC_PROG_INSTALL
+--- mono-tools.git.orig/configure.in	2011-03-20 23:36:40.000000000 +0000
++++ mono-tools.git/configure.in	2011-04-25 18:52:39.000000000 +0100
+@@ -10,9 +10,9 @@
+ AC_SUBST(ACLOCAL_FLAGS)
  
  dnl C# compiler
 -AC_PATH_PROG(MCS, mcs, no)
 -AC_PATH_PROG(GMCS, gmcs, no)
+-AC_PATH_PROG(DMCS, dmcs, no)
 +AC_PATH_PROG(MCS, mono-csc, no)
 +AC_PATH_PROG(GMCS, mono-csc, no)
++AC_PATH_PROG(DMCS, mono-csc, no)
  AC_PATH_PROG(RUNTIME, mono, no)
  AC_PATH_PROG(GACUTIL, gacutil, no)
  
 Index: mono-tools.git/Mono.Profiler/compile
 ===================================================================
---- mono-tools.git.orig/Mono.Profiler/compile	2010-06-07 20:25:43.000000000 +0100
-+++ mono-tools.git/Mono.Profiler/compile	2010-06-07 20:25:50.000000000 +0100
+--- mono-tools.git.orig/Mono.Profiler/compile	2011-03-20 23:36:10.000000000 +0000
++++ mono-tools.git/Mono.Profiler/compile	2011-04-25 18:52:15.000000000 +0100
 @@ -1 +1 @@
 -gmcs -debug -out:profiler-decoder.exe profiler-decoder-library/*.cs profiler-file-decoder/*.cs
 +mono-csc -debug -out:profiler-decoder.exe profiler-decoder-library/*.cs profiler-file-decoder/*.cs
