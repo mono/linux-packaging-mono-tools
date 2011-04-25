@@ -12,30 +12,7 @@ DEB_SOURCE_NAME = $(shell dpkg-parsechangelog -l$(DEBIAN_DIR)/changelog | grep ^
 VERSION = $(shell echo $(DEB_VERSION) | cut -d"-" -f1 | sed 's/+dfsg.*//')
 
 
-build: 
-	dh_testdir
-	$(MAKE)
-
-clean: 
-	dh_testdir
-	dh_testroot
-	[ ! -f Makefile ] || $(MAKE) distclean
-	find . -name "Makefile.in" | xargs rm -rf
-	rm -rf $$MONO_SHARED_DIR/.wapi autom4te.cache/
-	dh_clean configure config.sub config.guess aclocal.m4
-
-install: build
-	dh_testdir
-	dh_testroot
-	dh_clean -k
-	dh_installdirs
-	$(MAKE) install DESTDIR=$(CURDIR)/debian/tmp/
-
-binary-indep: build install
-	dh_testdir
-	dh_testroot
-	dh_movefiles
-	dh_link
+override_dh_install:
 	dh_install
 	cp $(CURDIR)/debian/monodoc-http-script $(CURDIR)/debian/monodoc-http/usr/bin/monodoc-http
 	# fix upstream file permissions
@@ -43,28 +20,6 @@ binary-indep: build install
 	find debian/monodoc-http/usr/*/monodoc/web -type d -exec chmod 755 {} \;
 	rm debian/monodoc-http/usr/lib/monodoc/web/xtree/xmlextras.js
 	ln -s /usr/share/javascript/xmlextras/xmlextras.js debian/monodoc-http/usr/lib/monodoc/web/xtree/xmlextras.js
-	# remove directories moved to /usr/share/
-	#find debian/monodoc-http/usr/lib/monodoc/web -type d -name "images" -o -name "xtree" | xargs rm -rf
-	dh_installchangelogs ChangeLog
-	dh_installdocs
-	dh_installmenu
-	dh_desktop
-	dh_installman
-	dh_strip
-	dh_clistrip
-	dh_compress
-	dh_fixperms
-	dh_clifixperms
-	dh_installdeb
-	dh_installxsp -V 2
-	dh_clideps
-	dh_gencontrol
-	dh_md5sums
-	dh_builddeb
-
-binary-arch:
-
-binary: binary-indep
 
 get-orig-source:
 	uscan \
@@ -77,6 +32,6 @@ get-orig-source:
 		--rename
 
 %:
-	dh --with quilt,autoreconf $@
+	dh --with quilt,autoreconf,xsp $@
 
 .PHONY: build clean clean-patched binary-indep binary install
