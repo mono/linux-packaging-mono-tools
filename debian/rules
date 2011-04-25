@@ -33,4 +33,4 @@ get-orig-source:
 		--rename
 
 %:
-	dh --with quilt,autoreconf,xsp $@
+	dh --with autoreconf,xsp $@
