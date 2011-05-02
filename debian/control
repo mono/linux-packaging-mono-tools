@@ -16,6 +16,7 @@ Build-Depends-Indep: cli-common-dev (>= 0.8~exp2~),
  libwebkit-cil-dev,
  monodoc-base (>= 1.1.9),
  dh-xsp,
+ libglib2.0-dev,
  mono-csharp-shell
 Standards-Version: 3.9.2
 Vcs-Git: git://git.debian.org/git/pkg-mono/packages/mono-tools.git
