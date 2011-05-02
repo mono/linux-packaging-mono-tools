@@ -1,0 +1,22 @@
+Index: mono-tools.git/webdoc/Global.asax
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ mono-tools.git/webdoc/Global.asax	2011-05-02 14:34:02.854247643 +0100
+@@ -0,0 +1,17 @@
++<%@ Application ClassName="Mono.Website.Global" %>
++<%@ Import Namespace="Monodoc" %>
++<%@ Assembly name="monodoc" %>
++
++<script runat="server" language="c#" >
++public static RootTree help_tree;
++
++void Application_Start ()
++{
++	HelpSource.use_css = true;
++	HelpSource.FullHtml = false;
++	HelpSource.UseWebdocCache = true;
++	help_tree = RootTree.LoadTree ();
++	SettingsHandler.Settings.EnableEditing = false;
++}
++
++</script>

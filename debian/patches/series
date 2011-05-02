@@ -1,1 +1,2 @@
+add_missing_Global.asax.patch
 00-fix_build_system.patch
