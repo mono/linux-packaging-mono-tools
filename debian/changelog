@@ -1,3 +1,34 @@
+mono-tools (2.10-1) experimental; urgency=low
+
+  * [9259140] Imported Upstream version 2.10
+  * [70ce238] Remove obsolete gnunit files which lead me astray when analysing the packaging
+  * [742a1ce] Update build-depends for Mono 2.10
+  * [323c002] Stop altering compression format on orig tarball in get-orig-source rule
+  * [8bc1474] Replace use of external Quilt binary with Debian Source format 3.0's quilt support
+  * [ea9bf26] Bump debhelper version in debian/control, so we can use overrides
+  * [ed84820] No-change bump to Standards 3.9.2
+  * [34420fb] Update Vcs-* lines to correct Git repositories, not abandoned Svn repositories
+  * [c5038f9] Use dh-autoreconf rather than manually running the autoreconf commands in debian/rules
+  * [57ae6d9] Strip needless rules file contents, leaving only overrides where needed
+  * [1f862c0] Ensure we include cli.make, for dh_clideps et al
+  * [efc3b7f] Remove obsolete patch 04-gendarme_link_libraries_correctly.patch (it's entirely pointless with mono-devel)
+  * [2c98c4b] Refresh patch to alter build-time compiler
+  * [8f50f99] Refresh list of apps installed with mono-tools (remove gasnview, add gd2i to gendarme)
+  * [44c9c17] Install both versions of the Gendarme manpage
+  * [2960e75] Since we're building Monodoc with a 4.0 compiler, use dh-xsp's 4.0 support
+  * [557de9f] Remove obsolete PHONY entries from debian/rules
+  * [4c8bfeb] Add build-dependency on GLib development packages - autoreconf fails without them
+  * [9a3226a] Add Global.asax, from the upstream 2.10 tag on git. It seems this source file was missing from the tarballs, as such monodoc-http fails to run without it.
+  * [4f93dd4] Ensure we build Gendarme with 2.0, not 4.0 profile (it's not 4.0-ready yet in 2.10)
+  * [bab664f] Remove obsolete packaging files for monodoc-http
+  * [7b5fcc5] Add a tiny .dirs file, to prevent ftbfs in manual cp line
+  * [722a0b2] Remove bundled xmlextras from share, not lib
+  * [49c6a8b] Launch xsp4 from monodoc-http script
+  * [d0e0c44] Use correct path for monodoc-http
+  * [bfe4225] Update patch to ensure Global.asax is copied by "make install"
+
+ -- Jo Shields <directhex@apebox.org>  Thu, 05 May 2011 23:33:04 +0100
+
 mono-tools (2.6.2-3) unstable; urgency=low
 
   * Upload to Debian Unstable.
