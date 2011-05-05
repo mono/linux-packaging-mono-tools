@@ -15,4 +15,4 @@ echo -e "web browser will open http://localhost:$port/ now.\n\n"
 
 (sleep 5; sensible-browser http://localhost:$port/) &
 
-exec xsp2 --root /usr/lib/monodoc/web --port $port --address 127.0.0.1
+exec xsp4 --root /usr/lib/monodoc/web --port $port --address 127.0.0.1
