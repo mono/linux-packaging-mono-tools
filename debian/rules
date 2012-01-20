@@ -11,8 +11,6 @@ DEB_VERSION = $(shell dpkg-parsechangelog -l$(DEBIAN_DIR)/changelog | grep ^Vers
 DEB_SOURCE_NAME = $(shell dpkg-parsechangelog -l$(DEBIAN_DIR)/changelog | grep ^Source | cut -d" " -f2)
 VERSION = $(shell echo $(DEB_VERSION) | cut -d"-" -f1 | sed 's/+dfsg.*//')
 
-include /usr/share/cli-common/cli.make
-
 override_dh_install:
 	dh_install
 	cp $(CURDIR)/debian/monodoc-http-script $(CURDIR)/debian/monodoc-http/usr/bin/monodoc-http
@@ -33,4 +31,4 @@ get-orig-source:
 		--rename
 
 %:
-	dh $@ --with autoreconf,xsp
+	dh $@ --with autoreconf,xsp,cli
