@@ -1,3 +1,12 @@
+mono-tools (2.10-2) unstable; urgency=low
+
+  * [7ad165c] Automake 1.11.2 enforces C-libs-only in pkglib, so use a 
+    custom-defined programfilesdir for installing the main assembly.
+  * [7dadf4c] Correct order of dh parameters
+  * [873bd5b] Update debian/rules for DH8-compatible "--with cli"
+
+ -- Jo Shields <directhex@apebox.org>  Fri, 20 Jan 2012 16:58:04 +0000
+
 mono-tools (2.10-1) experimental; urgency=low
 
   * [9259140] Imported Upstream version 2.10
