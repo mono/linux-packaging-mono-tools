@@ -33,4 +33,4 @@ get-orig-source:
 		--rename
 
 %:
-	dh --with autoreconf,xsp $@
+	dh $@ --with autoreconf,xsp
