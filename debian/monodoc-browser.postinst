@@ -1,9 +1,22 @@
 #!/bin/sh
 set -e
 
-echo "generating monodoc index..."
-monodoc --make-index > /dev/null
-echo "generating monodoc search index... (this can take a while)"
-monodoc --make-search-index > /dev/null
+case "$1" in
+    configure)
+        
+        if [ "$2" = "" ]; then
+            # On first install, generate the index (won't necessarily be triggered).
+            /usr/bin/dpkg-trigger --by-package=monodoc-browser /usr/lib/monodoc/sources
+        fi
+
+        ;;
+
+    triggered)
+
+        /usr/bin/update-monodoc
+
+        ;;
+
+esac
 
 #DEBHELPER#
