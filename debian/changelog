@@ -1,3 +1,17 @@
+mono-tools (2.10-3) UNRELEASED; urgency=low
+
+  * [62da47c] Move update-monodoc trigger from monodoc-base (in mono)
+    The commands being executed from the trigger are in monodoc-browser, so
+    it makes sense for the trigger to be here too, then we don't have have
+    base attempt to check if -browser is configured, which we could never
+    get right.
+    We need to have Replaces: and Breaks: monodoc-base (<< 2.10.8.1-3) for
+    the moved update-monodoc. -3 is the version which will stop shipping
+    update-monodoc; we need to make sure that users don't have this on their
+    system after the trigger has moved. (LP: #972751)
+
+ -- Iain Lane <laney@debian.org>  Wed, 04 Apr 2012 21:44:15 +0100
+
 mono-tools (2.10-2) unstable; urgency=low
 
   * [7ad165c] Automake 1.11.2 enforces C-libs-only in pkglib, so use a 
