@@ -1,4 +1,4 @@
-mono-tools (2.10-3) UNRELEASED; urgency=low
+mono-tools (2.10-3) unstable; urgency=low
 
   * [62da47c] Move update-monodoc trigger from monodoc-base (in mono)
     The commands being executed from the trigger are in monodoc-browser, so
