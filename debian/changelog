@@ -1,3 +1,10 @@
+mono-tools (2.10-4) unstable; urgency=low
+
+  * [51d46c9] When triggered, manually install mono bits. This is to work
+    around dpkg bug #671711.
+
+ -- Iain Lane <laney@debian.org>  Tue, 26 Jun 2012 19:08:51 +0100
+
 mono-tools (2.10-3) unstable; urgency=low
 
   * [62da47c] Move update-monodoc trigger from monodoc-base (in mono)
