@@ -13,7 +13,25 @@ case "$1" in
 
     triggered)
 
-        /usr/bin/update-monodoc
+        # update-monodoc needs libgtk2.0-cil to be configured
+        # but we aren't guaranteed this due to #671711
+
+        # Try to register stuff manually (these commands are idempotent, so
+        # it'll be fine when the real postinst is run later on)
+        mono_gac_status=`dpkg-query -f '${Status}' -W mono-gac`
+        if [ "$mono_gac_status" != "install ok installed" -a \
+            -x /usr/share/cli-common/gac-install ]; then
+            /usr/share/cli-common/gac-package-install mono
+        fi
+
+        libgtk_cil_status=`dpkg-query -f '${Status}' -W libgtk2.0-cil`
+        if [ "$libgtk_cil_status" != "install ok installed" -a \
+            -x /usr/share/cli-common/gac-package-install ]; then
+            /usr/share/cli-common/gac-package-install libgtk2.0-cil
+        fi
+
+        # Now don't fail; we've done the best we can.
+        /usr/bin/update-monodoc || true
 
         ;;
 
