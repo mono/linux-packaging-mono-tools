@@ -1,3 +1,17 @@
+mono-tools (2.10-5) unstable; urgency=low
+
+  * [f5fdaf0] Ignore failures in the postinst trigger. It's difficult to
+    guarantee what's going to be available when the trigger is run. We might
+    as well not fail if running any of the commands fails, since that's no
+    worse than not registering the packages.
+  * [8817190] Call gac-install instead of gac-package-install to install mono
+    gac-package-install is for installing /packages/ into the GAC.
+    gac-install is for initialising the gac itself. It wasn't right to call
+    gac-package-install here. Also, check that required files exist before
+    proceeding. (Closes: #681320)
+
+ -- Iain Lane <laney@debian.org>  Thu, 12 Jul 2012 11:53:48 +0100
+
 mono-tools (2.10-4) unstable; urgency=low
 
   * [51d46c9] When triggered, manually install mono bits. This is to work
