@@ -24,13 +24,15 @@ case "$1" in
         # proceed anyway. Failure isn't harmful.
         mono_gac_status=`dpkg-query -f '${Status}' -W mono-gac`
         if [ "$mono_gac_status" != "install ok installed" -a \
-            -x /usr/share/cli-common/gac-install ]; then
-            /usr/share/cli-common/gac-package-install mono || true
+            -x /usr/share/cli-common/gac-install -a \
+            -e /usr/share/cli-common/runtimes.d/mono ]; then
+            /usr/share/cli-common/gac-install mono || true
         fi
 
         libgtk_cil_status=`dpkg-query -f '${Status}' -W libgtk2.0-cil`
         if [ "$libgtk_cil_status" != "install ok installed" -a \
-            -x /usr/share/cli-common/gac-package-install ]; then
+            -x /usr/share/cli-common/gac-package-install -a \ 
+            -e /usr/share/cli-common/packages.d/libgtk2.0-cil.installcligac ]; then
             /usr/share/cli-common/gac-package-install libgtk2.0-cil || true
         fi
 
