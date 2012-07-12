@@ -18,19 +18,22 @@ case "$1" in
 
         # Try to register stuff manually (these commands are idempotent, so
         # it'll be fine when the real postinst is run later on)
+
+        # We ignore all failures here. Either the stuff can be registered now—
+        # in which case we'll do it—or it can't, in which case we cannot
+        # proceed anyway. Failure isn't harmful.
         mono_gac_status=`dpkg-query -f '${Status}' -W mono-gac`
         if [ "$mono_gac_status" != "install ok installed" -a \
             -x /usr/share/cli-common/gac-install ]; then
-            /usr/share/cli-common/gac-package-install mono
+            /usr/share/cli-common/gac-package-install mono || true
         fi
 
         libgtk_cil_status=`dpkg-query -f '${Status}' -W libgtk2.0-cil`
         if [ "$libgtk_cil_status" != "install ok installed" -a \
             -x /usr/share/cli-common/gac-package-install ]; then
-            /usr/share/cli-common/gac-package-install libgtk2.0-cil
+            /usr/share/cli-common/gac-package-install libgtk2.0-cil || true
         fi
 
-        # Now don't fail; we've done the best we can.
         /usr/bin/update-monodoc || true
 
         ;;
