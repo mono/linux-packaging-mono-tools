@@ -1,3 +1,9 @@
+mono-tools (2.10-6) unstable; urgency=high
+
+  * [3a59ba0] Remove trailing whitespace in postinst. (Closes: #682248)
+
+ -- Iain Lane <laney@debian.org>  Mon, 23 Jul 2012 21:30:16 +0100
+
 mono-tools (2.10-5) unstable; urgency=low
 
   * [f5fdaf0] Ignore failures in the postinst trigger. It's difficult to
