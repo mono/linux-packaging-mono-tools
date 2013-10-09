@@ -27,6 +27,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 
 using Mono.Cecil;
 using Mono.Cecil.Metadata;
@@ -156,6 +157,31 @@ namespace Gendarme.Framework.Rocks {
 			AssemblyDefinition other_assembly = GetAssembly (other);
 			// compare assemblies tokens (but do not recurse)
 			return other == null ? false : self_assembly.MetadataToken.Equals (other_assembly.MetadataToken);
+		}
+
+		static Dictionary<MemberReference, string> full_name_cache = new Dictionary<MemberReference, string> ();
+
+		/// <summary>
+		/// Get the string value of the MemberReference FullName property without the cost 
+		/// of allocating a new string for each (or most) calls. 
+		/// </summary>
+		/// <param name="self">The MemberReference instance where the method is applied.</param>
+		/// <returns>The cached FullName property of the MemberReference</returns>
+		/// <remarks>Cecil needs to rebuild most of the FullName properties on each call in order to
+		/// be able to write assemblies. However this is a waste of memory when an application, like 
+		/// Gendarme, use it for read-only purposes.</remarks>
+		public static string GetFullName (this MemberReference self)
+		{
+			if (self == null)
+				return String.Empty;
+
+			string full_name;
+			if (!full_name_cache.TryGetValue (self, out full_name)) {
+				full_name = self.FullName;
+				full_name_cache.Add (self, full_name);
+			}
+
+			return full_name;
 		}
 	}
 }

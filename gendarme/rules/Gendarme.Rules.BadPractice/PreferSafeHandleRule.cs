@@ -186,9 +186,12 @@ namespace Gendarme.Rules.BadPractice {
 		static FieldDefinition FindIntPtr (TypeDefinition type)
 		{
 			foreach (FieldDefinition field in type.Fields) {
-				string name = field.FieldType.FullName;
-				if (name == "System.IntPtr" || name == "System.UIntPtr")
-					return field;
+				TypeReference ftype = field.FieldType;
+				if (ftype.Namespace == "System") {
+					string name = ftype.Name;
+					if ((name == "IntPtr") || (name == "UIntPtr"))
+						return field;
+				}
 			}
 			
 			return null;
@@ -212,7 +215,7 @@ namespace Gendarme.Rules.BadPractice {
 
 			Log.WriteLine (this);
 			Log.WriteLine (this, "----------------------------------");
-			Log.WriteLine (this, type.FullName);
+			Log.WriteLine (this, type);
 						
 			FieldDefinition field = FindIntPtr (type);
 			if (field != null) {
@@ -222,7 +225,7 @@ namespace Gendarme.Rules.BadPractice {
 				if (finalizer != null) 
 					confidence = (Confidence) ((int) confidence - 1);	// lower numbers have higher confidence
 
-				if (type.Implements ("System.IDisposable"))
+				if (type.Implements ("System", "IDisposable"))
 					confidence = (Confidence) ((int) confidence - 1);
 
 				Log.WriteLine (this, "'{0}' is an IntPtr.", field.Name);

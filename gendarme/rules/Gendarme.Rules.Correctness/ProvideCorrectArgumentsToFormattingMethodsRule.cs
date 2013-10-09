@@ -28,10 +28,11 @@
 //
 
 using System;
-using System.IO;
-using System.Resources;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Resources;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -115,7 +116,7 @@ namespace Gendarme.Rules.Correctness {
 		{
 			IList<Resource> resources = ad.MainModule.Resources;
 			foreach (EmbeddedResource resource in resources)
-				if (resourceClassName.Equals (resource.Name))
+				if (resourceClassName == resource.Name)
 					return resource;
 			return null;
 		}
@@ -131,7 +132,7 @@ namespace Gendarme.Rules.Correctness {
 				return null;
 
 			AssemblyDefinition ad = md.GetAssembly ();
-			string resourceClassName = md.DeclaringType.FullName + ".resources";
+			string resourceClassName = md.DeclaringType.GetFullName () + ".resources";
 			EmbeddedResource resource = GetEmbeddedResource (ad, resourceClassName);
 			if (resource == null)
 				return null;
@@ -242,13 +243,13 @@ namespace Gendarme.Rules.Correctness {
 			// String.Format (string, object, object, object) -> elementsPushed = 3
 			// String.Format (string, object[]) -> compute
 			// String.Format (IFormatProvider, string, object[]) -> compute
-			if (pdc [nbParameters - 1].ParameterType.FullName != "System.Object") {
+			if (!pdc [nbParameters - 1].ParameterType.IsNamed ("System", "Object")) {
 				// If we cannot determine the array size, we succeed (well we don't fail/report)
 				if (!TryComputeArraySize (call, method, nbParameters - 1, out elementsPushed))
 					return;
 
 				// String.Format (IFormatProvider, string, object[]) -> formatPosition = 1
-				if (pdc [0].ParameterType.FullName != "System.String")
+				if (!pdc [0].ParameterType.IsNamed ("System", "String"))
 					formatPosition = 1;
 			}
 
@@ -266,12 +267,19 @@ namespace Gendarme.Rules.Correctness {
 			}
 
 			if (expectedParameters < elementsPushed) {
-				Runner.Report (method, call, Severity.Medium, Confidence.Normal, String.Format ("Extra parameters are provided to String.Format, {0} provided but only {1} expected", elementsPushed, expectedParameters));
+				string msg = String.Format (CultureInfo.InvariantCulture, 
+					"Extra parameters are provided to String.Format, {0} provided but only {1} expected", 
+					elementsPushed, expectedParameters);
+				Runner.Report (method, call, Severity.Medium, Confidence.Normal, msg);
 				return;
 			}
 
-			if (elementsPushed < expectedParameters)
-				Runner.Report (method, call, Severity.Critical, Confidence.Normal, String.Format ("The String.Format method is expecting {0} parameters, but only {1} are found.", expectedParameters, elementsPushed));
+			if (elementsPushed < expectedParameters) {
+				string msg = String.Format (CultureInfo.InvariantCulture, 
+					"The String.Format method is expecting {0} parameters, but only {1} are found.", 
+					expectedParameters, elementsPushed);
+				Runner.Report (method, call, Severity.Critical, Confidence.Normal, msg);
+			}
 		}
 
 		public RuleResult CheckMethod (MethodDefinition method)
@@ -289,7 +297,7 @@ namespace Gendarme.Rules.Correctness {
 					continue;
 
 				MethodReference mr = (instruction.Operand as MethodReference);
-				if (formatSignature.Matches (mr) && (mr.DeclaringType.FullName == "System.String"))
+				if (formatSignature.Matches (mr) && mr.DeclaringType.IsNamed ("System", "String"))
 					CheckCallToFormatter (instruction, method);
 			}
 

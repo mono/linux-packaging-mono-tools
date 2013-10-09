@@ -27,6 +27,7 @@
 // THE SOFTWARE.
 
 using System;
+using System.Globalization;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -291,7 +292,7 @@ namespace Gendarme.Framework.Rocks {
 			case StackBehaviour.Varpop:
 				switch (self.OpCode.FlowControl) {
 				case FlowControl.Return:
-					return method.ReturnType.FullName == "System.Void" ? 0 : 1;
+					return method.ReturnType.IsNamed ("System", "Void") ? 0 : 1;
 
 				case FlowControl.Call:
 					IMethodSignature calledMethod = (IMethodSignature) self.Operand;
@@ -310,7 +311,8 @@ namespace Gendarme.Framework.Rocks {
 			case StackBehaviour.PopAll:
 				return -1;
 			default:
-				string unknown = String.Format ("'{0}' is not a valid value for instruction '{1}'.",
+				string unknown = String.Format (CultureInfo.InvariantCulture,
+					"'{0}' is not a valid value for instruction '{1}'.",
 					self.OpCode.StackBehaviourPush, self.OpCode);
 				throw new InvalidOperationException (unknown);
 			}
@@ -344,11 +346,12 @@ namespace Gendarme.Framework.Rocks {
 			case StackBehaviour.Varpush:
 				IMethodSignature calledMethod = (IMethodSignature) self.Operand;
 				if (calledMethod != null)
-					return (calledMethod.ReturnType.FullName == "System.Void") ? 0 : 1;
+					return calledMethod.ReturnType.IsNamed ("System", "Void") ? 0 : 1;
 
 				throw new NotImplementedException ("Varpush not supported for this Instruction.");
 			default:
-				string unknown = String.Format ("'{0}' is not a valid value for instruction '{1}'.",
+				string unknown = String.Format (CultureInfo.InvariantCulture,
+					"'{0}' is not a valid value for instruction '{1}'.",
 					self.OpCode.StackBehaviourPush, self.OpCode);
 				throw new InvalidOperationException (unknown);
 			}

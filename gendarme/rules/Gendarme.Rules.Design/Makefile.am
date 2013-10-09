@@ -17,6 +17,7 @@ rules_sources =  \
 	DeclareEventHandlersCorrectlyRule.cs \
 	DefineAZeroValueRule.cs \
 	DisposableTypesShouldHaveFinalizerRule.cs \
+	DoNotDeclareSettersOnCollectionPropertiesRule.cs \
 	DoNotDeclareVirtualMethodsInSealedTypeRule.cs \
 	DontDeclareProtectedFieldsInSealedClassRule.cs \
 	EnsureSymmetryForOverloadedOperatorsRule.cs \
@@ -46,8 +47,6 @@ rules_sources =  \
 	StronglyTypedRule.cs \
 	StronglyTypeICollectionMembersRule.cs \
 	TypesShouldBeInsideNamespacesRule.cs \
-	TypesWithDisposableFieldsShouldBeDisposableRule.cs \
-	TypesWithNativeFieldsShouldBeDisposableRule.cs \
 	UseFlagsAttributeRule.cs \
 	UseCorrectDisposeSignaturesRule.cs \
 	UsingCloneWithoutImplementingICloneableRule.cs
@@ -70,6 +69,7 @@ tests_sources = \
 	ConsiderUsingStaticTypeTest.cs \
 	DeclareEventHandlersCorrectlyTest.cs \
 	DisposableTypesShouldHaveFinalizerTest.cs \
+	DoNotDeclareSettersOnCollectionPropertiesTest.cs \
 	DoNotDeclareVirtualMethodsInSealedTypeTest.cs \
 	DontDeclareProtectedFieldsInSealedClassTest.cs \
 	EnsureSymmetryForOverloadedOperatorsTest.cs \
@@ -98,8 +98,6 @@ tests_sources = \
 	ProvideAlternativeNamesForOperatorOverloadsTest.cs \
 	StronglyTypeICollectionMembersTest.cs \
 	TypesShouldBeInsideNamespacesTest.cs \
-	TypesWithDisposableFieldsShouldBeDisposableTest.cs \
-	TypesWithNativeFieldsShouldBeDisposableTest.cs \
 	UseFlagsAttributeTest.cs \
 	UseCorrectDisposeSignaturesTest.cs \
 	UsingCloneWithoutImplementingICloneableTest.cs

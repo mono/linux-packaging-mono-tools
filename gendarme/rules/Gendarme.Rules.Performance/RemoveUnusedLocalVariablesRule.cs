@@ -28,6 +28,7 @@
 
 using System;
 using System.Collections;
+using System.Globalization;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -132,8 +133,8 @@ namespace Gendarme.Rules.Performance {
 					if (variable.IsGeneratedName ())
 						continue;
 
-					string s = String.Format ("Variable '{0}' of type '{1}'", 
-						variable.Name, variable.VariableType.FullName);
+					string s = String.Format (CultureInfo.InvariantCulture, "Variable '{0}' of type '{1}'", 
+						variable.Name, variable.VariableType.GetFullName ());
 					Runner.Report (method, Severity.Low, Confidence.Normal, s);
 				}
 			}

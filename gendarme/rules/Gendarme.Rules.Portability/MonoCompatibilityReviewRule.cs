@@ -6,7 +6,7 @@
 //	Sebastien Pouliot  <sebastien@ximian.com>
 //
 //  (C) 2007 Andreas Noever
-// Copyright (C) 2009 Novell, Inc (http://www.novell.com)
+// Copyright (C) 2009, 2011 Novell, Inc (http://www.novell.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the
@@ -31,6 +31,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Net;
 
@@ -40,6 +41,7 @@ using Mono.Cecil.Cil;
 using Gendarme.Framework;
 using Gendarme.Framework.Engines;
 using Gendarme.Framework.Helpers;
+using Gendarme.Framework.Rocks;
 
 using ICSharpCode.SharpZipLib.Zip;
 
@@ -126,7 +128,7 @@ namespace Gendarme.Rules.Portability {
 
 		private string GetFileName (Version v)
 		{
-			return Path.Combine (DefinitionsFolder, String.Format ("definitions-{0}.zip", v));
+			return Path.Combine (DefinitionsFolder, String.Format (CultureInfo.InvariantCulture, "definitions-{0}.zip", v));
 		}
 
 		private Version FindLastestLocalVersion ()
@@ -139,7 +141,7 @@ namespace Gendarme.Rules.Portability {
 
 			try {
 				string latest = def_files [def_files.Length - 1];
-				int s = latest.LastIndexOf ("definitions-") + 12;
+				int s = latest.LastIndexOf ("definitions-", StringComparison.Ordinal) + 12;
 				return new Version (latest.Substring (s, latest.Length - s - 4)); // remove .zip
 			}
 			catch (FormatException) {
@@ -175,7 +177,7 @@ namespace Gendarme.Rules.Portability {
 
 			using (FileStream fs = File.OpenRead (filename)) 
 			using (ZipInputStream zs = new ZipInputStream (fs))
-			using (StreamReader sr = new StreamReader (zs)) {
+			using (StreamLineReader sr = new StreamLineReader (zs)) {
 				ZipEntry ze;
 				while ((ze = zs.GetNextEntry ()) != null) {
 					switch (ze.Name) {
@@ -291,29 +293,28 @@ namespace Gendarme.Rules.Portability {
 			return v;
 		}
 
-		private static Dictionary<string, string> ReadWithComments (TextReader reader)
+		static char [] buffer = new char [4096];
+
+		private static Dictionary<string, string> ReadWithComments (StreamLineReader reader)
 		{
 			Dictionary<string, string> dict = new Dictionary<string, string> ();
-			string line;
-			while ((line = reader.ReadLine ()) != null) {
-				int split = line.IndexOf ('-');
-				string target = line.Substring (0, split);
-				// are there comments ? (many entries don't have any)
-				if (split == line.Length - 1) {
-					dict.Add (target, null);
-				} else {
-					dict.Add (target, line.Substring (split + 1));
-				}
+			while (!reader.EndOfStream) {
+				int length = reader.ReadLine (buffer, 0, buffer.Length);
+				int pos = Array.IndexOf (buffer, '-');
+				string key = new string (buffer, 0, pos);
+				string comment = (buffer [length - 1] == '-') ? null :
+					new string (buffer, pos + 1, length - pos - 1);
+				dict.Add (key, comment);
 			}
 			return dict;
 		}
 
-		private static HashSet<string> Read (TextReader reader)
+		private static HashSet<string> Read (StreamLineReader reader)
 		{
 			HashSet<string> set = new HashSet<string> ();
-			string line;
-			while ((line = reader.ReadLine ()) != null) {
-				set.Add (line);
+			while (!reader.EndOfStream) {
+				int length = reader.ReadLine (buffer, 0, buffer.Length);
+				set.Add (new string (buffer, 0, length));
 			}
 			return set;
 		}
@@ -344,18 +345,18 @@ namespace Gendarme.Rules.Portability {
 					continue;
 
 				// MethodReference.ToString is costly so we do it once for the three checks
-				string callee = mr.ToString ();
+				string callee = mr.GetFullName ();
 
 				// calling not implemented method is very likely not to work == High
 				if ((NotImplemented != null) && NotImplementedInternal.Contains (callee)) {
-					string message = String.Format (NotImplementedMessage, callee);
+					string message = String.Format (CultureInfo.InvariantCulture, NotImplementedMessage, callee);
 					// confidence is Normal since we can't be sure if MoMA data is up to date
 					Runner.Report (method, ins, Severity.High, Confidence.Normal, message);
 				}
 
 				// calling missing methods can't work == Critical
 				if ((Missing != null) && Missing.Contains (callee)) {
-					string message = String.Format (MissingMessage, callee);
+					string message = String.Format (CultureInfo.InvariantCulture, MissingMessage, callee);
 					Runner.Report (method, ins, Severity.Critical, Confidence.Normal, message);
 				}
 
@@ -363,7 +364,7 @@ namespace Gendarme.Rules.Portability {
 				if (ToDo != null) {
 					string value;
 					if (ToDo.TryGetValue (callee, out value)) {
-						string message = String.Format (TodoMessage, callee, value);
+						string message = String.Format (CultureInfo.InvariantCulture, TodoMessage, callee, value);
 						Runner.Report (method, ins,  Severity.Medium, Confidence.Normal, message);
 					}
 				}

@@ -18,10 +18,9 @@ using System.Security.Permissions;
 [assembly: AssemblyCopyright ("Copyright (C) 2005-2011 Novell, Inc. and contributors")]
 [assembly: AssemblyCompany ("Novell, Inc.")]
 
-[assembly: PermissionSet (SecurityAction.RequestMinimum, Unrestricted = true)]
 [assembly: CLSCompliant (false)]
 [assembly: ComVisible (false)]
 
 #if RELEASE
-[assembly: AssemblyVersion ("2.10.0.0")]
+[assembly: AssemblyVersion ("2.11.0.0")]
 #endif

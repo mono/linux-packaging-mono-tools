@@ -84,51 +84,6 @@ namespace Gendarme.Framework.Rocks {
 		}
 
 		/// <summary>
-		/// Check if a type reference collection contains a type of a specific name.
-		/// </summary>
-		/// <param name="self">The TypeReferenceCollection on which the extension method can be called.</param>
-		/// <param name="typeName">Full name of the type.</param>
-		/// <returns>True if the collection contains an type of the same name,
-		/// False otherwise.</returns>
-		public static bool ContainsType (this IEnumerable<TypeReference> self, string typeName)
-		{
-			if (typeName == null)
-				throw new ArgumentNullException ("typeName");
-			if (self == null)
-				return false;
-
-			foreach (TypeReference type in self) {
-				if (type.FullName == typeName)
-					return true;
-			}
-			return false;
-		}
-
-		/// <summary>
-		/// Check if a type reference collection contains any of the specified type names.
-		/// </summary>
-		/// <param name="self">The TypeReferenceCollection on which the extension method can be called.</param>
-		/// <param name="typeNames">A string array of full type names.</param>
-		/// <returns>True if the collection contains any types matching one specified,
-		/// False otherwise.</returns>
-		public static bool ContainsAnyType (this IEnumerable<TypeReference> self, string [] typeNames)
-		{
-			if (typeNames == null)
-				throw new ArgumentNullException ("typeNames");
-			if (self == null)
-				return false;
-
-			foreach (TypeReference type in self) {
-				string fullname = type.FullName;
-				foreach (string type_full_name in typeNames) {
-					if (fullname == type_full_name)
-						return true;
-				}
-			}
-			return false;
-		}
-
-		/// <summary>
 		/// Returns the first MethodDefinition that satisfies a given MethodSignature.
 		/// </summary>
 		/// <param name="self">The TypeReference on which the extension method can be called.</param>
@@ -177,7 +132,7 @@ namespace Gendarme.Framework.Rocks {
 					continue;
 				if ((method.Attributes & attributes) != attributes)
 					continue;
-				if (returnType != null && method.ReturnType.FullName != returnType)
+				if (returnType != null && !method.ReturnType.IsNamed (returnType))
 					continue;
 				if (parameters != null) {
 					if (method.HasParameters) {
@@ -188,7 +143,7 @@ namespace Gendarme.Framework.Rocks {
 						for (int i = 0; i < parameters.Length; i++) {
 							if (parameters [i] == null)
 								continue;//ignore parameter
-							if (parameters [i] != pdc [i].ParameterType.GetElementType ().FullName) {
+							if (!pdc [i].ParameterType.GetElementType ().IsNamed (parameters [i])) {
 								parameterError = true;
 								break;
 							}
@@ -284,13 +239,16 @@ namespace Gendarme.Framework.Rocks {
 		/// where the information resides could be unavailable. False is returned in this case.
 		/// </summary>
 		/// <param name="self">The TypeDefinition on which the extension method can be called.</param>
-		/// <param name="interfaceName">Full name of the interface</param>
+		/// <param name="nameSpace">The namespace of the interface to be matched</param>
+		/// <param name="name">The name of the interface to be matched</param>
 		/// <returns>True if we found that the type implements the interface, False otherwise (either it
 		/// does not implement it, or we could not find where it does).</returns>
-		public static bool Implements (this TypeReference self, string interfaceName)
+		public static bool Implements (this TypeReference self, string nameSpace, string name)
 		{
-			if (interfaceName == null)
-				throw new ArgumentNullException ("interfaceName");
+			if (nameSpace == null)
+				throw new ArgumentNullException ("nameSpace");
+			if (name == null)
+				throw new ArgumentNullException ("name");
 			if (self == null)
 				return false;
 
@@ -299,23 +257,22 @@ namespace Gendarme.Framework.Rocks {
 				return false;	// not enough information available
 
 			// special case, check if we implement ourselves
-			if (type.IsInterface && (type.FullName == interfaceName))
+			if (type.IsInterface && type.IsNamed (nameSpace, name))
 				return true;
 
-			return Implements (type, interfaceName, (interfaceName.IndexOf ('`') >= 0));
+			return Implements (type, nameSpace, name);
 		}
 
-		private static bool Implements (TypeDefinition type, string interfaceName, bool generic)
+		private static bool Implements (TypeDefinition type, string nameSpace, string iname)
 		{
 			while (type != null) {
 				// does the type implements it itself
 				if (type.HasInterfaces) {
 					foreach (TypeReference iface in type.Interfaces) {
-						string fullname = (generic) ? iface.GetElementType ().FullName : iface.FullName;
-						if (fullname == interfaceName)
+						if (iface.IsNamed (nameSpace, iname))
 							return true;
 						//if not, then maybe one of its parent interfaces does
-						if (Implements (iface.Resolve (), interfaceName, generic))
+						if (Implements (iface.Resolve (), nameSpace, iname))
 							return true;
 					}
 				}
@@ -331,21 +288,23 @@ namespace Gendarme.Framework.Rocks {
 		/// where the information resides could be unavailable.
 		/// </summary>
 		/// <param name="self">The TypeReference on which the extension method can be called.</param>
-		/// <param name="className">Full name of the base class</param>
+		/// <param name="nameSpace">The namespace of the base class to be matched</param>
+		/// <param name="name">The name of the base class to be matched</param>
 		/// <returns>True if the type inherits from specified class, False otherwise</returns>
-		public static bool Inherits (this TypeReference self, string className)
+		public static bool Inherits (this TypeReference self, string nameSpace, string name)
 		{
-			if (className == null)
-				throw new ArgumentNullException ("className");
+			if (nameSpace == null)
+				throw new ArgumentNullException ("nameSpace");
+			if (name == null)
+				throw new ArgumentNullException ("name");
 			if (self == null)
 				return false;
 
 			TypeReference current = self.Resolve ();
 			while (current != null) {
-				string fullname = current.FullName;
-				if (fullname == className)
+				if (current.IsNamed (nameSpace, name))
 					return true;
-				if (fullname == "System.Object")
+				if (current.IsNamed ("System", "Object"))
 					return false;
 
 				TypeDefinition td = current.Resolve ();
@@ -354,6 +313,70 @@ namespace Gendarme.Framework.Rocks {
 				current = td.BaseType;
 			}
 			return false;
+		}
+
+		/// <summary>
+		/// Check if the type and its namespace are named like the provided parameters.
+		/// This is preferred to checking the FullName property since the later can allocate (string) memory.
+		/// </summary>
+		/// <param name="self">The TypeReference on which the extension method can be called.</param>
+		/// <param name="nameSpace">The namespace to be matched</param>
+		/// <param name="name">The type name to be matched</param>
+		/// <returns>True if the type is namespace and name match the arguments, False otherwise</returns>
+		public static bool IsNamed (this TypeReference self, string nameSpace, string name)
+		{
+			if (nameSpace == null)
+				throw new ArgumentNullException ("nameSpace");
+			if (name == null)
+				throw new ArgumentNullException ("name");
+			if (self == null)
+				return false;
+
+			if (self.IsNested) {
+				int spos = name.LastIndexOf ('/');
+				if (spos == -1)
+					return false;
+				// GetFullName could be optimized away but it's a fairly uncommon case
+				return (nameSpace + "." + name == self.GetFullName ());
+			}
+
+			return ((self.Namespace == nameSpace) && (self.Name == name));
+		}
+
+		/// <summary>
+		/// Check if the type full name match the provided parameter.
+		/// Note: prefer the overload where the namespace and type name can be supplied individually
+		/// </summary>
+		/// <param name="self">The TypeReference on which the extension method can be called.</param>
+		/// <param name="fullName">The full name to be matched</param>
+		/// <returns>True if the type is namespace and name match the arguments, False otherwise</returns>
+		public static bool IsNamed (this TypeReference self, string fullName)
+		{
+			if (fullName == null)
+				throw new ArgumentNullException ("fullName");
+			if (self == null)
+				return false;
+
+			if (self.IsNested) {
+				int spos = fullName.LastIndexOf ('/');
+				if (spos == -1)
+					return false;
+				// FIXME: GetFullName could be optimized away but it's a fairly uncommon case
+				return (fullName == self.GetFullName ());
+			}
+
+			int dpos = fullName.LastIndexOf ('.');
+			string nspace = self.Namespace;
+			if (dpos != nspace.Length)
+				return false;
+
+			if (String.CompareOrdinal (nspace, 0, fullName, 0, dpos) != 0)
+				return false;
+
+			string name = self.Name;
+			if (fullName.Length - dpos - 1 != name.Length)
+				return false;
+			return (String.CompareOrdinal (name, 0, fullName, dpos + 1, fullName.Length - dpos - 1) == 0);
 		}
 
 		/// <summary>
@@ -369,7 +392,7 @@ namespace Gendarme.Framework.Rocks {
 			if (self == null)
 				return false;
 
-			return self.Inherits ("System.Attribute");
+			return self.Inherits ("System", "Attribute");
 		}
 
 		/// <summary>
@@ -387,13 +410,11 @@ namespace Gendarme.Framework.Rocks {
 			if (null == type || type.BaseType == null)
 				return false;
 
-			switch (type.BaseType.FullName) {
-			case "System.Delegate":
-			case "System.MulticastDelegate":
-				return true;
-			default:
+			if (type.BaseType.Namespace != "System")
 				return false;
-			}
+
+			string name = type.BaseType.Name;
+			return ((name == "Delegate") || (name == "MulticastDelegate"));
 		}
 
 		/// <summary>
@@ -410,7 +431,7 @@ namespace Gendarme.Framework.Rocks {
 			if ((type == null) || !type.IsEnum || !type.HasCustomAttributes)
 				return false;
 
-			return type.HasAttribute ("System.FlagsAttribute");
+			return type.HasAttribute ("System", "FlagsAttribute");
 		}
 
 		/// <summary>
@@ -423,9 +444,11 @@ namespace Gendarme.Framework.Rocks {
 			if (self == null)
 				return false;
 
-			string full_name = self.FullName;
-			return ((full_name == "System.Single") ||
-				(full_name == "System.Double"));
+			if (self.Namespace != "System")
+				return false;
+
+			string name = self.Name;
+			return ((name == "Single") || (name == "Double"));
 		}
 
 		/// <summary>
@@ -443,7 +466,7 @@ namespace Gendarme.Framework.Rocks {
 				TypeDefinition type = self.Resolve ();
 				// both helpful attributes only exists in 2.0 and more recent frameworks
 				if (type.Module.Runtime >= TargetRuntime.Net_2_0) {
-					if (type.CustomAttributes.ContainsAnyType (CustomAttributeRocks.GeneratedCodeAttributes))
+					if (type.HasAnyGeneratedCodeAttribute ())
 						return true;
 				}
 			}
@@ -471,14 +494,11 @@ namespace Gendarme.Framework.Rocks {
 			if (self == null)
 				return false;
 
-			switch (self.FullName) {
-			case "System.IntPtr":
-			case "System.UIntPtr":
-			case "System.Runtime.InteropServices.HandleRef":
-				return true;
-			default:
-				return false;
+			if (self.Namespace == "System") {
+				string name = self.Name;
+				return ((name == "IntPtr") || (name == "UIntPtr"));
 			}
+			return self.IsNamed ("System.Runtime.InteropServices", "HandleRef");
 		}
 
 		/// <summary>

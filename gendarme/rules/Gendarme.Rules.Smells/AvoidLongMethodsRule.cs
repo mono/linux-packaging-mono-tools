@@ -28,6 +28,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -181,19 +182,6 @@ namespace Gendarme.Rules.Smells {
 
 		const int AssignationRatio = 7;
 		const int DefaultAmountOfElements = 13;
-		static Dictionary<string, string> typeMethodDictionary;
-
-		static AvoidLongMethodsRule ()
-		{
-			typeMethodDictionary = new Dictionary<string,string> (4);
-			typeMethodDictionary.Add ("Gtk.Bin", "Build");
-			typeMethodDictionary.Add ("Gtk.Window", "Build");
-			typeMethodDictionary.Add ("Gtk.Dialog", "Build");
-			typeMethodDictionary.Add ("System.Windows.Forms.Form", "InitializeComponent");
-			typeMethodDictionary.Add ("System.Workflow.Activities.SequentialWorkflowActivity", "InitializeComponent");
-			typeMethodDictionary.Add ("System.Workflow.Activities.StateMachineWorkflowActivity", "InitializeComponent");
-			typeMethodDictionary.Add ("System.Windows.Controls.UserControl", "InitializeComponent");
-		}
 
 		public AvoidLongMethodsRule ()
 		{
@@ -215,12 +203,31 @@ namespace Gendarme.Rules.Smells {
 			if (method.HasParameters)
 				return false;
 
+			string name = method.Name;
+			if ((name != "Build") && (name != "InitializeComponent"))
+				return false;
+
 			TypeDefinition type = method.DeclaringType.Resolve ();
-			if ((type != null) && (type.BaseType != null)) {
-				string method_name;
-				if (typeMethodDictionary.TryGetValue (type.BaseType.FullName, out method_name)) {
-					return (method_name == method.Name);
+			if ((type == null) || (type.BaseType == null))
+				return false;
+
+			string nspace = type.BaseType.Namespace;
+			string tname = type.BaseType.Name;
+			switch (name) {
+			case "Build":
+				if (nspace != "Gtk")
+					return false;
+				return (tname == "Bin" || tname == "Window" || tname == "Dialog");
+			case "InitializeComponent":
+				switch (nspace) {
+				case "System.Windows.Forms":
+					return tname == "Form";
+				case "System.Workflow.Activities":
+					return tname == "SequentialWorkflowActivity" || tname == "StateMachineWorkflowActivity";
+				case "System.Windows.Controls":
+					return tname == "UserControl";
 				}
+				break;
 			}
 			return false;
 		}
@@ -326,7 +333,8 @@ namespace Gendarme.Rules.Smells {
 				if (sloc <= max)
 					return RuleResult.Success;
 
-				string message = String.Format ("Logical SLOC: {0}. Maximum : {1}", sloc, max);
+				string message = String.Format (CultureInfo.CurrentCulture, 
+					"Logical SLOC: {0}. Maximum : {1}", sloc, max);
 				Runner.Report (method, Severity.High, Confidence.High, message);
 			} else {
 				// success if the instruction count is below the defined threshold
@@ -336,7 +344,8 @@ namespace Gendarme.Rules.Smells {
 				if (count <= max)
 					return RuleResult.Success;
 
-				string message = String.Format ("Method IL Size: {0}. Maximum Size: {1}", count, max);
+				string message = String.Format (CultureInfo.CurrentCulture,
+					"Method IL Size: {0}. Maximum Size: {1}", count, max);
 				Runner.Report (method, Severity.High, Confidence.Normal, message);
 			}
 

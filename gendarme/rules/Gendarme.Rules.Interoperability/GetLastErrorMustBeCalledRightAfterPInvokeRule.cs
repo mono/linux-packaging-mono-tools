@@ -98,9 +98,9 @@ namespace Gendarme.Rules.Interoperability {
 				return false;
 			}
 
-			public bool Equals (Branch branch)
+			public bool Equals (Branch other)
 			{
-				return (Instruction == branch.Instruction) && (DirtyMethodCalled == branch.DirtyMethodCalled);
+				return (Instruction == other.Instruction) && (DirtyMethodCalled == other.DirtyMethodCalled);
 			}
 
 			public override int GetHashCode ()
@@ -135,13 +135,18 @@ namespace Gendarme.Rules.Interoperability {
 
 					//check if a method is called
 					if (ins.OpCode.FlowControl == FlowControl.Call) {
+					    MethodReference mRef = ins.Operand as MethodReference;
 
-						MethodDefinition mDef = (ins.Operand as MethodReference).Resolve ();
+                        if (mRef == null) {
+                            continue;
+                        }
+
+					    MethodDefinition mDef = mRef.Resolve();
 						if (mDef != null && mDef.IsPInvokeImpl) { //check if another pinvoke method is called, this counts as "GetLastError not called"
 							break;
 						}
-
-						string s = (mDef == null) ? String.Empty : mDef.DeclaringType.FullName;
+                        
+						string s = (mDef == null) ? String.Empty : mDef.DeclaringType.GetFullName ();
 						switch (s) {
 						case "System.Runtime.InteropServices.Marshal":
 							getLastErrorFound = (mDef.Name == "GetLastWin32Error");

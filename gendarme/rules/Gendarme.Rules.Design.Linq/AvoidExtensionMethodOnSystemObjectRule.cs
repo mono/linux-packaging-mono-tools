@@ -77,8 +77,11 @@ namespace Gendarme.Rules.Design.Linq {
 			// extension methods are only available in FX3.5
 			// check runtime >= NET2_0 (fast) then check if [ExtensionAttribute] is referenced
 			Runner.AnalyzeModule += (object o, RunnerEventArgs e) => {
-				Active = e.CurrentModule.Runtime >= TargetRuntime.Net_2_0 &&
-					e.CurrentModule.HasTypeReference ("System.Runtime.CompilerServices.ExtensionAttribute");
+				Active = (e.CurrentModule.Runtime >= TargetRuntime.Net_2_0 &&
+					e.CurrentModule.AnyTypeReference ((TypeReference tr) => {
+						return tr.IsNamed ("System.Runtime.CompilerServices", "ExtensionAttribute");
+					})
+				);
 			};
 		}
 
@@ -92,7 +95,7 @@ namespace Gendarme.Rules.Design.Linq {
 			if (!method.HasParameters)
 				return false;
 
-			return method.HasAttribute ("System.Runtime.CompilerServices.ExtensionAttribute");
+			return method.HasAttribute ("System.Runtime.CompilerServices", "ExtensionAttribute");
 		}
 
 		public RuleResult CheckMethod (MethodDefinition method)
@@ -100,7 +103,7 @@ namespace Gendarme.Rules.Design.Linq {
 			if (!IsExtension (method))
 				return RuleResult.DoesNotApply;
 
-			if (method.Parameters [0].ParameterType.FullName != "System.Object")
+			if (!method.Parameters [0].ParameterType.IsNamed ("System", "Object"))
 				return RuleResult.Success;
 
 			Runner.Report (method, Severity.High, Confidence.High);

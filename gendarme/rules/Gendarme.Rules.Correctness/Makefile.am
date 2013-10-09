@@ -6,6 +6,7 @@ rules_sources =  \
 	AvoidConstructorsInStaticTypesRule.cs \
 	AvoidFloatingPointEqualityRule.cs \
 	AvoidMethodsWithSideEffectsInConditionalCodeRule.cs \
+	DeclareEventsExplicitlyRule.cs \
 	DoNotRecurseInEqualityRule.cs \
 	BadRecursiveInvocationRule.cs \
 	CallingEqualsWithNullArgRule.cs \
@@ -29,6 +30,9 @@ rules_sources =  \
 	ReviewUselessControlFlowRule.cs \
 	ReviewUseOfInt64BitsToDoubleRule.cs \
 	ReviewUseOfModuloOneOnIntegersRule.cs \
+	TypesShouldBeDisposableBaseRule.cs \
+	TypesWithDisposableFieldsShouldBeDisposableRule.cs \
+	TypesWithNativeFieldsShouldBeDisposableRule.cs \
 	UseNoInliningWithGetCallingAssemblyRule.cs \
 	UseValueInPropertySetterRule.cs
 
@@ -50,6 +54,7 @@ tests_sources = \
 	AvoidConstructorsInStaticTypesTest.cs \
 	AvoidFloatingPointEqualityTest.cs \
 	AvoidMethodsWithSideEffectsInConditionalCodeTest.cs \
+	DeclareEventsExplicitlyTest.cs \
 	DoNotRecurseInEqualityTest.cs \
 	BadRecursiveInvocationTest.cs \
 	CallingEqualsWithNullArgTest.cs \
@@ -73,5 +78,7 @@ tests_sources = \
 	ReviewUselessControlFlowTest.cs \
 	ReviewUseOfInt64BitsToDoubleTest.cs \
 	ReviewUseOfModuloOneOnIntegersTest.cs \
+	TypesWithDisposableFieldsShouldBeDisposableTest.cs \
+	TypesWithNativeFieldsShouldBeDisposableTest.cs \
 	UseNoInliningWithGetCallingAssemblyTest.cs \
 	UseValueInPropertySetterTest.cs

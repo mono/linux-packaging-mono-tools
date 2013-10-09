@@ -30,6 +30,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -116,7 +117,7 @@ namespace Gendarme.Rules.Correctness {
 
 			// note: other rule will complain if there are disposable or native fields
 			// in a type that doesn't implement IDisposable, so we don't bother here
-			if (!type.Implements ("System.IDisposable"))
+			if (!type.Implements ("System", "IDisposable"))
 				return RuleResult.DoesNotApply;
 
 			MethodDefinition implicitDisposeMethod = GetNonAbstractMethod (type, MethodSignatures.Dispose);
@@ -148,7 +149,7 @@ namespace Gendarme.Rules.Correctness {
 				TypeDefinition fieldType = field.FieldType.Resolve ();
 				if (fieldType == null)
 					continue;
-				if (fieldType.Implements ("System.IDisposable"))
+				if (fieldType.Implements ("System", "IDisposable"))
 					disposeableFields.Add (field);
 			}
 
@@ -177,10 +178,10 @@ namespace Gendarme.Rules.Correctness {
 		private void CheckBaseDispose (TypeDefinition type, MethodDefinition implicitDisposeMethod, MethodDefinition explicitDisposeMethod)
 		{
 			TypeDefinition baseType = type;
-			while (baseType.BaseType.FullName != "System.Object") {
+			while (!baseType.BaseType.IsNamed ("System", "Object")) {
 				baseType = baseType.BaseType.Resolve ();
 				// also checks parents, so no need to search further
-				if ((baseType == null) || !baseType.Implements ("System.IDisposable"))
+				if ((baseType == null) || !baseType.Implements ("System", "IDisposable"))
 					break;
 
 				//we just check for Dispose() here
@@ -196,7 +197,7 @@ namespace Gendarme.Rules.Correctness {
 			}
 		}
 
-		private void CheckIfBaseDisposeIsCalled (MethodDefinition method, MethodDefinition baseMethod)
+		private void CheckIfBaseDisposeIsCalled (MethodDefinition method, MemberReference baseMethod)
 		{
 			bool found = false;
 
@@ -215,7 +216,7 @@ namespace Gendarme.Rules.Correctness {
 						if (call.OpCode.Code != Code.Call && call.OpCode.Code != Code.Callvirt)
 							continue;
 						MethodReference calledMethod = (MethodReference) call.Operand;
-						if (calledMethod.ToString () != baseMethod.ToString ())
+						if (calledMethod.GetFullName () != baseMethod.GetFullName ())
 							continue;
 						found = true;
 					}
@@ -223,7 +224,7 @@ namespace Gendarme.Rules.Correctness {
 			}
 
 			if (!found) {
-				string s = String.Format ("{0} should call base.Dispose().", method.ToString ());
+				string s = String.Format (CultureInfo.InvariantCulture, "{0} should call base.Dispose().", method.GetFullName ());
 				Runner.Report (method, Severity.Medium, Confidence.High, s);
 			}
 		}
@@ -256,7 +257,8 @@ namespace Gendarme.Rules.Correctness {
 				return;
 
 			foreach (FieldDefinition field in fields) {
-				string s = string.Format ("Since {0} is Disposable {1}() should call {0}.Dispose()", field.Name, method.Name);
+				string s = String.Format (CultureInfo.InvariantCulture, 
+					"Since {0} is Disposable {1}() should call {0}.Dispose()", field.Name, method.Name);
 				Runner.Report (field, Severity.High, Confidence.High, s);
 			}
 		}

@@ -77,9 +77,6 @@ namespace Gendarme.Rules.Maintainability {
 	[EngineDependency (typeof (OpCodeEngine))]
 	public class ConsiderUsingStopwatchRule : Rule, IMethodRule {
 
-		private const string DateTime = "System.DateTime";
-		private const string GetNow = "get_Now";
-
 		public override void Initialize (IRunner runner)
 		{
 			base.Initialize (runner);
@@ -90,8 +87,11 @@ namespace Gendarme.Rules.Maintainability {
 			// did not exist back then.
 			Runner.AnalyzeModule += delegate (object o, RunnerEventArgs e) {
 				Active = (e.CurrentModule.Runtime >= TargetRuntime.Net_2_0
-					&& (e.CurrentAssembly.Name.Name == "mscorlib"
-					|| e.CurrentModule.HasTypeReference (DateTime)));
+					&& (e.CurrentAssembly.Name.Name == "mscorlib" ||
+					e.CurrentModule.AnyTypeReference ((TypeReference tr) => {
+						return tr.IsNamed ("System", "DateTime");
+					}
+				)));
 			};
 		}
 
@@ -106,7 +106,7 @@ namespace Gendarme.Rules.Maintainability {
 				return false;
 
 			MethodReference calledMethod = (MethodReference) ins.Operand;
-			return calledMethod.DeclaringType.FullName == DateTime && calledMethod.Name == GetNow;
+			return calledMethod.IsNamed ("System", "DateTime", "get_Now");
 		}
 		
 		private static bool CheckParameters (MethodDefinition method, Instruction ins)
@@ -125,14 +125,14 @@ namespace Gendarme.Rules.Maintainability {
 				ParameterDefinition p = prev.GetParameter (method);
 				if (p == null)
 					return false;
-				int arg = p.GetSequence ();
+				int arg = p.Index;
 				prev = prev.Previous;
 				while (null != prev) {
 					// look for a STOBJ instruction and compare the objects
 					if (prev.OpCode.Code == Code.Stobj) {
 						prev = prev.TraceBack (method);
 						p = prev.GetParameter (method);
-						return (p == null) ? false : (arg == p.GetSequence ());
+						return (p == null) ? false : (arg == p.Index);
 					}
 					prev = prev.Previous;
 				}
@@ -161,11 +161,10 @@ namespace Gendarme.Rules.Maintainability {
 				return RuleResult.DoesNotApply;
 
 			foreach (Instruction ins in method.Body.Instructions) {
-				if (!calls.Get (ins.OpCode.Code))
+				MethodReference calledMethod = ins.GetMethod ();
+				if (calledMethod == null)
 					continue;
-
-				MethodReference calledMethod = (MethodReference) ins.Operand;
-				if (calledMethod.DeclaringType.FullName != DateTime)
+				if (!calledMethod.DeclaringType.IsNamed ("System", "DateTime"))
 					continue;
 				if (!MethodSignatures.op_Subtraction.Matches (calledMethod))
 					continue;

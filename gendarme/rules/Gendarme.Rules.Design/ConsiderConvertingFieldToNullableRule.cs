@@ -25,6 +25,7 @@
 // THE SOFTWARE.
 
 using System;
+using System.Globalization;
 
 using Mono.Cecil;
 
@@ -75,7 +76,7 @@ namespace Gendarme.Rules.Design {
 
 		static bool IsHasField (FieldReference fd, ref string prefix, ref string suffix)
 		{
-			if (fd.FieldType.FullName != "System.Boolean")
+			if (!fd.FieldType.IsNamed ("System", "Boolean"))
 				return false;
 
 			string name = fd.Name;
@@ -122,7 +123,9 @@ namespace Gendarme.Rules.Design {
 					&& HasValueTypeField(type, string.Concat(prefix,suffix)) ) {
 					//TODO: check if they are both used in the same method? does the complexity worth it?
 					string s = (Runner.VerbosityLevel > 0)
-						? String.Format ("Field '{0}' should probably be a nullable if '{1}' purpose is to inform if '{0}' has been set.", fd.Name, suffix)
+						? String.Format (CultureInfo.InvariantCulture, 
+							"Field '{0}' should probably be a nullable if '{1}' purpose is to inform if '{0}' has been set.", 
+							fd.Name, suffix)
 						: string.Empty;
 					Runner.Report (fd, Severity.Low, Confidence.Low, s);
 				}
@@ -140,7 +143,7 @@ namespace Gendarme.Rules.Design {
 		{
 			foreach (FieldDefinition field in type.Fields) {
 				if (field.FieldType.IsValueType
-					&& "System.Nullable`1" != field.FieldType.GetElementType().FullName
+					&& !field.FieldType.GetElementType ().IsNamed ("System", "Nullable`1")
 					&& 0 == string.Compare(name, field.Name, StringComparison.OrdinalIgnoreCase))
 					return field;
 			}

@@ -27,6 +27,7 @@
 //
 
 using System;
+using System.Globalization;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -122,8 +123,8 @@ namespace Gendarme.Rules.Correctness {
 			if ((field != null) && (field == next.GetField ())) {
 				// instance fields need extra comparison using method
 				if (isStatic || Compare (next, ins, method)) {
-					string msg = String.Format ("{0} field '{1}' of type '{2}'.",
-						isStatic ? "Static" : "Instance", field.Name, field.FieldType.FullName);
+					string msg = String.Format (CultureInfo.InvariantCulture, "{0} field '{1}' of type '{2}'.",
+						isStatic ? "Static" : "Instance", field.Name, field.FieldType.GetFullName ());
 					Runner.Report (method, ins, Severity.Medium, Confidence.Normal, msg);
 				}
 			}
@@ -158,14 +159,15 @@ namespace Gendarme.Rules.Correctness {
 					if (variable == ins.GetVariable (method)) {
 						// the compiler often introduce it's own variable
 						if (!variable.Name.StartsWith ("V_"))
-							msg = String.Format ("Variable '{0}' of type '{1}'.", variable.Name, variable.VariableType.FullName);
+							msg = String.Format ("Variable '{0}' of type '{1}'.", variable.Name, variable.VariableType.GetFullName ());
 					}
 #endif
 				} else if (ins.IsLoadArgument () && next.IsStoreArgument ()) {
 					ParameterDefinition parameter = next.GetParameter (method);
 					if (parameter == ins.GetParameter (method)) {
-						string msg = String.Format ("Parameter '{0}' of type '{1}'.", 
-							parameter.Name, parameter.ParameterType.FullName);
+						string msg = String.Format (CultureInfo.InvariantCulture, 
+							"Parameter '{0}' of type '{1}'.", 
+							parameter.Name, parameter.ParameterType.GetFullName ());
 						Runner.Report (method, ins, Severity.Medium, Confidence.Normal, msg);
 					}
 				}

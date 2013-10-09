@@ -39,7 +39,7 @@ namespace Gendarme.Framework {
 		// http://blogs.msdn.com/jmstall/archive/2005/06/19/FeeFee_SequencePoints.aspx
 		private const int PdbHiddenLine = 0xFEEFEE;
 
-		private static string AlmostEqualTo = new string (new char [] { '\u2248' });
+		private const string AlmostEqualTo = "\u2248";
 
 		private static Instruction ExtractFirst (TypeDefinition type)
 		{
@@ -55,7 +55,7 @@ namespace Gendarme.Framework {
 
 		private static Instruction ExtractFirst (MethodDefinition method)
 		{
-			if ((method == null) || !method.HasBody)
+			if ((method == null) || !method.HasBody || method.Body.Instructions.Count == 0)
 				return null;
 			Instruction ins = method.Body.Instructions [0];
 			// note that the first instruction often does not have a sequence point
@@ -69,11 +69,11 @@ namespace Gendarme.Framework {
 		{
 			MethodDefinition method = (location as MethodDefinition);
 			if (method != null)
-				return (method.DeclaringType as TypeDefinition);
+				return method.DeclaringType;
 
 			FieldDefinition field = (location as FieldDefinition);
 			if (field != null)
-				return (field.DeclaringType as TypeDefinition);
+				return field.DeclaringType;
 
 			ParameterDefinition parameter = (location as ParameterDefinition);
 			if (parameter != null)
@@ -112,7 +112,7 @@ namespace Gendarme.Framework {
 		// include line and column.
 		private static string FormatSequencePoint (string document, int line, int column, bool exact)
 		{
-			string sline = (line == PdbHiddenLine) ? "unavailable" : line.ToString ();
+			string sline = (line == PdbHiddenLine) ? "unavailable" : line.ToString (CultureInfo.InvariantCulture);
 
 			// MDB (mono symbols) does not provide any column information (so we don't show any)
 			// there's also no point in showing a column number if we're not totally sure about the line
@@ -177,7 +177,7 @@ namespace Gendarme.Framework {
 					return FormatSource (candidate);
 
 				// we may still be lucky to find the (a) source file for the type itself
-				type = (method.DeclaringType as TypeDefinition);
+				type = method.DeclaringType;
 			}
 
 			// TypeDefinition, FieldDefinition

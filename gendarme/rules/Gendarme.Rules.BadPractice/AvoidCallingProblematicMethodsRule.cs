@@ -27,8 +27,9 @@
 //
 
 using System;
-using System.Reflection;
+using System.Globalization;
 using System.Collections.Generic;
+using System.Reflection;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -100,22 +101,22 @@ namespace Gendarme.Rules.BadPractice {
 		public AvoidCallingProblematicMethodsRule ()
 		{
 			problematicMethods.Add ("Collect", (m, i) => 
-				(m.DeclaringType.FullName == "System.GC") ? Severity.Critical : (Severity?) null);
+				m.DeclaringType.IsNamed ("System", "GC") ? Severity.Critical : (Severity?) null);
 			problematicMethods.Add ("Suspend", (m, i) => 
-				(m.DeclaringType.FullName == "System.Threading.Thread") ? Severity.Medium : (Severity?) null);
+				m.DeclaringType.IsNamed ("System.Threading", "Thread") ? Severity.Medium : (Severity?) null);
 			problematicMethods.Add ("Resume", (m, i) => 
-				(m.DeclaringType.FullName == "System.Threading.Thread") ? Severity.Medium : (Severity?) null);
+				m.DeclaringType.IsNamed ("System.Threading", "Thread") ? Severity.Medium : (Severity?) null);
 			problematicMethods.Add ("DangerousGetHandle", (m, i) => 
-				(m.DeclaringType.FullName == "System.Runtime.InteropServices.SafeHandle") ? Severity.Critical : (Severity?) null);
+				m.DeclaringType.IsNamed ("System.Runtime.InteropServices", "SafeHandle") ? Severity.Critical : (Severity?) null);
 			problematicMethods.Add ("LoadFrom", (m, i) => 
-				(m.DeclaringType.FullName == "System.Reflection.Assembly") ? Severity.High : (Severity?) null);
+				m.DeclaringType.IsNamed ("System.Reflection", "Assembly") ? Severity.High : (Severity?) null);
 			problematicMethods.Add ("LoadFile", (m, i) => 
-				(m.DeclaringType.FullName == "System.Reflection.Assembly") ? Severity.High : (Severity?) null);
+				m.DeclaringType.IsNamed ("System.Reflection", "Assembly") ? Severity.High : (Severity?) null);
 			problematicMethods.Add ("LoadWithPartialName", (m, i) => 
-				(m.DeclaringType.FullName == "System.Reflection.Assembly") ? Severity.High : (Severity?) null);
+				m.DeclaringType.IsNamed ("System.Reflection", "Assembly") ? Severity.High : (Severity?) null);
 			problematicMethods.Add ("InvokeMember", (m, i) => 
-				(m.DeclaringType.FullName != "System.Type") ? (Severity?) null :
-				IsAccessingWithNonPublicModifiers (i) ? Severity.Critical : (Severity?) null);
+				!m.DeclaringType.IsNamed ("System", "Type") ? (Severity?) null :
+					IsAccessingWithNonPublicModifiers (i) ? Severity.Critical : (Severity?) null);
 		}
 
 		private static bool OperandIsNonPublic (BindingFlags operand)
@@ -166,7 +167,8 @@ namespace Gendarme.Rules.BadPractice {
 
 				Severity? severity = IsProblematicCall (instruction);
 				if (severity.HasValue) {
-					string msg = String.Format ("You are calling to {0}, which is a potentially problematic method", 
+					string msg = String.Format (CultureInfo.InvariantCulture,
+						"You are calling to {0}, which is a potentially problematic method", 
 						instruction.Operand);
 					Runner.Report (method, instruction, severity.Value, Confidence.High, msg);
 				}

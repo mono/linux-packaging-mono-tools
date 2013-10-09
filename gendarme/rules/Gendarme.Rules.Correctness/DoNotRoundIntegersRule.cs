@@ -27,11 +27,14 @@
 //
 
 using System;
+using System.Globalization;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 
 using Gendarme.Framework;
+using Gendarme.Framework.Engines;
+using Gendarme.Framework.Helpers;
 using Gendarme.Framework.Rocks;
 
 namespace Gendarme.Rules.Correctness {
@@ -41,8 +44,8 @@ namespace Gendarme.Rules.Correctness {
 	// ICAST: int value cast to float and then passed to Math.round (ICAST_INT_CAST_TO_FLOAT_PASSED_TO_ROUND)
 
 	/// <summary>
-	/// This rule check for attempts to call <c>Round</c>, <c>Ceiling</c>, <c>Floor</c> or
-	/// <c>Truncate</c> on an integral type. This often indicate a typo in the source code
+	/// This rule check for attempts to call <c>System.Math.Round</c>, <c>System.Math.Ceiling</c>, <c>System.Math.Floor</c> or
+	/// <c>System.Math.Truncate</c> on an integral type. This often indicate a typo in the source code
 	/// (e.g. wrong variable) or an unnecessary operation.
 	/// </summary>
 	/// <example>
@@ -63,10 +66,10 @@ namespace Gendarme.Rules.Correctness {
 	/// }
 	/// </code>
 	/// </example>
-	/// <remarks>This rule is available since Gendarme 2.0</remarks>
 
 	[Problem ("This method calls round/ceil/floor/truncate with an integer value.")]
 	[Solution ("Verify the code logic. This could be a typo (wrong variable) or an unnecessary operation.")]
+	[EngineDependency (typeof (OpCodeEngine))]
 	public class DoNotRoundIntegersRule : Rule, IMethodRule {
 
 		static TypeReference GetType (Instruction ins, MethodDefinition method)
@@ -105,8 +108,8 @@ namespace Gendarme.Rules.Correctness {
 				if (rv.IsFloatingPoint ())
 					return null;
 				// but convertion into decimals are not...
-				if (rv.FullName == "System.Decimal") {
-					if (mr.DeclaringType.FullName != "System.Decimal")
+				if (rv.IsNamed ("System", "Decimal")) {
+					if (!mr.DeclaringType.IsNamed ("System", "Decimal"))
 						return null;
 
 					// ... unless it's a convertion from a FP value
@@ -137,9 +140,13 @@ namespace Gendarme.Rules.Correctness {
 			if (!method.HasBody)
 				return RuleResult.DoesNotApply;
 
+			// exclude methods that don't have calls
+			if (!OpCodeBitmask.Calls.Intersect (OpCodeEngine.GetBitmask (method)))
+				return RuleResult.DoesNotApply;
+
 			foreach (Instruction ins in method.Body.Instructions) {
 				MethodReference mr = ins.GetMethod ();
-				if ((mr == null) || (mr.DeclaringType.FullName != "System.Math"))
+				if ((mr == null) || !mr.DeclaringType.IsNamed ("System", "Math"))
 					continue;
 
 				Instruction value = null;
@@ -171,7 +178,8 @@ namespace Gendarme.Rules.Correctness {
 				if (type == null)
 					continue;
 
-				string msg = string.Format ("Math.{0} called on a {1}.", name, type.FullName);
+				string msg = String.Format (CultureInfo.InvariantCulture, "Math.{0} called on a {1}.", 
+					name, type.GetFullName ());
 				Runner.Report (method, ins, Severity.Medium, Confidence.Normal, msg);
 			}
 			return Runner.CurrentRuleResult;

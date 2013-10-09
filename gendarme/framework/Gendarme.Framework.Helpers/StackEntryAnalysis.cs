@@ -97,9 +97,9 @@ namespace Gendarme.Framework.Helpers {
 				return this == other;
 			}
 
-			public bool Equals (StoreSlot storeSlot)
+			public bool Equals (StoreSlot other)
 			{
-				return this == storeSlot;
+				return this == other;
 			}
 
 			public override int GetHashCode ()
@@ -182,40 +182,14 @@ namespace Gendarme.Framework.Helpers {
 				return false;
 			}
 
-			public bool Equals (InstructionWithLeave iwl)
+			public bool Equals (InstructionWithLeave other)
 			{
-				if (Instruction != iwl.Instruction)
-					return false;
-
-				if (LeaveStack == null)
-					return (iwl.LeaveStack == null);
-
-				if (iwl.LeaveStack == null)
-					return false;
-
-				if (LeaveStack.Length != iwl.LeaveStack.Length)
-					return false;
-
-				for (int i = 0; i < LeaveStack.Length; i++) {
-					if (LeaveStack [i] != iwl.LeaveStack [i])
-						return false;
-				}
-				return true;
+				return (Instruction == other.Instruction);
 			}
 
 			public override int GetHashCode ()
 			{
-				int hc = 0;
-				
-				unchecked {
-					hc ^= Instruction.GetHashCode ();
-					if (LeaveStack != null) {
-						foreach (Instruction ins in LeaveStack)
-							hc ^= ins.GetHashCode ();
-					}
-				}
-				
-				return hc;
+				return Instruction.GetHashCode ();
 			}
 
 			public static bool operator == (InstructionWithLeave left, InstructionWithLeave right)
@@ -527,7 +501,7 @@ namespace Gendarme.Framework.Helpers {
 				return new StoreSlot (StoreType.Argument, ins.OpCode.Code - Code.Ldarg_0);
 			case Code.Ldarg_S:
 			case Code.Ldarg: {
-					int sequence = ((ParameterDefinition) ins.Operand).GetSequence ();
+					int sequence = ((ParameterDefinition) ins.Operand).Index + 1;
 					if (!this.Method.HasThis)
 						sequence--;
 					return new StoreSlot (StoreType.Argument, sequence);
@@ -581,7 +555,7 @@ namespace Gendarme.Framework.Helpers {
 
 			case Code.Starg_S: //store arg (not ref / out etc)
 			case Code.Starg: {
-					int sequence = ((ParameterDefinition) ins.Operand).GetSequence ();
+					int sequence = ((ParameterDefinition) ins.Operand).Index + 1;
 					if (!this.Method.HasThis)
 						sequence--;
 					return new StoreSlot (StoreType.Argument, sequence);

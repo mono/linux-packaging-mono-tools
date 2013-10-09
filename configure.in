@@ -1,4 +1,4 @@
-AC_INIT([mono-tools], [2.10])
+AC_INIT([mono-tools], [2.11])
 AC_CONFIG_SRCDIR([README])
 AC_CANONICAL_SYSTEM
 AM_INIT_AUTOMAKE([tar-ustar -Wno-portability])
@@ -181,6 +181,7 @@ GENDARME_VERSION=$TOOLS_VERSION
 AC_SUBST(GENDARME_VERSION)
 
 AC_OUTPUT([
+mono-tools.spec
 Makefile
 gsharp/Makefile
 gsharp/gsharp
@@ -272,6 +273,7 @@ gendarme/swf-wizard-runner/Makefile
 gendarme/tools/Makefile
 gendarme/tools/supported/Makefile
 gendarme/tools/supported/gd2i/Makefile
+gendarme/tools/supported/templates/Makefile
 gendarme/tools/unsupported/Makefile
 gendarme/tools/unsupported/mapper/Makefile
 gendarme/tools/unsupported/typeref/Makefile

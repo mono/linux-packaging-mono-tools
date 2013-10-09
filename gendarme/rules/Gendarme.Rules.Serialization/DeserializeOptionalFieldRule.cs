@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 using Mono.Cecil;
 
@@ -85,10 +86,6 @@ namespace Gendarme.Rules.Serialization {
 		private const string MessageOptional = "Optional fields '{0}' is not deserialized.";
 		private const string MessageSerializable = "Optional fields '{0}' in non-serializable type.";
 
-		private const string OptionalFieldAttribute = "System.Runtime.Serialization.OptionalFieldAttribute";
-		private const string OnDeserializedAttribute = "System.Runtime.Serialization.OnDeserializedAttribute";
-		private const string OnDeserializingAttribute = "System.Runtime.Serialization.OnDeserializingAttribute";
-
 		public override void Initialize (IRunner runner)
 		{
 			base.Initialize (runner);
@@ -103,7 +100,10 @@ namespace Gendarme.Rules.Serialization {
 					// if the module does not have a reference to System.Runtime.Serialization.OptionalFieldAttribute
 					// then nothing will be reported by this rule
 					(e.CurrentAssembly.Name.Name == "mscorlib" ||
-					e.CurrentModule.HasTypeReference (OptionalFieldAttribute));
+					e.CurrentModule.AnyTypeReference ((TypeReference tr) => {
+						return tr.IsNamed ("System.Runtime.Serialization", "OptionalFieldAttribute");
+					})
+				);
 			};
 		}
 
@@ -121,9 +121,9 @@ namespace Gendarme.Rules.Serialization {
 					if (method.IsConstructor || !method.HasCustomAttributes)
 						continue;
 
-					if (method.HasAttribute (OnDeserializedAttribute))
+					if (method.HasAttribute ("System.Runtime.Serialization", "OnDeserializedAttribute"))
 						deserialized_candidate = true;
-					if (method.HasAttribute (OnDeserializingAttribute))
+					if (method.HasAttribute ("System.Runtime.Serialization", "OnDeserializingAttribute"))
 						deserializing_candidate = true;
 
 					if (deserialized_candidate && deserializing_candidate)
@@ -133,19 +133,17 @@ namespace Gendarme.Rules.Serialization {
 
 			// check if we found some optional fields, if none then it's all ok
 			foreach (FieldDefinition field in type.Fields) {
-				if (!field.HasCustomAttributes)
-					continue;
-				if (field.CustomAttributes.ContainsType (OptionalFieldAttribute)) {
+				if (field.HasAttribute ("System.Runtime.Serialization", "OptionalFieldAttribute")) {
 					if (type.IsSerializable) {
 						// report if we didn't find a deserialization method
 						if (!deserialized_candidate || !deserializing_candidate) {
 							// Medium since it's possible that the optional fields don't need to be re-computed
-							string s = String.Format (MessageOptional, field.Name);
+							string s = String.Format (CultureInfo.InvariantCulture, MessageOptional, field.Name);
 							Runner.Report (field, Severity.Medium, Confidence.High, s);
 						}
 					} else {
 						// [OptionalField] without [Serializable] is a bigger problem
-						string s = String.Format (MessageSerializable, field.Name);
+						string s = String.Format (CultureInfo.InvariantCulture, MessageSerializable, field.Name);
 						Runner.Report (field, Severity.Critical, Confidence.High, s);
 					}
 				}

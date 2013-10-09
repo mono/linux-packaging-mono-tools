@@ -93,11 +93,21 @@ namespace Gendarme.Rules.Performance {
 	[FxCopCompatibility ("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
 	public class AvoidUncalledPrivateCodeRule : Rule, IMethodRule {
 
-		static string [] SpecialAttributes = new string[] {
-			"System.Runtime.InteropServices.ComRegisterFunctionAttribute",
-			"System.Runtime.InteropServices.ComUnregisterFunctionAttribute",
-			"System.Diagnostics.ConditionalAttribute"
-		};
+		static bool HasAnySpecialAttribute (ICustomAttributeProvider method)
+		{
+			if (!method.HasCustomAttributes)
+				return false;
+
+			foreach (CustomAttribute ca in method.CustomAttributes) {
+				TypeReference cat = ca.AttributeType;
+				string name = cat.Name;
+				if ((cat.IsNamed ("System.Diagnostics", name)) || (cat.Namespace == "System.Runtime.InteropServices" && 
+					(name == "ComRegisterFunctionAttribute" || name == "ComUnregisterFunctionAttribute"))) {
+					return true;
+				}
+			}
+			return false;
+		}
 
 		static private bool Applicable (MethodDefinition method)
 		{
@@ -119,10 +129,8 @@ namespace Gendarme.Rules.Performance {
 
 			// does not apply if the method is used to register/unregister COM objects
 			// or it is decorated with a [Conditional("x")] attribute
-			if (method.HasCustomAttributes) {
-				if (method.CustomAttributes.ContainsAnyType (SpecialAttributes))
-					return false;
-			}
+			if (HasAnySpecialAttribute (method))
+				return false;
 
 			return true;
 		}
@@ -301,7 +309,7 @@ namespace Gendarme.Rules.Performance {
 			return methods;
 		}
 
-		private static void BuildMethodUsage (HashSet<ulong> methods, MethodDefinition method)
+		private static void BuildMethodUsage (ISet<ulong> methods, MethodDefinition method)
 		{
 			foreach (Instruction ins in method.Body.Instructions) {
 				MethodReference mr = (ins.Operand as MethodReference);
@@ -310,7 +318,7 @@ namespace Gendarme.Rules.Performance {
 					continue;
 
 				TypeReference type = mr.DeclaringType;
-				if (!(type is ArrayType)) {
+				if (!type.IsArray) {
 					// if (type.GetElementType ().HasGenericParameters)
 					// the simpler ^^^ does not work under Mono but works on MS
 					type = type.Resolve ();

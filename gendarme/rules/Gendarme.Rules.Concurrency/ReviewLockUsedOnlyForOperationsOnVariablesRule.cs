@@ -93,8 +93,10 @@ namespace Gendarme.Rules.Concurrency {
 			// if not then this rule does not need to be executed for the module
 			// note: mscorlib.dll is an exception since it defines, not refer, System.Threading.Monitor
 			Runner.AnalyzeModule += delegate (object o, RunnerEventArgs e) {
-				Active = (e.CurrentAssembly.Name.Name == "mscorlib") ||
-					e.CurrentModule.HasTypeReference ("System.Threading.Monitor");
+				Active = (e.CurrentAssembly.Name.Name == "mscorlib" ||
+					e.CurrentModule.AnyTypeReference ((TypeReference tr) => {
+						return tr.IsNamed ("System.Threading", "Monitor");
+					}));
 			};
 		}
 
@@ -154,9 +156,7 @@ namespace Gendarme.Rules.Concurrency {
 				return false;
 
 			MethodReference method = (ins.Operand as MethodReference);
-			if (method == null)
-				return false;
-			if ((method.Name != "Enter") || (method.DeclaringType.FullName != "System.Threading.Monitor"))
+			if (!method.IsNamed ("System.Threading", "Monitor", "Enter"))
 				return false;
 			return (parametersCount == method.Parameters.Count);
 		}

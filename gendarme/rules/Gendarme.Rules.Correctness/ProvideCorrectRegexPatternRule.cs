@@ -27,6 +27,7 @@
 // THE SOFTWARE.
 
 using System;
+using System.Globalization;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -91,20 +92,23 @@ namespace Gendarme.Rules.Correctness {
 
 		static OpCodeBitmask callsAndNewobjBitmask = BuildCallsAndNewobjOpCodeBitmask ();
 
-		const string RegexClass = "System.Text.RegularExpressions.Regex";
-		const string ValidatorClass = "System.Configuration.RegexStringValidator";
-
 		public override void Initialize (IRunner runner)
 		{
 			base.Initialize (runner);
 
 			Runner.AnalyzeModule += delegate (object o, RunnerEventArgs e) {
-				bool usingRegexClass = e.CurrentAssembly.Name.Name == "System"
-				                       || e.CurrentModule.HasTypeReference (RegexClass);
-				bool usingValidatorClass = e.CurrentModule.Runtime >= TargetRuntime.Net_2_0
-				                           && (e.CurrentAssembly.Name.Name == "System.Configuration"
-				                              || e.CurrentModule.HasTypeReference (ValidatorClass));
-				Active = usingRegexClass | usingValidatorClass;
+				string assembly_name = e.CurrentAssembly.Name.Name;
+				bool usingRegexClass = (assembly_name == "System");
+				bool usingValidatorClass = (e.CurrentModule.Runtime >= TargetRuntime.Net_2_0) && (assembly_name == "System.Configuration");
+				// if we're not analyzing System.dll or System.Configuration.dll then check if we're using them
+				if (!usingRegexClass && !usingValidatorClass) {
+					Active = e.CurrentModule.AnyTypeReference ((TypeReference tr) => {
+						return tr.IsNamed ("System.Text.RegularExpressions", "Regex") ||
+							tr.IsNamed ("System.Configuration", "RegexStringValidator");
+					});
+				} else {
+					Active = true;
+				}
 			};
 		}
 
@@ -127,7 +131,7 @@ namespace Gendarme.Rules.Correctness {
 				return CheckPattern (method, ins, (string) ld.Operand, confidence);
 			case Code.Ldsfld:
 				FieldReference f = (FieldReference) ld.Operand;
-				if (f.Name != "Empty" || f.DeclaringType.FullName != "System.String")
+				if (f.Name != "Empty" || !f.DeclaringType.IsNamed ("System", "String"))
 					return false;
 				return CheckPattern (method, ins, null, confidence);
 			case Code.Ldnull:
@@ -149,7 +153,8 @@ namespace Gendarme.Rules.Correctness {
 			} catch (Exception e) {
 				/* potential set of exceptions is not well documented and potentially changes with regarts to
 				   different runtime and/or runtime version. */
-				string msg = string.Format ("Pattern '{0}' is invalid. Reason: {1}", pattern, e.Message);
+				string msg = String.Format (CultureInfo.InvariantCulture, 
+					"Pattern '{0}' is invalid. Reason: {1}", pattern, e.Message);
 				Runner.Report (method, ins, Severity.High, confidence, msg);
 				return false;
 			}
@@ -161,8 +166,9 @@ namespace Gendarme.Rules.Correctness {
 				return;
 			if (!call.HasParameters)
 				return;
-			string tname = call.DeclaringType.FullName;
-			if (tname != RegexClass && tname != ValidatorClass)
+
+			TypeReference type = call.DeclaringType;
+			if (!type.IsNamed ("System.Text.RegularExpressions", "Regex") && !type.IsNamed ("System.Configuration", "RegexStringValidator"))
 				return;
 
 			MethodDefinition mdef = call.Resolve ();
@@ -174,8 +180,8 @@ namespace Gendarme.Rules.Correctness {
 
 			foreach (ParameterDefinition p in mdef.Parameters) {
 				string pname = p.Name;
-				if ((pname == "pattern" || pname == "regex") && p.ParameterType.FullName == "System.String") {
-					Instruction ld = ins.TraceBack (method, -(call.HasThis ? 0 : -1 + p.GetSequence ()));
+				if ((pname == "pattern" || pname == "regex") && p.ParameterType.IsNamed ("System", "String")) {
+					Instruction ld = ins.TraceBack (method, -(call.HasThis ? 0 : p.Index));
 					if (ld != null)
 						CheckArguments (method, ins, ld);
 					return;

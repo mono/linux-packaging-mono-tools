@@ -28,6 +28,9 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
+using System.Globalization;
+using System.Text;
+
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 
@@ -160,10 +163,27 @@ namespace Gendarme.Rules.Exceptions {
 		private static readonly OpCodeBitmask OverflowThrowers = new OpCodeBitmask (0x0, 0x8000000000000000, 0x3FC07F8000001FF, 0x0);
 		private static readonly OpCodeBitmask Casts = new OpCodeBitmask (0x0, 0x48000000000000, 0x400000000, 0x0);
 
-		private static readonly string [] GetterExceptions = new string [] {"System.InvalidOperationException", "System.NotSupportedException"};
-		private static readonly string [] IndexerExceptions = new string [] {"System.InvalidOperationException", "System.NotSupportedException", "System.ArgumentException", "System.Collections.Generic.KeyNotFoundException"};
-		private static readonly string [] EventExceptions = new string [] {"System.InvalidOperationException", "System.NotSupportedException", "System.ArgumentException"};
-		private static readonly string [] HashCodeExceptions = new string [] {"System.ArgumentException"};
+		private static readonly string [][] GetterExceptions = new string [][] {
+			new string [] { "System", "InvalidOperationException" },
+			new string [] { "System", "NotSupportedException"}
+		};
+
+		private static readonly string [][] IndexerExceptions = new string [][] {
+			new string [] { "System", "InvalidOperationException" }, 
+			new string [] { "System", "NotSupportedException" }, 
+			new string [] { "System", "ArgumentException" }, 
+			new string [] { "System.Collections.Generic", "KeyNotFoundException" }
+		};
+
+		private static readonly string [][] EventExceptions = new string [][] {
+			new string [] { "System", "InvalidOperationException" }, 
+			new string [] { "System", "NotSupportedException" }, 
+			new string [] { "System", "ArgumentException" }
+		};
+
+		private static readonly string [][] HashCodeExceptions = new string [][] {
+			new string [] { "System", "ArgumentException" }
+		};
 
 		private static bool CheckAttributes (MethodReference method, MethodAttributes attrs)
 		{
@@ -180,7 +200,7 @@ namespace Gendarme.Rules.Exceptions {
 		
 		private MethodSignature equals_signature;
 		private MethodSignature hashcode_signature;
-		private string [] allowedExceptions;
+		private string [][] allowedExceptions;
 		private Severity severity;
 		private bool is_equals;
 
@@ -189,7 +209,7 @@ namespace Gendarme.Rules.Exceptions {
 			base.Initialize (runner);
 
 			Runner.AnalyzeType += delegate (object sender, RunnerEventArgs e) {
-				if (e.CurrentType.Implements ("System.Collections.Generic.IEqualityComparer`1")) {
+				if (e.CurrentType.Implements ("System.Collections.Generic", "IEqualityComparer`1")) {
 					equals_signature = EqualityComparer_Equals;
 					hashcode_signature = EqualityComparer_GetHashCode;
 				} else {
@@ -220,7 +240,7 @@ namespace Gendarme.Rules.Exceptions {
 				return PreflightVirtualMethod (method);
 			} else if (method.HasParameters && (method.Name == "Dispose")) {
 				IList<ParameterDefinition> pdc = method.Parameters;
-				if ((pdc.Count == 1) && (pdc [0].ParameterType.FullName == "System.Boolean"))
+				if ((pdc.Count == 1) && pdc [0].ParameterType.IsNamed ("System", "Boolean"))
 					return "Dispose (bool)";
 			} else if (MethodSignatures.TryParse.Matches (method)) {
 				return "TryParse";
@@ -269,7 +289,7 @@ namespace Gendarme.Rules.Exceptions {
 			} else if (MethodSignatures.Finalize.Matches (method)) {
 				return "Finalizers";
 			} else if (MethodSignatures.Dispose.Matches (method) || MethodSignatures.DisposeExplicit.Matches (method)) {
-				if (method.DeclaringType.Implements ("System.IDisposable"))
+				if (method.DeclaringType.Implements ("System", "IDisposable"))
 					return "IDisposable.Dispose";
 			} else if (equals_signature != null && equals_signature.Matches (method)) {
 				return "IEqualityComparer<T>.Equals";
@@ -288,14 +308,16 @@ namespace Gendarme.Rules.Exceptions {
 		{
 			switch (ins.OpCode.Code) {
 			case Code.Castclass:
-				return string.Format (" (cast to {0})", ((TypeReference) ins.Operand).Name);
+				return String.Format (CultureInfo.InvariantCulture, " (cast to {0})", 
+					((TypeReference) ins.Operand).Name);
 
 			case Code.Throw:					// this one is obvious
 				return string.Empty;
 
 			case Code.Unbox:
 			case Code.Unbox_Any:
-				return string.Format (" (unbox from {0})", ((TypeReference) ins.Operand).Name);
+				return String.Format (CultureInfo.InvariantCulture, " (unbox from {0})", 
+					((TypeReference) ins.Operand).Name);
 				
 			case Code.Ckfinite:
 				return " (the expression will throw if the value is a NAN or an infinity)";
@@ -360,7 +382,7 @@ namespace Gendarme.Rules.Exceptions {
 						if (ins.Previous.Is (Code.Newobj)) {
 							MethodReference mr = (MethodReference) ins.Previous.Operand;
 							TypeReference tr = mr.DeclaringType;
-							if (tr.FullName == "System.NotImplementedException" || tr.Inherits ("System.NotImplementedException"))
+							if (tr.IsNamed ("System", "NotImplementedException") || tr.Inherits ("System", "NotImplementedException"))
 								continue;
 						}	
 					
@@ -372,13 +394,22 @@ namespace Gendarme.Rules.Exceptions {
 						// If the throw does not one of the enumerated exceptions  (or 
 						// a subclass) then we have a problem.
 						else if (ins.Previous.Is (Code.Newobj)) {
-							MethodReference mr = (MethodReference) ins.Previous.Operand;
-							string name = mr.DeclaringType.FullName;
-							if (Array.IndexOf (allowedExceptions, name) < 0) {
-								if (!allowedExceptions.Any (e => mr.DeclaringType.Inherits (e))) {
-									Report (method, ins, methodLabel);
+							TypeReference type = (ins.Previous.Operand as MethodReference ).DeclaringType;
+							bool allowed = false;
+							foreach (string[] entry in allowedExceptions) {
+								if (type.IsNamed (entry [0], entry [1]))
+									allowed = true;
+							}
+							if (!allowed) {
+								foreach (string [] entry in allowedExceptions) {
+									if (type.Inherits (entry [0], entry [1])) {
+										allowed = true;
+										break;
+									}
 								}
 							}
+							if (!allowed)
+								Report (method, ins, methodLabel);
 						}	
 					}
 				}
@@ -388,10 +419,21 @@ namespace Gendarme.Rules.Exceptions {
 		private void Report (MethodDefinition method, Instruction ins, string methodLabel)
 		{
 			string mesg;
-			if (allowedExceptions == null)
-				mesg = string.Format ("{0} should not throw{1}.", methodLabel, ExplainThrow (ins));
-			else
-				mesg = string.Format ("{0} should only throw {1} or a subclass{2}.", methodLabel, string.Join (", ", allowedExceptions), ExplainThrow (ins));
+			if (allowedExceptions == null) {
+				mesg = String.Format (CultureInfo.InvariantCulture,
+					"{0} should not throw{1}.", methodLabel, ExplainThrow (ins));
+			} else {
+				StringBuilder sb = new StringBuilder ();
+				sb.Append (methodLabel).Append (" should only throw ");
+				for (int i = 0; i < allowedExceptions.Length; i++) {
+					string [] entry = allowedExceptions [i];
+					sb.Append (entry [0]).Append ('.').Append (entry [1]);
+					if (i < allowedExceptions.Length - 1)
+						sb.Append (", ");
+				}
+				sb.Append (" or a subclass").Append (ExplainThrow (ins)).Append ('.');
+				mesg = sb.ToString ();
+			}
 
 			Log.WriteLine (this, "{0:X4}: {1}", ins.Offset, mesg);
 			Runner.Report (method, ins, severity, Confidence.High, mesg);

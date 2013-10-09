@@ -89,8 +89,6 @@ namespace Gendarme.Rules.Performance {
 	[EngineDependency (typeof (OpCodeEngine))]
 	public class AvoidLocalDataStoreSlotRule : Rule, IMethodRule {
 
-		private const string LocalDataStoreSlot = "System.LocalDataStoreSlot";
-
 		public override void Initialize (IRunner runner)
 		{
 			base.Initialize (runner);
@@ -99,7 +97,9 @@ namespace Gendarme.Rules.Performance {
 				// if the module does not reference System.LocalDataStoreSlot
 				// then no method inside it will be using it
 				Active = (e.CurrentAssembly.Name.Name == "mscorlib" ||
-					e.CurrentModule.HasTypeReference (LocalDataStoreSlot));
+					e.CurrentModule.AnyTypeReference ((TypeReference tr) => {
+						return tr.IsNamed ("System", "LocalDataStoreSlot");
+					}));
 			};
 		}
 
@@ -119,9 +119,18 @@ namespace Gendarme.Rules.Performance {
 					if (mr == null)
 						continue;
 
-					switch (mr.DeclaringType.FullName) {
-					case "System.Threading.Thread":
-					case "System.Runtime.Remoting.Contexts.Context":
+					TypeReference type = mr.DeclaringType;
+					switch (type.Namespace) {
+					case "System.Threading":
+					case "System.Runtime.Remoting.Contexts":
+						break;
+					default:
+						continue;
+					}
+
+					switch (type.Name) {
+					case "Thread":
+					case "Context":
 						break;
 					default:
 						continue;
