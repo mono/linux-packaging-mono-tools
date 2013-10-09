@@ -1,3 +1,2 @@
-add_missing_Global.asax.patch
 00-fix_build_system.patch
 automake_devs_need_a_new_job
