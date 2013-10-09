@@ -26,6 +26,7 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Globalization;
 
 using Mono.Cecil;
 
@@ -138,7 +139,7 @@ namespace Gendarme.Rules.Naming {
 			if (method_name.StartsWith (name, StringComparison.Ordinal))
 				return RuleResult.Success;
 
-			int pos = method_name.LastIndexOf (name);
+			int pos = method_name.LastIndexOf (name, StringComparison.Ordinal);
 			if (-1 == pos)
 				return RuleResult.Success;
 
@@ -159,10 +160,11 @@ namespace Gendarme.Rules.Naming {
 			string msg;
 			if (method.IsStatic) { //we already have a rule that checks if the method should be static
 				string memberKind = GetSuggestionMemberKind (method);
-				msg = String.Format ("Consider renaming method to '{2}', or extracting method to type '{0}' as {1} '{2}', or making an extension method of that type.", 
+				msg = String.Format (CultureInfo.InvariantCulture, 
+					"Consider renaming method to '{2}', or extracting method to type '{0}' as {1} '{2}', or making an extension method of that type.", 
 					p0.ParameterType, memberKind, suggestion);
 			} else {
-				msg = String.Format ("Consider renaming method to '{0}'.", suggestion);
+				msg = String.Format (CultureInfo.InvariantCulture, "Consider renaming method to '{0}'.", suggestion);
 			}
 
 			Runner.Report (method, severity, confidence, msg);
@@ -184,7 +186,7 @@ namespace Gendarme.Rules.Naming {
 
 		private static string GetSuggestionMemberKind (IMethodSignature method)
 		{
-			if (method.Parameters.Count == 1 && method.ReturnType.FullName != "System.Void")
+			if (method.Parameters.Count == 1 && !method.ReturnType.IsNamed ("System", "Void"))
 				return "property";
 			return "method";
 		}

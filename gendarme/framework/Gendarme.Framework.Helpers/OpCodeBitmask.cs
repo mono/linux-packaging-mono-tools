@@ -26,6 +26,7 @@
 //
 
 using System;
+using System.Globalization;
 using System.Text;
 
 using Mono.Cecil.Cil;
@@ -144,12 +145,12 @@ namespace Gendarme.Framework.Helpers {
 			return Equals (obj as OpCodeBitmask);
 		}
 
-		public bool Equals (OpCodeBitmask set)
+		public bool Equals (OpCodeBitmask other)
 		{
-			if (set == null)
+			if (other == null)
 				return false;
-			return ((mask [0] == set.mask [0]) || (mask [1] == set.mask [1]) ||
-				(mask [2] == set.mask [2]) || (mask [3] == set.mask [3]));
+			return ((mask [0] == other.mask [0]) || (mask [1] == other.mask [1]) ||
+				(mask [2] == other.mask [2]) || (mask [3] == other.mask [3]));
 		}
 
 		public override int GetHashCode ()
@@ -159,7 +160,8 @@ namespace Gendarme.Framework.Helpers {
 
 		public override string ToString ()
 		{
-			return String.Format ("0x{0:X}:0x{1:X}:0x{2:X}:0x{3:X}", mask [0], mask [1], mask [2], mask [3]);
+			return String.Format (CultureInfo.InvariantCulture, "0x{0:X}:0x{1:X}:0x{2:X}:0x{3:X}", 
+				mask [0], mask [1], mask [2], mask [3]);
 		}
 
 

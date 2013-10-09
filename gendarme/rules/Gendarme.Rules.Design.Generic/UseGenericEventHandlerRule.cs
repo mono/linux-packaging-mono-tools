@@ -38,8 +38,8 @@ using Gendarme.Framework.Rocks;
 namespace Gendarme.Rules.Design.Generic {
 
 	/// <summary>
-	/// This rule fires if an assembly targets .NET 2.0 or later and defines a delegate
-	/// which can be replaced by <c>System.EventHandler&lt;TEventArgs&gt;</c>.
+	/// This rule fires if an assembly defines a delegate which can be
+	/// replaced by <c>System.EventHandler&lt;TEventArgs&gt;</c>.
 	/// </summary>
 	/// <example>
 	/// Bad example:
@@ -57,23 +57,11 @@ namespace Gendarme.Rules.Design.Generic {
 	/// public event EventHandler&lt;AuthenticityEventArgs&gt; CheckedAuthenticity;
 	/// </code>
 	/// </example>
-	/// <remarks>This rule is available since Gendarme 2.2</remarks>
-
+	/// <remarks>This rule applies only to assemblies targeting .NET 2.0 and later.</remarks>
 	[Problem ("This delegate definition is not needed with .NET 2.0 and later runtimes.")]
 	[Solution ("Replace the delegate with System.EventHandler<TEventArgs>.")]
 	[FxCopCompatibility ("Microsoft.Design", "CA1003:UseGenericEventHandlerInstances")]
-	public class UseGenericEventHandlerRule : Rule, ITypeRule {
-
-		public override void Initialize (IRunner runner)
-		{
-			base.Initialize (runner);
-
-			// we only want to run this on assemblies that use 2.0 or later
-			// since generics were not available before
-			Runner.AnalyzeModule += delegate (object o, RunnerEventArgs e) {
-				Active = (e.CurrentModule.Runtime >= TargetRuntime.Net_2_0);
-			};
-		}
+	public class UseGenericEventHandlerRule : GenericsBaseRule, ITypeRule {
 
 		public RuleResult CheckType (TypeDefinition type)
 		{
@@ -86,7 +74,7 @@ namespace Gendarme.Rules.Design.Generic {
 			if (invoke == null)
 				return RuleResult.DoesNotApply;
 
-			if (invoke.ReturnType.FullName != "System.Void")
+			if (!invoke.ReturnType.IsNamed ("System", "Void"))
 				return RuleResult.Success;
 
 			if (!invoke.HasParameters)
@@ -95,9 +83,9 @@ namespace Gendarme.Rules.Design.Generic {
 			IList<ParameterDefinition> pdc = invoke.Parameters;
 			if (pdc.Count != 2)
 				return RuleResult.Success;
-			if (pdc [0].ParameterType.FullName != "System.Object")
+			if (!pdc [0].ParameterType.IsNamed ("System", "Object"))
 				return RuleResult.Success;
-			if (!pdc [1].ParameterType.Inherits ("System.EventArgs"))
+			if (!pdc [1].ParameterType.Inherits ("System", "EventArgs"))
 				return RuleResult.Success;
 
 			Runner.Report (type, Severity.Medium, Confidence.High);

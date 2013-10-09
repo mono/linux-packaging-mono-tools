@@ -2,6 +2,9 @@ include ../common.make
 
 rules_sources =  \
 	AvoidUnusedInternalResourceRule.cs \
+	PreferIFormatProviderOverrideRule.cs \
+	PreferOverrideBaseRule.cs \
+	PreferStringComparisonOverrideRule.cs \
 	SatelliteResourceMismatchRule.cs
 
 EXTRA_TESTS_OPTIONS += -r:System.Drawing -d:DEBUG -resource:Test/Resource.resources -resource:Test/InternalResource.resources \
@@ -50,6 +53,8 @@ EXTRA_TESTS_DEPS = Test/Resource.resources Test/InternalResource.resources Test/
 
 tests_sources = \
 	AvoidUnusedInternalResourceTest.cs \
+	PreferIFormatProviderOverrideTest.cs \
+	PreferStringComparisonOverrideTest.cs \
 	SatelliteResourceMismatchTest.cs \
 	Resource.Designer.cs \
 	InternalResource.Designer.cs \

@@ -166,6 +166,16 @@ namespace Gendarme.Rules.Maintainability {
 				}
 			};
 		}
+
+		void CheckMethods (TypeDefinition type)
+		{
+			if (!type.HasMethods)
+				return;
+
+			IList<MethodDefinition> mc = type.Methods;
+			for (int i = 0; i < mc.Count && nullFields.Count > 0; ++i)
+				CheckMethod (mc [i]);
+		}
 		
 		public RuleResult CheckType (TypeDefinition type)
 		{
@@ -175,7 +185,7 @@ namespace Gendarme.Rules.Maintainability {
 			Log.WriteLine (this);
 			Log.WriteLine (this, "----------------------------------");
 			
-			bool isWinFormControl = usesWinForms && type.Inherits("System.Windows.Forms.Control");
+			bool isWinFormControl = usesWinForms && type.Inherits ("System.Windows.Forms", "Control");
 
 			// All fields start out as always null and unused.
 			foreach (FieldDefinition field in type.Fields) {
@@ -184,10 +194,10 @@ namespace Gendarme.Rules.Maintainability {
 						nullFields.Add (field);
 			}
 
-			if (type.HasMethods) {
-				IList<MethodDefinition> mc = type.Methods;
-				for (int i = 0; i < mc.Count && nullFields.Count > 0; ++i)
-					CheckMethod (mc [i]);
+			CheckMethods (type);
+			if (type.HasNestedTypes) {
+				foreach (TypeDefinition nested in type.NestedTypes)
+					CheckMethods (nested);
 			}
 				
 			// Report a defect if:

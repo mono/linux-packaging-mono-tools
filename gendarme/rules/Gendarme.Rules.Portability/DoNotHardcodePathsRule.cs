@@ -28,6 +28,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -363,11 +364,13 @@ namespace Gendarme.Rules.Portability {
 
 				// we can avoid some false positives by doing additional checks here
 
+				TypeReference tr = target.DeclaringType;
+				string nameSpace = tr.Namespace;
+				string typeName = tr.Name;
 				string methodName = target.Name;
-				string typeName = target.DeclaringType.FullName;
 
-				if (typeName.StartsWith ("Microsoft.Win32.Registry", StringComparison.Ordinal) // registry keys
-				    || (typeName.StartsWith ("System.Xml", StringComparison.Ordinal) // xpath expressions
+				if (nameSpace == "Microsoft.Win32" && typeName.StartsWith ("Registry", StringComparison.Ordinal) // registry keys
+				    || (nameSpace.StartsWith ("System.Xml", StringComparison.Ordinal) // xpath expressions
 					&& methodName.StartsWith ("Select", StringComparison.Ordinal))) {
 					AddPoints (-42);
 					return true; // handled
@@ -389,10 +392,8 @@ namespace Gendarme.Rules.Portability {
 			case Code.Newobj:
 				// this is a constructor call
 				MethodReference ctor = (MethodReference) ins.Operand;
-				string createdTypeName = ctor.DeclaringType.FullName;
-
 				// avoid catching regular expressions
-				if (createdTypeName == "System.Text.RegularExpressions.Regex")
+				if (ctor.DeclaringType.IsNamed ("System.Text.RegularExpressions", "Regex"))
 					AddPoints (-42);
 
 				break;
@@ -494,7 +495,8 @@ namespace Gendarme.Rules.Portability {
 				// if sure enough, report the problem with the candidate string
 				// important as this allows a quick false positive check without checking the source code
 				if (conf.HasValue) {
-					string msg = String.Format ("string \"{0}\" looks quite like a filename.", candidate);
+					string msg = String.Format (CultureInfo.InvariantCulture,
+						"string \"{0}\" looks quite like a filename.", candidate);
 					Runner.Report (method, ins, Severity.High, conf.Value, msg);
 				}
 			}

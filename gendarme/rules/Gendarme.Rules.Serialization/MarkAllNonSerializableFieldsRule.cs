@@ -27,6 +27,7 @@
 //
 
 using System;
+using System.Globalization;
 using Gendarme.Framework;
 using Gendarme.Framework.Rocks;
 using Mono.Cecil;
@@ -75,7 +76,7 @@ namespace Gendarme.Rules.Serialization {
 		public RuleResult CheckType (TypeDefinition type)
 		{
 			// if type is not serializable or has not any fields or does not implements a custom serialization
-			if (!type.IsSerializable || !type.HasFields || type.Implements ("System.Runtime.Serialization.ISerializable"))
+			if (!type.IsSerializable || !type.HasFields || type.Implements ("System.Runtime.Serialization", "ISerializable"))
 				return RuleResult.DoesNotApply;
 
 			foreach (FieldDefinition field in type.Fields) {
@@ -85,11 +86,17 @@ namespace Gendarme.Rules.Serialization {
 						continue;
 
 					if (fieldType.IsInterface) {
-						Runner.Report (field, Severity.Critical, Confidence.Low, String.Format ("Serialization of interface {0} as field {1} unknown until runtime", fieldType, field.Name));
+						string msg = String.Format (CultureInfo.InvariantCulture,
+							"Serialization of interface {0} as field {1} unknown until runtime", 
+							fieldType, field.Name);
+						Runner.Report (field, Severity.Critical, Confidence.Low, msg);
 						continue;
 					}
-					if (!fieldType.IsEnum && !fieldType.IsSerializable)
-						Runner.Report (field, Severity.Critical, Confidence.High, String.Format ("The field {0} isn't serializable.", field.Name));
+					if (!fieldType.IsEnum && !fieldType.IsSerializable) {
+						string msg = String.Format (CultureInfo.InvariantCulture,
+							"The field {0} isn't serializable.", field.Name);
+						Runner.Report (field, Severity.Critical, Confidence.High, msg);
+					}
 				}
 			}
 

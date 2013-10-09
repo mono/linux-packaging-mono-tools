@@ -154,7 +154,9 @@ namespace Gendarme.Rules.Concurrency {
 					// if not then this rule does not need to be executed for the module
 					// note: mscorlib.dll is an exception since it defines, not refer, System.Threading.Monitor
 					(e.CurrentAssembly.Name.Name == "mscorlib" ||
-					e.CurrentModule.HasTypeReference ("System.Threading.Monitor"));
+					e.CurrentModule.AnyTypeReference ((TypeReference tr) => {
+						return tr.IsNamed ("System.Threading", "Monitor");
+					}));
 			};
 		}
 
@@ -213,7 +215,7 @@ namespace Gendarme.Rules.Concurrency {
 		{
 			if (method.Name != methodName)
 				return false;
-			if (method.DeclaringType.FullName != "System.Threading.Monitor")
+			if (!method.DeclaringType.IsNamed ("System.Threading", "Monitor"))
 				return false;
 			// exclude Monitor.Enter(object, ref bool) since the comparison would be made
 			// againt the 'lockTaken' parameter and would report failures for every cases.

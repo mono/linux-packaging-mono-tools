@@ -30,6 +30,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -132,10 +133,8 @@ namespace Gendarme.Rules.Performance {
 				return RuleResult.DoesNotApply;
 
 			// methods with [Conditional] can be empty (not using any parameter) IL-wise but not source-wise, ignore them
-			if (method.HasCustomAttributes) {
-				if (method.CustomAttributes.ContainsType ("System.Diagnostics.ConditionalAttribute"))
-					return RuleResult.DoesNotApply;
-			}
+			if (method.HasAttribute ("System.Diagnostics", "ConditionalAttribute"))
+				return RuleResult.DoesNotApply;
 
 			// rule applies
 
@@ -151,7 +150,7 @@ namespace Gendarme.Rules.Performance {
 				ParameterDefinition parameter = ins.GetParameter (method);
 				if (parameter == null)
 					continue;
-				mask |= ((ulong)1 << (parameter.GetSequence () - 1));
+				mask |= ((ulong)1 << parameter.Index);
 			}
 
 			// quick out based on value - i.e. every parameter is being used
@@ -162,7 +161,8 @@ namespace Gendarme.Rules.Performance {
 			for (int i = 0; i < pcount; i++) {
 				if ((mask & ((ulong) 1 << i)) == 0) {
 					ParameterDefinition parameter = pdc [i];
-					string text = String.Format ("Parameter '{0}' of type '{1}' is never used in the method.",
+					string text = String.Format (CultureInfo.InvariantCulture,
+						"Parameter '{0}' of type '{1}' is never used in the method.",
 						parameter.Name, parameter.ParameterType);
 					Runner.Report (parameter, Severity.Medium, Confidence.Normal, text);
 				}

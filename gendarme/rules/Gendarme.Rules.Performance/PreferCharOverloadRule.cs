@@ -28,6 +28,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -93,7 +94,8 @@ namespace Gendarme.Rules.Performance {
 
 		void Report (MethodDefinition method, Instruction ins, Confidence confidence, MemberReference call, string parameter)
 		{
-			string msg = String.Format ("Prefer the use of: {0}('{1}'...);", call.Name, parameter);
+			string msg = String.Format (CultureInfo.InvariantCulture, "Prefer the use of: {0}('{1}'...);", 
+				call.Name, parameter);
 			Runner.Report (method, ins, Severity.Medium, confidence, msg);
 		}
 
@@ -106,7 +108,7 @@ namespace Gendarme.Rules.Performance {
 
 			IList<ParameterDefinition> pdc = call.Parameters;
 			int last = pdc.Count;
-			if (pdc [last - 1].ParameterType.FullName != "System.StringComparison") {
+			if (!pdc [last - 1].ParameterType.IsNamed ("System", "StringComparison")) {
 				// confidence is normal because it's possible that the code expects a
 				// culture sensitive comparison (but that will break in .NET 4).
 				Report (method, ins, Confidence.Normal, call, p1);
@@ -140,14 +142,15 @@ namespace Gendarme.Rules.Performance {
 			if (p2.Length != 1)
 				return;
 
-			string msg = String.Format ("Prefer the use of: Replace('{0}','{1}');", p1, p2);
+			string msg = String.Format (CultureInfo.InvariantCulture, 
+				"Prefer the use of: Replace('{0}','{1}');", p1, p2);
 			// confidence is higher since there's no StringComparison to consider
 			Runner.Report (method, ins, Severity.Medium, Confidence.High, msg);
 		}
 
 		static bool CheckFirstParameterIsString (IMethodSignature method)
 		{
-			return (method.HasParameters && (method.Parameters [0].ParameterType.FullName == "System.String"));
+			return (method.HasParameters && method.Parameters [0].ParameterType.IsNamed ("System", "String"));
 		}
 
 		public RuleResult CheckMethod (MethodDefinition method)
@@ -165,7 +168,7 @@ namespace Gendarme.Rules.Performance {
 					continue;
 
 				MethodReference call = (ins.Operand as MethodReference);
-				if (call.DeclaringType.FullName != "System.String")
+				if (!call.DeclaringType.IsNamed ("System", "String"))
 					continue;
 
 				switch (call.Name) {

@@ -38,6 +38,7 @@ public partial class MainWindow: Gtk.Window
 	InfoManager info_manager;
 	Func<CompAssembly> reference_loader, target_loader;
 	CompareContext context;
+	string active_profile;
 
 	static readonly Regex markupRegex = new Regex (@"<(?:[^""']+?|.+?(?:""|').*?(?:""|')?.*?)*?>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 	static Gdk.Pixbuf classPixbuf, delegatePixbuf, enumPixbuf;
@@ -103,7 +104,7 @@ public partial class MainWindow: Gtk.Window
 		Gdk.Color.Parse ("#000000", ref black);		
 	}
 
-	public MainWindow () : base(Gtk.WindowType.Toplevel)
+	public MainWindow (string profilePath) : base(Gtk.WindowType.Toplevel)
 	{
 		Build ();
 		notebook1.Page = 1;
@@ -113,7 +114,7 @@ public partial class MainWindow: Gtk.Window
 		//
 		// Configure the GUI
 		//
-		info_manager = new InfoManager (this);
+		info_manager = new InfoManager (this, profilePath);
 		
 		treeStore = new Gtk.TreeStore (typeof (string), // Name
 		                               typeof (Gdk.Pixbuf), typeof (Gdk.Pixbuf), // TypeIcon, StatusIcon
@@ -245,7 +246,7 @@ public partial class MainWindow: Gtk.Window
 
 				string msdnUrl = n != null ? n.MSDNUrl : null;
 				if (!String.IsNullOrEmpty (msdnUrl))
-					Status = msdnUrl;
+					Status = GetMSDNVersionedUrl (msdnUrl);
 				else
 					Status = String.Empty;
 			}
@@ -261,7 +262,7 @@ public partial class MainWindow: Gtk.Window
 				return;
 
 			System.Diagnostics.Process browser = new System.Diagnostics.Process ();
-			browser.StartInfo.FileName = n.MSDNUrl;
+			browser.StartInfo.FileName = GetMSDNVersionedUrl (n.MSDNUrl);
 			browser.StartInfo.UseShellExecute = true;
 			browser.Start ();
 		};
@@ -360,6 +361,22 @@ public partial class MainWindow: Gtk.Window
 		tag = new TextTag ("underline");
 		tag.Underline = Pango.Underline.Single;
 		buffer.TagTable.Add (tag);
+	}
+	
+	string GetMSDNVersionedUrl (string url)
+	{
+		switch (active_profile) {
+			case "2.0":
+				return url.Replace (".aspx", "(v=VS.80).aspx");
+			case "3.0":
+				return url.Replace (".aspx", "(v=VS.90).aspx");
+			case "4.0":
+				return url.Replace (".aspx", "(v=VS.100).aspx");
+			case "4.5":
+				return url.Replace (".aspx", "(v=VS.110).aspx");
+			default:
+				return url;
+		}
 	}
 
 	void InsertWithMarkup (TextBuffer buffer, ref TextIter iter, string text)
@@ -507,6 +524,11 @@ public partial class MainWindow: Gtk.Window
 			SetTarget (delegate { return new MasterAssembly (cd.TargetPath); });
 		else
 			SetTarget (delegate { return new CecilAssembly (cd.TargetPath); });
+	}
+	
+	public void SetComparedProfile (string profile)
+	{
+		active_profile = profile;
 	}
 	
 	public void StartCompare (WaitCallback done)

@@ -29,6 +29,7 @@
 //
 
 using System;
+using System.Globalization;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -126,15 +127,15 @@ namespace Gendarme.Rules.Performance {
 			if (call.HasParameters)
 				return String.Empty;
 
-			if (!IsSystemString (ins.Previous.GetOperandType (method)))
+			if (!ins.Previous.GetOperandType (method).IsNamed ("System", "String"))
 				return  String.Empty;
 
-			return String.Format (MessageString, call.Name, String.Empty);
+			return String.Format (CultureInfo.InvariantCulture, MessageString, call.Name, String.Empty);
 		}
 
 		private static string CheckSubstring (MethodReference call, Instruction ins)
 		{
-			if (!IsSystemString (call.DeclaringType))
+			if (!call.DeclaringType.IsNamed ("System", "String"))
 				return String.Empty;
 
 			// ensure it's System.String::Substring(System.Int32) and that it's given 0 as a parameter
@@ -143,24 +144,19 @@ namespace Gendarme.Rules.Performance {
 			if (!ins.Previous.IsOperandZero ())
 				return String.Empty;
 
-			return String.Format (MessageString, call.Name, "0");
+			return String.Format (CultureInfo.InvariantCulture, MessageString, call.Name, "0");
 		}
 
 		private static string CheckToString (MethodReference call, Instruction ins, MethodDefinition method)
 		{
-			if (IsSystemString (call.DeclaringType)) {
+			if (call.DeclaringType.IsNamed ("System", "String")) {
 				// most probably ToString(IFormatProvider), possibly ToString()
-				return String.Format (MessageString, call.Name, 
+				return String.Format (CultureInfo.InvariantCulture, MessageString, call.Name, 
 					(call.HasParameters && (call.Parameters.Count > 1)) ? "IFormatProvider" : String.Empty);
 			} else {
 				// signature for Clone is identical (well close enough) to share code
 				return CheckClone (call, ins, method);
 			}
-		}
-
-		private static bool IsSystemString (MemberReference type)
-		{
-			return (type == null) ? false : (type.FullName == "System.String");
 		}
 	}
 }

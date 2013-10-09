@@ -28,6 +28,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -96,10 +97,6 @@ namespace Gendarme.Rules.Performance {
 	[EngineDependency (typeof (OpCodeEngine))]
 	public sealed class ReviewLinqMethodRule : Rule, IMethodRule {
 
-		private const string EnumerableName = "System.Linq.Enumerable";
-
-		//private readonly OpCodeBitmask Comparisons = ComparisonsBitmask ();
-		//private readonly OpCodeBitmask Conditions = ConditionsBitmask ();
 		private readonly OpCodeBitmask Comparisons = new OpCodeBitmask (0x2801400000000000, 0x0, 0x0, 0xB);
 		private readonly OpCodeBitmask Conditions = new OpCodeBitmask (0x300180000000000, 0x0, 0x0, 0x0);
 
@@ -181,14 +178,16 @@ namespace Gendarme.Rules.Performance {
 		private void CheckForSubscript (TypeReference type, MethodDefinition method, Instruction ins, string name)
 		{
 			if (type.IsArray) {
-				string message = string.Format ("Use operator [] instead of the {0} method.", name);
+				string message = String.Format (CultureInfo.InvariantCulture, 
+					"Use operator [] instead of the {0} method.", name);
 				Log.WriteLine (this, "{0:X4} {1}", ins.Offset, message);
 				Runner.Report (method, ins, Severity.Medium, Confidence.High, message);
 
 			} else {
 				TypeDefinition td = type.Resolve ();						// resolve of an array returns the element type...
 				if (td != null && HasMethod (td, Subscript)) {
-					string message = string.Format ("Use operator [] instead of the {0} method.", name);
+					string message = String.Format (CultureInfo.InvariantCulture,
+						"Use operator [] instead of the {0} method.", name);
 					Log.WriteLine (this, "{0:X4} {1}", ins.Offset, message);
 					Runner.Report (method, ins, Severity.Medium, Confidence.High, message);
 				}
@@ -198,14 +197,16 @@ namespace Gendarme.Rules.Performance {
 		private void CheckForSort (TypeReference type, MethodDefinition method, Instruction ins, string name)
 		{
 			if (type.IsArray) {
-				string message = string.Format ("Use Array.Sort instead of the {0} method.", name);
+				string message = String.Format (CultureInfo.InvariantCulture,
+					"Use Array.Sort instead of the {0} method.", name);
 				Log.WriteLine (this, "{0:X4} {1}", ins.Offset, message);
 				Runner.Report (method, ins, Severity.Medium, Confidence.High, message);
 
 			} else {
 				TypeDefinition td = type.Resolve ();						// resolve of an array returns the element type...
 				if (td != null && HasMethod (td, Sort)) {
-					string message = string.Format ("Use Sort instead of the {0} method.", name);
+					string message = String.Format (CultureInfo.InvariantCulture,
+						"Use Sort instead of the {0} method.", name);
 					Log.WriteLine (this, "{0:X4} {1}", ins.Offset, message);
 					Runner.Report (method, ins, Severity.Medium, Confidence.High, message);
 				}
@@ -251,7 +252,7 @@ namespace Gendarme.Rules.Performance {
 				
 				// and the method is a System.Linq.Enumerable method then,
 				var target = ins.Operand as MethodReference;
-				if ((target == null) || (target.DeclaringType.FullName != EnumerableName))
+				if (!target.DeclaringType.IsNamed ("System.Linq", "Enumerable"))
 					continue;
 
 				string tname = target.Name;

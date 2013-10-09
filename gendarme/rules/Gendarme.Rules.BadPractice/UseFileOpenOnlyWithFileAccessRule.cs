@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -68,9 +69,19 @@ namespace Gendarme.Rules.BadPractice {
 	[EngineDependency (typeof (OpCodeEngine))]
 	public class UseFileOpenOnlyWithFileAccessRule : Rule, IMethodRule {
 
-		const string fileMode = "System.IO.FileMode";
-		const string fileAccess = "System.IO.FileAccess";
-		const string fileSystemRights = "System.Security.AccessControl.FileSystemRights";
+		public override void Initialize (IRunner runner)
+		{
+			base.Initialize (runner);
+
+			// if the module does not reference System.IO.FileMode
+			// then no code inside the module will be using it
+			Runner.AnalyzeModule += delegate (object o, RunnerEventArgs e) {
+				Active = (e.CurrentAssembly.Name.Name == "mscorlib" ||
+					e.CurrentModule.AnyTypeReference ((TypeReference tr) => {
+						return tr.IsNamed ("System.IO", "FileMode");
+					}));
+			};
+		}
 
 		// System.IO.File::Open
 		// System.IO.FileInfo::Open
@@ -115,16 +126,17 @@ namespace Gendarme.Rules.BadPractice {
 				bool foundFileMode = false;
 				bool foundFileAccess = false;
 				foreach (ParameterDefinition parameter in m.Parameters) {
-					string ptname = parameter.ParameterType.FullName;
-					if (!foundFileMode && ptname == fileMode)
+					TypeReference ptype = parameter.ParameterType;
+					if (!foundFileMode && ptype.IsNamed ("System.IO", "FileMode"))
 						foundFileMode = true;
-					if (!foundFileAccess && (ptname == fileAccess || ptname == fileSystemRights))
+					if (!foundFileAccess && (ptype.IsNamed ("System.IO", "FileAccess") || ptype.IsNamed ("System.Security.AccessControl", "FileSystemRights")))
 						foundFileAccess = true;
 				}
 				if (foundFileMode && !foundFileAccess) {
-					Runner.Report (method, instruction, Severity.Medium, Confidence.Normal,
-						String.Format("{0}::{1} being called with FileMode parameter but without FileAccess.",
-							m.DeclaringType.FullName, m.Name));
+					string msg = String.Format (CultureInfo.InvariantCulture, 
+						"{0}::{1} being called with FileMode parameter but without FileAccess.",
+						m.DeclaringType.GetFullName (), m.Name);
+					Runner.Report (method, instruction, Severity.Medium, Confidence.Normal, msg);
 				}
 			}
 			return Runner.CurrentRuleResult;

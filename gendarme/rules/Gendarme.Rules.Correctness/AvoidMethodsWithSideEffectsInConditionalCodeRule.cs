@@ -34,6 +34,7 @@ using Mono.Cecil;
 using Mono.Cecil.Cil;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace Gendarme.Rules.Correctness {
 
@@ -157,7 +158,8 @@ namespace Gendarme.Rules.Correctness {
 						
 						MethodReference impure = FindImpurity (method, ins);
 						if (impure != null) {
-							string mesg = string.Format ("{0}::{1} is conditionally compiled on {2} but uses the impure {3}::{4}",
+							string mesg = String.Format (CultureInfo.InvariantCulture, 
+								"{0}::{1} is conditionally compiled on {2} but uses the impure {3}::{4}",
 								target.DeclaringType.Name, target.Name, define, impure.DeclaringType.Name, impure.Name);
 							Log.WriteLine (this, mesg);
 							
@@ -207,7 +209,7 @@ namespace Gendarme.Rules.Correctness {
 				if (!attr.HasConstructorArguments)
 					continue;
 				if (StringConstructor.Matches (attr.Constructor)) {
-					if (attr.AttributeType.FullName == "System.Diagnostics.ConditionalAttribute") {
+					if (attr.AttributeType.IsNamed ("System.Diagnostics", "ConditionalAttribute")) {
 						return (string) attr.ConstructorArguments [0].Value;
 					}
 				}
@@ -258,7 +260,7 @@ namespace Gendarme.Rules.Correctness {
 			
 			if (method != null) {
 				TypeDefinition type = method.DeclaringType;
-				string type_name = type.FullName;
+				string type_name = type.GetFullName ();
 				string method_name = method.Name;
 
 				// getters
@@ -274,7 +276,7 @@ namespace Gendarme.Rules.Correctness {
 					return true;
 				
 				// operators
-				if (method_name.StartsWith ("op_") && method_name != "op_Implicit" && method_name != "op_Explicit")
+				if (method_name.StartsWith ("op_", StringComparison.Ordinal) && method_name != "op_Implicit" && method_name != "op_Explicit")
 					return true;
 					
 				// Contract methods (skip namespace)
@@ -282,10 +284,10 @@ namespace Gendarme.Rules.Correctness {
 					return true;
 					
 				// System.Predicate<T> and System.Comparison<T>
-				if (type_name.StartsWith ("System.Predicate`1"))
+				if (type_name.StartsWith ("System.Predicate`1", StringComparison.Ordinal))
 					return true;
 					
-				if (type_name.StartsWith ("System.Comparison`1"))
+				if (type_name.StartsWith ("System.Comparison`1", StringComparison.Ordinal))
 					return true;
 					
 				// delegate invocation
@@ -317,7 +319,7 @@ namespace Gendarme.Rules.Correctness {
 		static bool HasPureAttribute (IList<CustomAttribute> attrs)
 		{
 			foreach (CustomAttribute attr in attrs) {
-				if (attr.AttributeType.FullName.Contains ("PureAttribute")) {
+				if (attr.AttributeType.Name == "PureAttribute") {
 					return true;
 				}
 			}

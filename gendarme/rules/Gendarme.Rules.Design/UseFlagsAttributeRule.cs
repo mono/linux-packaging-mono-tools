@@ -27,6 +27,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 
 using Mono.Cecil;
@@ -94,7 +95,7 @@ namespace Gendarme.Rules.Design {
 							values.Add (value);
 
 					} else {
-						long v = Convert.ToInt64 (o);
+						long v = Convert.ToInt64 (o, CultureInfo.InvariantCulture);
 
 						if (v > 0) {
 							value = (ulong) v;
@@ -159,7 +160,7 @@ namespace Gendarme.Rules.Design {
 #if DEBUG
 			Log.WriteLine (this);
 			Log.WriteLine (this, "------------------------------------");
-			Log.WriteLine (this, type.FullName);
+			Log.WriteLine (this, type);
 			Log.WriteLine (this, "values: {0}", string.Join (" ", (from x in values select x.ToString ("X4")).ToArray ()));
 #endif
 

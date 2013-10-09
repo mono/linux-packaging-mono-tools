@@ -3,12 +3,14 @@ include ../common.make
 rules_sources =  \
 	AvoidAssemblyVersionMismatchRule.cs \
 	AvoidCallingProblematicMethodsRule.cs \
+	AvoidNullCheckWithAsOperatorRule.cs \
 	AvoidVisibleConstantFieldRule.cs \
 	CheckNewExceptionWithoutThrowingRule.cs \
 	CheckNewThreadWithoutStartRule.cs \
 	CloneMethodShouldNotReturnNullRule.cs \
 	ConstructorShouldNotCallVirtualMethodsRule.cs \
 	DisableDebuggingCodeRule.cs \
+	DoNotDecreaseVisibilityRule.cs \
 	DoNotForgetNotImplementedMethodsRule.cs \
 	DoNotUseEnumIsAssignableFromRule.cs \
 	DoNotUseGetInterfaceToCheckAssignabilityRule.cs \
@@ -27,12 +29,14 @@ rules_sources =  \
 
 tests_sources = \
 	AvoidAssemblyVersionMismatchTest.cs \
-	AvoidVisibleConstantFieldTest.cs \
 	AvoidCallingProblematicMethodsTest.cs \
+	AvoidNullCheckWithAsOperatorTest.cs \
+	AvoidVisibleConstantFieldTest.cs \
 	CheckNewExceptionWithoutThrowingTest.cs \
 	CheckNewThreadWithoutStartTest.cs \
 	CloneMethodShouldNotReturnNullTest.cs \
 	ConstructorShouldNotCallVirtualMethodsTest.cs \
+	DoNotDecreaseVisibilityTest.cs \
 	DoNotForgetNotImplementedMethodsTest.cs \
 	DoNotUseEnumIsAssignableFromTest.cs \
 	DoNotUseGetInterfaceToCheckAssignabilityTest.cs \

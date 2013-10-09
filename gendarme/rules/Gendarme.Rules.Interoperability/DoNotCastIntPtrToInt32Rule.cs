@@ -27,6 +27,7 @@
 //
 
 using System;
+using System.Globalization;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -87,7 +88,7 @@ namespace Gendarme.Rules.Interoperability {
 
 		private void Report (MethodDefinition method, Instruction ins, string typeName)
 		{
-			string msg = String.Format ("Type cast to '{0}'.", typeName);
+			string msg = String.Format (CultureInfo.InvariantCulture, "Type cast to '{0}'.", typeName);
 			Runner.Report (method, ins, Severity.High, Confidence.Normal, msg);
 		}
 
@@ -130,7 +131,7 @@ namespace Gendarme.Rules.Interoperability {
 			} else if (uintptr && (name == "ToUInt32")) {
 				Runner.Report (method, ins, Severity.High, Confidence.Normal, "Call to 'UIntPtr.ToUInt32()'.");
 			} else if (name == "op_Explicit") {
-				string rtfullname = mr.ReturnType.FullName;
+				string rtfullname = mr.ReturnType.GetFullName ();
 				switch (rtfullname) {
 				case "System.Int64":
 				case "System.UInt64":
@@ -165,8 +166,9 @@ namespace Gendarme.Rules.Interoperability {
 				if (m.Name != "op_Explicit")
 					return;
 
-				string msg = String.Format ("A '{0}' value is casted into an '{1}' when reading marshalled memory.",
-					mr.ReturnType.FullName, m.Parameters [0].ParameterType.FullName);
+				string msg = String.Format (CultureInfo.InvariantCulture,
+					"A '{0}' value is casted into an '{1}' when reading marshalled memory.",
+					mr.ReturnType.GetFullName (), m.Parameters [0].ParameterType.GetFullName ());
 				Runner.Report (method, ins, Severity.High, Confidence.Normal, msg);
 			}
 		}
@@ -190,12 +192,14 @@ namespace Gendarme.Rules.Interoperability {
 					continue;
 
 				// look for both IntPtr and the (less known) UIntPtr
-				string type = mr.DeclaringType.FullName;
-				bool intptr = (type == "System.IntPtr");
-				bool uintptr = (type == "System.UIntPtr");
-				if (intptr || uintptr) {
-					CheckCastOnIntPtr (method, ins, mr, intptr, uintptr);
-				} else if (type == "System.Runtime.InteropServices.Marshal") {
+				TypeReference type = mr.DeclaringType;
+				if (type.Namespace == "System") {
+					string name = type.Name;
+					bool intptr = (name == "IntPtr");
+					bool uintptr = (name == "UIntPtr");
+					if (intptr || uintptr)
+						CheckCastOnIntPtr (method, ins, mr, intptr, uintptr);
+				} else if (type.IsNamed ("System.Runtime.InteropServices", "Marshal")) {
 					CheckCastOnMarshal (method, ins, mr);
 				}
 			}

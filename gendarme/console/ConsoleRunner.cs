@@ -29,6 +29,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -53,21 +54,23 @@ namespace Gendarme {
 		private string log_file;
 		private string xml_file;
 		private string ignore_file;
-		private string limit;
-		private string severity_filter;
-		private string confidence_filter;
 		private bool help;
 		private bool quiet;
 		private bool version;
+		private bool console;
 		private List<string> assembly_names;
+
+		static string [] SplitOptions (string value)
+		{
+			return value.ToUpperInvariant ().Split (new char [] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+		}
 
 		// parse severity filter
 		// e.g. Audit,High+ == Audit, High and Critical
-		void ParseSeverity ()
+		bool ParseSeverity (string filter)
 		{
 			SeverityBitmask.ClearAll ();
-			string [] options = severity_filter.ToUpperInvariant ().Split (',');
-			foreach (string option in options) {
+			foreach (string option in SplitOptions (filter)) {
 				Severity severity;
 
 				switch (option) {
@@ -101,28 +104,26 @@ namespace Gendarme {
 					SeverityBitmask.SetAll ();
 					continue;
 				default:
-					continue;
+					string msg = String.Format (CultureInfo.CurrentCulture, "Unknown severity level '{0}'", option);
+					throw new OptionException (msg, "severity");
 				}
 
 				char end = option [option.Length - 1];
 				if (end == '+') {
 					SeverityBitmask.SetDown (severity);
-					Console.WriteLine ("SetDown {0} -> {1}", severity, SeverityBitmask);
 				} else if (end == '-') {
 					SeverityBitmask.SetUp (severity);
-					Console.WriteLine ("SetUp {0} -> {1}", severity, SeverityBitmask);
 				} else {
 					SeverityBitmask.Set (severity);
-					Console.WriteLine ("Set {0} -> {1}", severity, SeverityBitmask);
 				}
 			}
+			return true;
 		}
 
-		void ParseConfidence ()
+		bool ParseConfidence (string filter)
 		{
 			ConfidenceBitmask.ClearAll ();
-			string [] options = confidence_filter.ToUpperInvariant ().Split (',');
-			foreach (string option in options) {
+			foreach (string option in SplitOptions (filter)) {
 				Confidence confidence;
 
 				switch (option) {
@@ -151,7 +152,8 @@ namespace Gendarme {
 					ConfidenceBitmask.SetAll ();
 					continue;
 				default:
-					continue;
+					string msg = String.Format (CultureInfo.CurrentCulture, "Unknown confidence level '{0}'", option);
+					throw new OptionException (msg, "confidence");
 				}
 
 				char end = option [option.Length - 1];
@@ -163,48 +165,104 @@ namespace Gendarme {
 					ConfidenceBitmask.Set (confidence);
 				}
 			}
+			return true;
+		}
+
+		static string ValidateInputFile (string option, string file)
+		{
+			if (!File.Exists (file)) {
+				string msg = String.Format (CultureInfo.CurrentCulture, "File '{0}' could not be found", file);
+				throw new OptionException (msg, option);
+			}
+			return file;
+		}
+
+		static string ValidateOutputFile (string option, string file)
+		{
+			string msg = String.Empty;
+			if (file.Length > 0) {
+				string path = Path.GetDirectoryName (file);
+				if (path.Length > 0) {
+					if (path.IndexOfAny (Path.GetInvalidPathChars ()) != -1)
+						msg = String.Format (CultureInfo.CurrentCulture, "Invalid path '{0}'", file);
+					else if (!Directory.Exists (path))
+						msg = String.Format (CultureInfo.CurrentCulture, "Path '{0}' does not exists", file);
+				}
+			}
+
+			string fname = Path.GetFileName (file);
+			if ((fname.Length == 0) || (fname.IndexOfAny (Path.GetInvalidFileNameChars ()) != -1)) {
+				msg = String.Format (CultureInfo.CurrentCulture, "Filename '{0}' is not valid", fname);
+			}
+
+			if (msg.Length > 0)
+				throw new OptionException (msg, option);
+
+			return file;
+		}
+
+		static string ValidateRuleSet (string ruleSet)
+		{
+			if (String.IsNullOrEmpty (ruleSet)) {
+				throw new OptionException ("Missing rule set name", "set");
+			}
+			return ruleSet;
+		}
+
+		static int ValidateLimit (string limit)
+		{
+			int defects_limit;
+			if (String.IsNullOrEmpty (limit) || !Int32.TryParse (limit, out defects_limit)) {
+				string msg = String.Format (CultureInfo.CurrentCulture, "Invalid value '{0}' to limit defects", limit);
+				throw new OptionException (msg, "limit");
+			}
+			return defects_limit;
 		}
 
 		byte Parse (string [] args)
 		{
+			bool severity = false;
+			bool confidence = false;
+			// if supplied, use the user limit on defects (otherwise 2^31 is used)
+			DefectsLimit = Int32.MaxValue;
+
 			var p = new OptionSet () {
-				{ "config=",	v => config_file = v },
-				{ "set=",	v => rule_set = v },
-				{ "log=",	v => log_file = v },
-				{ "xml=",	v => xml_file = v },
-				{ "html=",	v => html_file = v },
-				{ "ignore=",	v => ignore_file = v },
-				{ "limit=",	v => limit = v },
-				{ "severity=",	v => severity_filter = v },
-				{ "confidence=",v => confidence_filter = v },
+				{ "config=",	v => config_file = ValidateInputFile ("config", v) },
+				{ "set=",	v => rule_set = ValidateRuleSet (v) },
+				{ "log=",	v => log_file = ValidateOutputFile ("log", v) },
+				{ "xml=",	v => xml_file = ValidateOutputFile ("xml", v) },
+				{ "html=",	v => html_file = ValidateOutputFile ("html", v) },
+				{ "ignore=",	v => ignore_file = ValidateInputFile ("ignore", v) },
+				{ "limit=",	v => DefectsLimit = ValidateLimit (v) },
+				{ "severity=",	v => severity = ParseSeverity (v) },
+				{ "confidence=",v => confidence = ParseConfidence (v) },
 				{ "v|verbose",  v => ++VerbosityLevel },
+				{ "console",	v => console = v != null },
 				{ "quiet",	v => quiet = v != null },
 				{ "version",	v => version = v != null },
 				{ "h|?|help",	v => help = v != null },
 			};
-			assembly_names = p.Parse (args);
 
-			// if supplied, use the user limit on defects (otherwise 2^31 is used)
-			int defects_limit;
-			if (String.IsNullOrEmpty (limit) || !Int32.TryParse (limit, out defects_limit))
-				defects_limit = Int32.MaxValue;
-			DefectsLimit = defects_limit;
+			try {
+				assembly_names = p.Parse (args);
+			}
+			catch (OptionException e) {
+				Console.WriteLine ("Error parsing option '{0}' : {1}", e.OptionName, e.Message);
+				Console.WriteLine ();
+				return 1;
+			}
 
 			// by default the runner will ignore Audit and Low severity defects
-			if (String.IsNullOrEmpty (severity_filter)) {
+			if (!severity) {
 				SeverityBitmask.SetAll ();
 				SeverityBitmask.Clear (Severity.Audit);
 				SeverityBitmask.Clear (Severity.Low);
-			} else {
-				ParseSeverity ();
 			}
 
 			// by default the runner will ignore Low confidence defects
-			if (String.IsNullOrEmpty (confidence_filter)) {
+			if (!confidence) {
 				ConfidenceBitmask.SetAll ();
 				ConfidenceBitmask.Clear (Confidence.Low);
-			} else {
-				ParseConfidence ();
 			}
 
 			return (byte) ((assembly_names.Count > 0) ? 0 : 1);
@@ -281,7 +339,7 @@ namespace Gendarme {
 			}
 
 			// generate text report (default, to console, if xml and html aren't specified)
-			if ((log_file != null) || ((xml_file == null) && (html_file == null))) {
+			if (console || (log_file != null) || ((xml_file == null) && (html_file == null))) {
 				using (TextResultWriter writer = new TextResultWriter (this, log_file)) {
 					writer.Report ();
 				}
@@ -380,7 +438,7 @@ namespace Gendarme {
 		private static string TimeToString (TimeSpan time)
 		{
 			if (time >= TimeSpan.FromMilliseconds (100))
-				return string.Format ("{0:0.0} seconds", time.TotalSeconds);
+				return String.Format (CultureInfo.CurrentCulture, "{0:0.0} seconds", time.TotalSeconds);
 			else
 				return "<0.1 seconds";
 		}
@@ -441,9 +499,10 @@ namespace Gendarme {
 				if (null != log_file || null != xml_file || null != html_file) {
 					List<string> files = new List<string> (new string [] { log_file, xml_file, html_file });
 					files.RemoveAll (string.IsNullOrEmpty);
-					hint = string.Format ("Report{0} written to: {1}.",
+					hint = String.Format (CultureInfo.CurrentCulture, "Report{0} written to: {1}.",
 						(files.Count > 1) ? "s" : string.Empty,
-						string.Join (",", files.Select (file => string.Format ("`{0}'", file)).ToArray ()));
+						string.Join (",", files.Select (file => 
+							String.Format (CultureInfo.CurrentCulture, "`{0}'", file)).ToArray ()));
 				}
 
 				if (Defects.Count == 0)
@@ -519,6 +578,7 @@ namespace Gendarme {
 			Console.WriteLine ("  --confidence [all | [[low | normal | high | total][+|-]],...");
 			Console.WriteLine ("\t\t\tFilter defects for the specified confidence levels.");
 			Console.WriteLine ("\t\t\tDefault is 'normal+'");
+			Console.WriteLine ("  --console\t\tShow defects on the console even if --log, --xml or --html are specified.");
 			Console.WriteLine ("  --quiet\t\tUsed to disable progress and other information which is normally written to stdout.");
 			Console.WriteLine ("  --v\t\t\tWhen present additional progress information is written to stdout (can be used multiple times).");
 			Console.WriteLine ("  assemblies\t\tSpecify the assemblies to verify.");

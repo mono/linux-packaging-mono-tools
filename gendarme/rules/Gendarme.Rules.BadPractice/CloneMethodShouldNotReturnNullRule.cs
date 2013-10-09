@@ -69,8 +69,6 @@ namespace Gendarme.Rules.BadPractice {
 	[Solution ("Return an appropriate object instead of returning null.")]
 	public class CloneMethodShouldNotReturnNullRule : ReturnNullRule, IMethodRule {
 
-		private const string ICloneable = "System.ICloneable";
-
 		public override void Initialize (IRunner runner)
 		{
 			base.Initialize (runner);
@@ -78,8 +76,10 @@ namespace Gendarme.Rules.BadPractice {
 			// if the module does not reference System.ICloneable then
 			// no type inside will be implementing it
 			Runner.AnalyzeModule += delegate (object o, RunnerEventArgs e) {
-				Active = (e.CurrentAssembly.Name.Name == "mscorlib") ||
-					e.CurrentModule.HasTypeReference (ICloneable);
+				Active = (e.CurrentAssembly.Name.Name == "mscorlib" ||
+					e.CurrentModule.AnyTypeReference ((TypeReference tr) => {
+						return tr.IsNamed ("System", "ICloneable");
+					}));
 			};
 		}
 
@@ -90,7 +90,7 @@ namespace Gendarme.Rules.BadPractice {
 				return RuleResult.DoesNotApply;
 
 			// where the type implements ICloneable
-			if (!method.DeclaringType.Implements (ICloneable))
+			if (!method.DeclaringType.Implements ("System", "ICloneable"))
 				return RuleResult.DoesNotApply;
 
 			// call base class to detect if the method can return null

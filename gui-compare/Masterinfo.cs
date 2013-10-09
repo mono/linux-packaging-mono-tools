@@ -205,8 +205,13 @@ namespace GuiCompare {
 				string name = n.Attributes ["name"].Value;
 				if (CheckIfAdd (name, n)) {
 					string key = GetNodeKey (name, n);
-					//keys.Add (key, name);
-					keys [key] = name;
+					if (keys.Contains (key)) {
+						if ((string) keys[key] != name)
+							throw new NotImplementedException ("Attribute with same name but diffent value");
+					} else {
+						keys.Add (key, name);
+					}
+					
 					LoadExtraData (key, n);
 				}
 			}
@@ -532,24 +537,10 @@ namespace GuiCompare {
 
 	public class XMLAttributeProperties: XMLNameGroup
 	{
-		static Dictionary <string, string> ignored_properties;
 		SortedDictionary <string, string> properties;
 
 		static XMLAttributeProperties ()
 		{
-
-			ignored_properties = new Dictionary <string, string> ();
-			ignored_properties.Add ("System.Reflection.AssemblyKeyFileAttribute", "KeyFile");
-			ignored_properties.Add ("System.Reflection.AssemblyCompanyAttribute", "Company");
-			ignored_properties.Add ("System.Reflection.AssemblyConfigurationAttribute", "Configuration");
-			ignored_properties.Add ("System.Reflection.AssemblyCopyrightAttribute", "Copyright");
-			ignored_properties.Add ("System.Reflection.AssemblyProductAttribute", "Product");
-			ignored_properties.Add ("System.Reflection.AssemblyTrademarkAttribute", "Trademark");
-			ignored_properties.Add ("System.Reflection.AssemblyInformationalVersionAttribute", "InformationalVersion");
-
-			ignored_properties.Add ("System.ObsoleteAttribute", "Message");
-			ignored_properties.Add ("System.IO.IODescriptionAttribute", "Description");
-			ignored_properties.Add ("System.Diagnostics.MonitoringDescriptionAttribute", "Description");
 		}
 
 		string attribute;
@@ -571,15 +562,9 @@ namespace GuiCompare {
 			if (node.ChildNodes == null)
 				return;
 
-			string ignored;
-
-			if (!ignored_properties.TryGetValue (attribute, out ignored))
-				ignored = null;
 
 			foreach (XmlNode n in node.ChildNodes) {
 				string name = n.Attributes["name"].Value;
-				if (ignored != null && ignored == name)
-					continue;
 
 				if (n.Attributes["null"] != null) {
 					Properties.Add (name, null);
@@ -1045,9 +1030,11 @@ namespace GuiCompare {
 
 		public override string GetNodeKey (string name, XmlNode node)
 		{
-			if (genericParameters != null)
-				name = name + ":" + genericParameters.Count;
-
+			XmlNode genericNode = node.SelectSingleNode ("generic-parameters");
+			if (genericNode != null) {
+				name = name + "`" + genericNode.ChildNodes.Count;
+			}
+			
 			// for explicit/implicit operators we need to include the return
 			// type in the key to allow matching; as a side-effect, differences
 			// in return types will be reported as extra/missing methods

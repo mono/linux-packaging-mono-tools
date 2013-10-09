@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Xml;
 using System.Xml.XPath;
 
@@ -77,10 +78,6 @@ namespace Gendarme.Rules.Correctness {
 	[EngineDependency (typeof (OpCodeEngine))]
 	public sealed class ProvideValidXmlStringRule : Rule, IMethodRule {
 
-		const string XmlDocumentClass = "System.Xml.XmlDocument";
-		const string XmlNodeClass = "System.Xml.XmlNode";
-		const string XPathNavigatorClass = "System.Xml.XPath.XPathNavigator";
-
 		public override void Initialize (IRunner runner)
 		{
 			base.Initialize (runner);
@@ -108,7 +105,7 @@ namespace Gendarme.Rules.Correctness {
 				break;
 			case Code.Ldsfld:
 				FieldReference f = (FieldReference) ld.Operand;
-				if (f.Name == "Empty" && f.DeclaringType.FullName == "System.String")
+				if (f.Name == "Empty" && f.DeclaringType.IsNamed ("System", "String"))
 					CheckString (method, ins, null);
 				break;
 			case Code.Ldnull:
@@ -127,7 +124,8 @@ namespace Gendarme.Rules.Correctness {
 			try {
 				(new XmlDocument ()).LoadXml (xml);
 			} catch (XmlException e) {
-				string msg = string.Format ("XML string '{0}' is invalid. Details: {1}", xml, e.Message);
+				string msg = String.Format (CultureInfo.InvariantCulture, 
+					"XML string '{0}' is invalid. Details: {1}", xml, e.Message);
 				Runner.Report (method, ins, Severity.High, Confidence.High, msg);
 			}
 		}
@@ -139,13 +137,13 @@ namespace Gendarme.Rules.Correctness {
 
 			switch (mref.Name) {
 			case "LoadXml":
-				if (mref.DeclaringType.FullName == XmlDocumentClass)
+				if (mref.DeclaringType.IsNamed ("System.Xml", "XmlDocument"))
 					CheckString (method, ins, -1);
 				break;
 			case "set_InnerXml":
 			case "set_OuterXml":
 				TypeReference tr = mref.DeclaringType;
-				if (tr.Inherits (XmlNodeClass) || tr.Inherits (XPathNavigatorClass))
+				if (tr.Inherits ("System.Xml", "XmlNode") || tr.Inherits ("System.Xml.XPath", "XPathNavigator"))
 					CheckString (method, ins, -1);
 				break;
 			case "AppendChild":
@@ -154,8 +152,8 @@ namespace Gendarme.Rules.Correctness {
 			case "InsertBefore":
 				IList<ParameterDefinition> pdc = mref.Parameters;
 				if (pdc.Count == 1
-					&& pdc [0].ParameterType.FullName == "System.String"
-					&& mref.DeclaringType.Inherits (XPathNavigatorClass))
+					&& pdc [0].ParameterType.IsNamed ("System", "String")
+					&& mref.DeclaringType.Inherits ("System.Xml.XPath", "XPathNavigator"))
 					CheckString (method, ins, -1);
 				break;
 			}

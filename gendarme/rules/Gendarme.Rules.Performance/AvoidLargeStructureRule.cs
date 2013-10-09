@@ -29,6 +29,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 
 using Mono.Cecil;
 
@@ -75,20 +76,20 @@ namespace Gendarme.Rules.Performance {
 		private const int ReferenceSize = 4;
 
 		static Dictionary<string, int> Primitives = new Dictionary<string, int> (14) {
-			{ "System.Byte", 1 },
-			{ "System.SByte", 1 },
-			{ "System.Boolean", 1 },
-			{ "System.Int16", 2 },
-			{ "System.UInt16", 2 },
-			{ "System.Char", 2 },
-			{ "System.Int32", 4 },
-			{ "System.UInt32", 4 },
-			{ "System.Single", 4 },
-			{ "System.Int64", 8 },
-			{ "System.UInt64", 8 },
-			{ "System.Double", 8 },
-			{ "System.IntPtr", ReferenceSize },	// so rule return the same results
-			{ "System.UIntPtr", ReferenceSize },	// on 32 and 64 bits architectures
+			{ "Byte", 1 },
+			{ "SByte", 1 },
+			{ "Boolean", 1 },
+			{ "Int16", 2 },
+			{ "UInt16", 2 },
+			{ "Char", 2 },
+			{ "Int32", 4 },
+			{ "UInt32", 4 },
+			{ "Single", 4 },
+			{ "Int64", 8 },
+			{ "UInt64", 8 },
+			{ "Double", 8 },
+			{ "IntPtr", ReferenceSize },	// so rule return the same results
+			{ "UIntPtr", ReferenceSize },	// on 32 and 64 bits architectures
 		};
 
 		private int max_size = MaximumRecommendedSize;
@@ -179,7 +180,7 @@ namespace Gendarme.Rules.Performance {
 			// list based on Type.IsPrimitive
 			if (type.Namespace == "System") {
 				int size;
-				if (Primitives.TryGetValue (type.FullName, out size))
+				if (Primitives.TryGetValue (type.Name, out size))
 					return (long) size;
 			}
 
@@ -216,7 +217,7 @@ namespace Gendarme.Rules.Performance {
 			else if (size > medium_severity_limit)
 				severity = Severity.Medium;
 
-			string text = String.Format ("Structure size is {0} bytes.", size);
+			string text = String.Format (CultureInfo.CurrentCulture, "Structure size is {0} bytes.", size);
 			Runner.Report (type, severity, Confidence.High, text);
 			return RuleResult.Failure;
 		}

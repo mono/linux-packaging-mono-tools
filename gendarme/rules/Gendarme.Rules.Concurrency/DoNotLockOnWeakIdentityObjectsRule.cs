@@ -27,6 +27,7 @@
 //
 
 using System;
+using System.Globalization;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -99,12 +100,26 @@ namespace Gendarme.Rules.Concurrency {
 	[FxCopCompatibility ("Microsoft.Reliability", "CA2002:DoNotLockOnObjectsWithWeakIdentity")]
 	public class DoNotLockOnWeakIdentityObjectsRule : LockAnalyzerRule {
 
-		private static string [] unsealed_types = new string[] {
-			"System.MarshalByRefObject",
-			"System.OutOfMemoryException",
-			"System.Reflection.MemberInfo",
-			"System.Reflection.ParameterInfo"
-		};
+		static bool IsWeakSealedType (TypeReference type)
+		{
+			switch (type.Namespace) {
+			case "System":
+				string name = type.Name;
+				return ((name == "String") || (name == "ExecutionEngineException") || (name == "StackOverflowException"));
+			case "System.Threading":
+				return (type.Name == "Thread");
+			default:
+				return false;
+			}
+		}
+
+		static string InheritFromWeakType (TypeReference type, string nameSpace, string name)
+		{
+			if (!type.Inherits (nameSpace, name))
+				return String.Empty;
+			return String.Format (CultureInfo.InvariantCulture, "'{0}' inherits from '{1}.{2}'.", 
+				type.GetFullName (), nameSpace, name);
+		}
 
 		public override void Analyze (MethodDefinition method, MethodReference enter, Instruction ins)
 		{
@@ -119,7 +134,7 @@ namespace Gendarme.Rules.Concurrency {
 			if (first.OpCode.Code == Code.Dup)
 				first = first.Previous;
 			type = first.GetOperandType (method);
-			if (type.FullName == "System.Object") {
+			if (type.IsNamed ("System", "Object")) {
 				// newer GMCS use a temporary local that hides the real type
 				Instruction prev = first.Previous;
 				if (first.IsLoadLocal () && prev.IsStoreLocal ()) {
@@ -131,24 +146,28 @@ namespace Gendarme.Rules.Concurrency {
 			if (type == null)
 				return;
 
-			// fast check for sealed types
-			string full_name = type.FullName;
-			switch (full_name) {
-			case "System.ExecutionEngineException":
-			case "System.StackOverflowException":
-			case "System.String":
-			case "System.Threading.Thread":
-				Runner.Report (method, call, Severity.High, Confidence.Normal, full_name);
-				break;
-			default:
-				foreach (string unsealed in unsealed_types) {
-					if (!type.Inherits (unsealed))
-						continue;
-
-					string msg = String.Format ("'{0}' inherits from '{1}'.", full_name, unsealed);
+			if (IsWeakSealedType (type)) {
+				Runner.Report (method, call, Severity.High, Confidence.Normal, type.GetFullName ());
+			} else {
+				string msg = InheritFromWeakType (type, "System", "MarshalByRefObject");
+				if (msg.Length > 0) {
+					Runner.Report (method, call, Severity.High, Confidence.Normal, msg);
+					return;
+				}
+				msg = InheritFromWeakType (type, "System", "OutOfMemoryException");
+				if (msg.Length > 0) {
+					Runner.Report (method, call, Severity.High, Confidence.Normal, msg);
+					return;
+				}
+				msg = InheritFromWeakType (type, "System.Reflection", "MemberInfo");
+				if (msg.Length > 0) {
+					Runner.Report (method, call, Severity.High, Confidence.Normal, msg);
+					return;
+				}
+				msg = InheritFromWeakType (type, "System.Reflection", "ParameterInfo");
+				if (msg.Length > 0) {
 					Runner.Report (method, call, Severity.High, Confidence.Normal, msg);
 				}
-				break;
 			}
 		}
 	}

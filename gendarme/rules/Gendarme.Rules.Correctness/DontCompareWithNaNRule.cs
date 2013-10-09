@@ -74,21 +74,6 @@ namespace Gendarme.Rules.Correctness {
 		private const string EqualityMessage = "A floating point value is compared (== or !=) with [Single|Double].NaN.";
 		private const string EqualsMessage = "[Single|Double].Equals is called using NaN.";
 
-		private static string[] FloatingPointTypes = { "System.Single", "System.Double" };
-
-		public override void Initialize (IRunner runner)
-		{
-			base.Initialize (runner);
-
-			// we want to avoid checking all methods if the module doesn't refer to either
-			// System.Single or System.Double (big performance difference)
-			// note: mscorlib.dll is an exception since it defines, not refer, System.Single and Double
-			Runner.AnalyzeModule += delegate (object o, RunnerEventArgs e) {
-				Active = (e.CurrentAssembly.Name.Name == "mscorlib") ||
-					e.CurrentModule.HasAnyTypeReference (FloatingPointTypes);
-			};
-		}
-
 		private static bool CheckPrevious (IList<Instruction> il, int index)
 		{
 			for (int i = index; i >= 0; i--) {
@@ -143,7 +128,7 @@ namespace Gendarme.Rules.Correctness {
 				case Code.Call:
 				case Code.Callvirt:
 					MemberReference callee = ins.Operand as MemberReference;
-					if ((callee != null) && callee.Name.Equals ("Equals") && callee.DeclaringType.IsFloatingPoint ()) {
+					if ((callee != null) && (callee.Name == "Equals") && callee.DeclaringType.IsFloatingPoint ()) {
 						if (!CheckPrevious (il, i - 1)) {
 							Runner.Report (method, ins, Severity.Critical, Confidence.Total, EqualsMessage);
 						}

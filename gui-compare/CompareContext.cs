@@ -26,6 +26,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Linq;
 
 namespace GuiCompare {
 
@@ -153,7 +154,7 @@ namespace GuiCompare {
 		void CompareBaseTypes (ComparisonNode parent, ICompHasBaseType reference_type, ICompHasBaseType target_type)
 		{
 			if (reference_type.GetBaseType() != target_type.GetBaseType()) {
-				parent.AddError (String.Format ("reference has base class of {0}, target has base class of {1}",
+				parent.AddError (String.Format ("Expected base class of {0} but found {1}",
 								reference_type.GetBaseType(),
 								target_type.GetBaseType()));
 			}
@@ -162,7 +163,7 @@ namespace GuiCompare {
 				string ref_mod = (reference_type.IsAbstract && reference_type.IsSealed) ? "static" : "abstract";
 				string tar_mod = (target_type.IsAbstract && target_type.IsSealed) ? "static" : "abstract";
 
-				parent.AddError (String.Format ("reference is {0} {2}, target is {1} {3}",
+				parent.AddError (String.Format ("reference is {0} {2}, is {1} {3}",
 								reference_type.IsAbstract ? null : "not", target_type.IsAbstract ? null : "not",
 								ref_mod, tar_mod));
 			} else if (reference_type.IsSealed != target_type.IsSealed) {
@@ -211,19 +212,15 @@ namespace GuiCompare {
 		{
 			var r = reference.GetTypeParameters ();
 			var t = target.GetTypeParameters ();
-			if (r == null && t == null)
+			if (r == null && t == null || (r == null && t != null) || (r != null && t == null))
 				return;
-
-			if (r.Count != t.Count) {
-				throw new NotImplementedException (string.Format ("Should never happen with valid data ({0} != {1})", r.Count, t.Count));
-			}
 
 			for (int i = 0; i < r.Count; ++i) {
 				var r_i = r [i];
 				var t_i = t [i];
 				
 				if (r_i.GenericAttributes != t_i.GenericAttributes) {
-					parent.AddError (string.Format ("reference type parameter {2} has {0} generic attributes, target type parameter {3} has {1} generic attributes",
+					parent.AddError (string.Format ("Expected type parameter {2} with {0} generic attributes but found type parameter {3} with {1} generic attributes",
 						CompGenericParameter.GetGenericAttributeDesc (r_i.GenericAttributes),
 						CompGenericParameter.GetGenericAttributeDesc (t_i.GenericAttributes),
 						r_i.Name,
@@ -324,13 +321,42 @@ namespace GuiCompare {
 			
 			List<CompNamed> reference_attrs = reference_container.GetAttributes ();
 			List<CompNamed> target_attrs = target_container.GetAttributes ();
-			
-			reference_attrs.Sort (CompNamed.Compare);
-			target_attrs.Sort (CompNamed.Compare);
+
+			Comparison<CompNamed> comp = (x, y) => {
+				var r = CompNamed.Compare (x, y);
+				if (r != 0)
+					return r;
+
+				var xa = ((CompAttribute)x).Properties.Values.ToList ();
+				var ya = ((CompAttribute)y).Properties.Values.ToList ();
+
+				for (int i = 0; i < Math.Min (xa.Count, ya.Count); ++i) {
+					r = xa[i].CompareTo (ya[i]);
+					if (r != 0)
+						return r;
+				}
+
+				return 0;
+			};
+
+			reference_attrs.Sort (comp);
+			target_attrs.Sort (comp);
 			
 			while (m < reference_attrs.Count || a < target_attrs.Count) {
 				if (m == reference_attrs.Count) {
-					AddExtra (parent, target_attrs[a]);
+					
+					switch (target_attrs[a].Name) {
+						case "System.Diagnostics.DebuggerDisplayAttribute":
+						case "System.Runtime.CompilerServices.AsyncStateMachineAttribute":
+						case "System.Runtime.CompilerServices.IteratorStateMachineAttribute":
+						case "System.Diagnostics.DebuggerBrowsableAttribute":
+							// Ignore extra attributes in Mono source code
+						break;
+					default:
+						AddExtra (parent, target_attrs[a]);
+						break;
+					}
+					
 					a++;
 					continue;
 				}
@@ -345,10 +371,9 @@ namespace GuiCompare {
 
 				if (c == 0) {
 					/* the names match, further investigation is required */
-// 					Console.WriteLine ("method {0} is in both, doing more comparisons", reference_list[m].Name);
 					ComparisonNode comparison = target_attrs[a].GetComparisonNode();
 					parent.AddChild (comparison);
-					//CompareParameters (comparison, reference_list[m], target_namespace [target_list[a]]);
+					CompareAttributeArguments (comparison, (CompAttribute)reference_attrs[m], (CompAttribute)target_attrs[a]);
 					m++;
 					a++;
 				}
@@ -364,27 +389,120 @@ namespace GuiCompare {
 				}
 			}
 		}
+
+		void CompareAttributeArguments (ComparisonNode parent, CompAttribute referenceAttribute, CompAttribute actualAttribute)
+		{
+			// Ignore all parameter differences for some attributes
+			switch (referenceAttribute.Name) {
+			case "System.Diagnostics.DebuggerDisplayAttribute":
+			case "System.Diagnostics.DebuggerTypeProxyAttribute":
+			case "System.Runtime.CompilerServices.CompilationRelaxationsAttribute":
+			case "System.Reflection.AssemblyFileVersionAttribute":
+			case "System.Reflection.AssemblyCompanyAttribute":
+			case "System.Reflection.AssemblyCopyrightAttribute":
+			case "System.Reflection.AssemblyProductAttribute":
+			case "System.Reflection.AssemblyTrademarkAttribute":
+			case "System.Reflection.AssemblyInformationalVersionAttribute":
+			case "System.Reflection.AssemblyKeyFileAttribute":
+
+			// Don't care about these for now
+			case "System.ComponentModel.EditorAttribute":
+			case "System.ComponentModel.DesignerAttribute":
+				return;
+			}
+
+			foreach (var entry in referenceAttribute.Properties) {
+				if (!actualAttribute.Properties.ContainsKey (entry.Key)) {
+
+					//
+					// Ignore missing value difference for default values
+					//
+					switch (referenceAttribute.Name) {
+					case "System.AttributeUsageAttribute":
+						// AllowMultiple defaults to false
+						if (entry.Key == "AllowMultiple" && entry.Value == "False")
+							continue;
+						// Inherited defaults to true
+						if (entry.Key == "Inherited" && entry.Value == "True")
+							continue;
+						break;
+					case "System.ObsoleteAttribute":
+						if (entry.Key == "IsError" && entry.Value == "False")
+							continue;
+
+						if (entry.Key == "Message")
+							continue;
+
+						break;
+					}
+
+					parent.AddError (String.Format ("Property `{0}' value is not set. Expected value: {1}", entry.Key, entry.Value));
+					parent.Status = ComparisonStatus.Error;
+					continue;
+				}
+
+				var target_value = actualAttribute.Properties[entry.Key];
+
+				switch (referenceAttribute.Name) {
+				case "System.Runtime.CompilerServices.TypeForwardedFromAttribute":
+					if (entry.Key == "AssemblyFullName")
+						target_value = target_value.Replace ("neutral", "Neutral");
+					break;
+				case "System.Runtime.InteropServices.GuidAttribute":
+					if (entry.Key == "Value")
+						target_value = target_value.ToUpperInvariant ();
+					break;
+				case "System.ObsoleteAttribute":
+					if (entry.Key == "Message")
+						continue;
+
+					break;
+				}
+
+				if (target_value != entry.Value) {
+					parent.AddError (String.Format ("Expected value `{0}' for attribute property `{1}' but found `{2}'", entry.Value, entry.Key, target_value));
+					parent.Status = ComparisonStatus.Error;
+				}
+			}
+
+			
+			if (referenceAttribute.Properties.Count != actualAttribute.Properties.Count) {
+				foreach (var entry in actualAttribute.Properties) {
+					if (!referenceAttribute.Properties.ContainsKey (entry.Key)) {
+						parent.AddError (String.Format ("Property `{0}' should not be set", entry.Key));
+						parent.Status = ComparisonStatus.Error;
+						break;
+					}
+				}
+			}
+			
+
+			return;
+		}
 		
 		void CompareMembers (ComparisonNode parent,
 		                     ICompMemberContainer reference_container, ICompMemberContainer target_container)
 		{
+			bool is_sealed = reference_container.IsSealed;
+			
 			CompareMemberLists (parent,
-			                    reference_container.GetInterfaces(), target_container.GetInterfaces());
+			                    reference_container.GetInterfaces(), target_container.GetInterfaces(), is_sealed);
 			CompareMemberLists (parent,
-			                    reference_container.GetConstructors(), target_container.GetConstructors());
+			                    reference_container.GetConstructors(), target_container.GetConstructors(), is_sealed);
 			CompareMemberLists (parent,
-			                    reference_container.GetMethods(), target_container.GetMethods());
+			                    reference_container.GetMethods(), target_container.GetMethods(), is_sealed);
 			CompareMemberLists (parent,
-			                    reference_container.GetProperties(), target_container.GetProperties());
+			                    reference_container.GetProperties(), target_container.GetProperties(), is_sealed);
 			CompareMemberLists (parent,
-			                    reference_container.GetFields(), target_container.GetFields());
+			                    reference_container.GetFields(), target_container.GetFields(), is_sealed);
 			CompareMemberLists (parent,
-			                    reference_container.GetEvents(), target_container.GetEvents());
+			                    reference_container.GetEvents(), target_container.GetEvents(), is_sealed);
 		}
 
 		void CompareMemberLists (ComparisonNode parent,
 		                         List<CompNamed> reference_list,
-		                         List<CompNamed> target_list)
+		                         List<CompNamed> target_list,
+		                         bool isSealed)
 		{
 			int m = 0, a = 0;
 
@@ -427,9 +545,9 @@ namespace GuiCompare {
 							// Try to give some hints to the developer, best we can do with
 							// strings.
 							string extra_msg = "";
-							if (reference_access.IndexOf ("Public, Final, Virtual, HideBySig") != -1 &&
+							if (reference_access.IndexOf ("Private, Final, Virtual, HideBySig") != -1 &&
 							    target_access.IndexOf ("Public, HideBySig") != -1){
-								extra_msg = "\n\t\t<b>Hint:</b> reference uses an implicit interface implementation, target doesn't";
+								extra_msg = "\n\t\t<b>Hint:</b> reference uses an explicit interface implementation, target doesn't";
 							}
 
 							comparison.AddError (String.Format ("reference access is '<i>{0}</i>', target access is '<i>{1}</i>'{2}",
@@ -447,13 +565,53 @@ namespace GuiCompare {
 
 						CompareTypeParameters (comparison, r_method, t_method);
 						CompareParameters (comparison, r_method, t_method);
+					} else if (reference_list[m] is CompProperty) {
+						var m1 = ((CompProperty) reference_list[m]).GetMethods ();
+						var m2 = ((CompProperty) target_list[a]).GetMethods ();
+						if (m1.Count != m2.Count) {
+							comparison.AddError (String.Format ("Expected {0} accessors but found {1}", m1.Count, m2.Count));
+							comparison.Status = ComparisonStatus.Error;
+						} else {
+							for (int i = 0; i < m1.Count; ++i) {
+								string reference_access = ((CompMember) m1[i]).GetMemberAccess();
+								string target_access = ((CompMember) m2[i]).GetMemberAccess();
+								if (reference_access != target_access) {
+									// Try to give some hints to the developer, best we can do with
+									// strings.
+									string extra_msg = "";
+									if (reference_access.IndexOf ("Private, Final, Virtual, HideBySig") != -1 &&
+										target_access.IndexOf ("Public, HideBySig") != -1){
+										extra_msg = "\n\t\t<b>Hint:</b> reference uses an explicit interface implementation, target doesn't";
+									}
+
+									comparison.AddError (String.Format ("reference access is '<i>{0}</i>', target access is '<i>{1}</i>'{2}",
+																		reference_access, target_access, extra_msg));
+									comparison.Status = ComparisonStatus.Error;
+									break;
+								}
+							}
+							
+							if (m1[0].Name[0] == m2[0].Name[0]) {
+								CompareAttributes (comparison, (ICompAttributeContainer)m1[0], (ICompAttributeContainer)m2[0]);
+								if (m1.Count > 1)
+									CompareAttributes (comparison, (ICompAttributeContainer)m1[1], (ICompAttributeContainer)m2[1]);
+							} else {
+								CompareAttributes (comparison, (ICompAttributeContainer)m1[0], (ICompAttributeContainer)m2[1]);
+								if (m1.Count > 1)
+									CompareAttributes (comparison, (ICompAttributeContainer)m1[1], (ICompAttributeContainer)m2[0]);
+							}
+						}
+
+						// Compare indexer parameters
+						if (m1.Count == m2.Count)
+							CompareParameters (comparison, (ICompParameters) m1[0], (ICompParameters) m2[0]);
 					}
 
 					if (reference_list[m] is CompField) {
 						var v_ref = ((CompField)reference_list[m]).GetLiteralValue();
 						var v_tar = ((CompField)target_list[a]).GetLiteralValue();
 						if (v_ref != v_tar) {
-							comparison.AddError (String.Format ("reference field has value {0}, target field has value {1}", v_ref, v_tar));
+							comparison.AddError (String.Format ("Expected field value {0} but found value {1}", v_ref, v_tar));
 							comparison.Status = ComparisonStatus.Error;
 						}
 					}
@@ -476,13 +634,23 @@ namespace GuiCompare {
 					a++;
 				}
 				else if (c < 0) {
-					/* reference name is before target name, reference name is missing from target */
-					AddMissing (parent, reference_list[m]);
+					if (isSealed && reference_list[m].Name.Contains ("~")) {
+						// Ignore finalizer differences in sealed classes
+					} else {
+						/* reference name is before target name, reference name is missing from target */
+						AddMissing (parent, reference_list[m]);
+					}
+					
 					m++;
 				}
 				else {
-					/* reference name is after target name, target name is extra */
-					AddExtra (parent, target_list[a]);
+					if (isSealed && target_list[a].Name.Contains ("~")) {
+						// Ignore finalizer differences in sealed classes
+					} else {
+						/* reference name is after target name, target name is extra */
+						AddExtra (parent, target_list[a]);
+					}
+					
 					a++;
 				}
 			}

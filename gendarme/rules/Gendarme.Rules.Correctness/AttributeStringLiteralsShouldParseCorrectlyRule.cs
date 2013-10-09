@@ -29,6 +29,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 
 using Gendarme.Framework;
 using Gendarme.Framework.Rocks;
@@ -80,42 +81,16 @@ namespace Gendarme.Rules.Correctness {
 			return original.IndexOf (value, 0, StringComparison.OrdinalIgnoreCase) != -1;
 		}
 		
-		// FIXME : FX4 Version.TryParse @ http://msdn.microsoft.com/en-us/library/system.version.tryparse.aspx
-		static bool TryParseVersion (string version)
-		{
-			try {
-				new Version (version);
-				return true;
-			}
-			catch (FormatException) {
-				return false;
-			}
-			catch (ArgumentException) {
-				return false;
-			}
-		}
-
-		// FIXME : FX4 Guid.TryParse @ http://msdn.microsoft.com/en-us/library/system.guid.tryparse.aspx
-		static bool TryParseGuid (string guid)
-		{
-			try {
-				new Guid (guid);
-				return true;
-			}
-			catch (FormatException) {
-				return false;
-			}
-		}
-
 		void CheckParametersAndValues (IMetadataTokenProvider provider, IMethodSignature constructor, IList<CustomAttributeArgument> arguments)
 		{
 			for (int index = 0; index < arguments.Count; index++) {
 				ParameterDefinition parameter = constructor.Parameters[index];
-				if (String.Compare (parameter.ParameterType.FullName, "System.String") == 0) {
+				if (parameter.ParameterType.IsNamed ("System", "String")) {
 					string value = (string) arguments [index].Value;
-					if (Contains (parameter.Name, "version")) { 
-						if (!TryParseVersion (value)) {
-							string msg = String.Format ("The value passed: {0} can't be parsed to a valid Version.", value);
+					if (Contains (parameter.Name, "version")) {
+						Version v = null;
+						if (!Version.TryParse (value, out v)) {
+							string msg = String.Format (CultureInfo.InvariantCulture, "The value passed: {0} can't be parsed to a valid Version.", value);
 							Runner.Report (provider, Severity.High, Confidence.High, msg);
 						}
 						continue;
@@ -125,14 +100,15 @@ namespace Gendarme.Rules.Correctness {
 						Contains (parameter.Name, "urn")) {
 						Uri parsed = null;
 						if (!Uri.TryCreate (value, UriKind.Absolute, out parsed)) {
-							string msg = String.Format ("The valued passed {0} can't be parsed to a valid Uri.", value);
+							string msg = String.Format (CultureInfo.InvariantCulture, "The valued passed {0} can't be parsed to a valid Uri.", value);
 							Runner.Report (provider, Severity.High, Confidence.High, msg);
 						}
 						continue;
 					}
 					if (Contains (parameter.Name, "guid")) {
-						if (!TryParseGuid (value)) {
-							string msg = String.Format ("The valued passed {0} can't be parsed to a valid Guid.", value);
+						Guid g;
+						if (!Guid.TryParse (value, out g)) {
+							string msg = String.Format (CultureInfo.InvariantCulture, "The valued passed {0} can't be parsed to a valid Guid.", value);
 							Runner.Report (provider, Severity.High, Confidence.High, msg);
 						}
 						continue;
@@ -203,3 +179,4 @@ namespace Gendarme.Rules.Correctness {
 		}
 	}
 }
+

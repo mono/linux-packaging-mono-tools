@@ -27,9 +27,11 @@
 //
 
 using System;
+using System.Globalization;
 
 using Mono.Cecil;
 using Gendarme.Framework;
+using Gendarme.Framework.Rocks;
 
 namespace Gendarme.Rules.Interoperability {
 
@@ -69,13 +71,8 @@ namespace Gendarme.Rules.Interoperability {
 
 		private static bool IsStringOrSBuilder (TypeReference reference)
 		{
-			switch (reference.GetElementType ().FullName) {
-			case "System.String":
-			case "System.Text.StringBuilder":
-				return true;
-			default:
-				return false;
-			}
+			TypeReference type = reference.GetElementType ();
+			return (type.IsNamed ("System", "String") || type.IsNamed ("System.Text", "StringBuilder"));
 		}
 
 		public RuleResult CheckMethod (MethodDefinition method)
@@ -93,7 +90,8 @@ namespace Gendarme.Rules.Interoperability {
 
 			foreach (ParameterDefinition parameter in method.Parameters) {
 				if (IsStringOrSBuilder (parameter.ParameterType) && (parameter.MarshalInfo == null)) {
-					string text = string.Format ("Parameter '{0}', of type '{1}', does not have [MarshalAs] attribute, yet no [DllImport CharSet=] is set for the method '{2}'.",
+					string text = String.Format (CultureInfo.InvariantCulture, 
+						"Parameter '{0}', of type '{1}', does not have [MarshalAs] attribute, yet no [DllImport CharSet=] is set for the method '{2}'.",
 						parameter.Name, parameter.ParameterType.Name, method.Name);
 					Runner.Report (parameter, Severity.High, Confidence.Total, text);
 				}

@@ -28,6 +28,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 
 using Mono.Cecil;
@@ -177,7 +178,7 @@ namespace Gendarme.Rules.BadPractice {
 						if (mr.HasThis)
 							parameters++;
 						parameters += mr.Parameters.Count;
-						if (mr.ReturnType.FullName != "System.Void")
+						if (!mr.ReturnType.IsNamed ("System", "Void"))
 							parameters--;
 					}
 					break;
@@ -196,7 +197,7 @@ namespace Gendarme.Rules.BadPractice {
 			if (!OpCodeBitmask.Calls.Intersect (OpCodeEngine.GetBitmask (method)))
 				return;
 
-			string method_name = method.ToString ();
+			string method_name = method.GetFullName ();
 			// check to avoid constructors calling recursive methods
 			if (stack.Contains (method_name))
 				return;
@@ -216,12 +217,14 @@ namespace Gendarme.Rules.BadPractice {
 						continue;
 
 					// check that we're not calling the method on another object
-					if (!IsCallFromInstance (current.Previous, md.Parameters.Count))
+					int n = md.HasParameters ? md.Parameters.Count : 0;
+					if (!IsCallFromInstance (current.Previous, n))
 						continue;
 
 					if (md.IsVirtual && !md.IsFinal) {
 						string s = stack.Count == 0 ? method_name : stack.Aggregate ((a1, a2) => a1 + ", " + Environment.NewLine + a2);
-						s = String.Format ("Calling a virtual method, '{0}' from {1}.", md, s);
+						s = String.Format (CultureInfo.InvariantCulture,
+							"Calling a virtual method, '{0}' from {1}.", md, s);
 						Runner.Report (method, current, Severity.High, Confidence.High, s);
 					} else {
 						stack.Push (method_name);

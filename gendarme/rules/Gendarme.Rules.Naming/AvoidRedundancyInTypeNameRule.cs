@@ -27,6 +27,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 using Mono.Cecil;
 
@@ -94,6 +95,7 @@ namespace Gendarme.Rules.Naming {
 	[Problem ("This type name is prefixed with the last component of its enclosing namespace. This usually makes an API more verbose and less autocompletion-friendly than necessary.")]
 	[Solution ("Remove the prefix from the type or replace it with a more meaningful term in the context of the namespace.")]
 	[EngineDependency (typeof (NamespaceEngine))]
+	[FxCopCompatibility ("Microsoft.Naming", "CA1724:TypeNamesShouldNotMatchNamespaces")]
 	public class AvoidRedundancyInTypeNameRule : Rule, ITypeRule {
 
 		public RuleResult CheckType (TypeDefinition type)
@@ -153,7 +155,7 @@ namespace Gendarme.Rules.Naming {
 			//main goal is to keep the API as simple as possible so this is more severe for visible types
 			Severity severity = type.IsVisible () ? Severity.Medium : Severity.Low;
 
-			string msg = String.Format ("Consider renaming type to '{0}'.", suggestion);
+			string msg = String.Format (CultureInfo.InvariantCulture, "Consider renaming type to '{0}'.", suggestion);
 			Runner.Report (type, severity, Confidence.Normal, msg);
 			return RuleResult.Failure;
 		}

@@ -27,6 +27,7 @@
 //
 
 using System;
+using System.Globalization;
 
 using Mono.Cecil;
 
@@ -107,20 +108,20 @@ namespace Gendarme.Rules.Performance {
 			// * the assembly targets the 2.0 (or later) runtime
 			// * and it does not already implement it
 			if (type.Module.Runtime >= TargetRuntime.Net_2_0) {
-				if (!type.Implements ("System.IEquatable`1")) {
+				if (!type.Implements ("System", "IEquatable`1")) {
 					Runner.Report (type, Severity.Medium, Confidence.Total, "Implement System.IEquatable<T>");
 				}
 				return Runner.CurrentRuleResult;
 			}
 
-			parameters [0] = type.FullName;
+			parameters [0] = type.GetFullName ();
 			if (type.GetMethod (MethodAttributes.Public, "Equals", "System.Boolean", parameters) != null)
 				return RuleResult.Success;
 
 			// we consider this a step more severe for value types since it will need 
 			// boxing/unboxing with Equals(object)
 			Severity severity = type.IsValueType ? Severity.Medium : Severity.Low;
-			string msg = String.Format ("Implement 'bool Equals({0})'", type.Name);
+			string msg = String.Format (CultureInfo.InvariantCulture, "Implement 'bool Equals({0})'", type.Name);
 			Runner.Report (type, severity, Confidence.High, msg);
 			return RuleResult.Failure;
 		}

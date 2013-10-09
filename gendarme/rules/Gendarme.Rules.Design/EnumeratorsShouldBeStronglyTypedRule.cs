@@ -78,29 +78,40 @@ namespace Gendarme.Rules.Design {
 	[FxCopCompatibility ("Microsoft.Design", "CA1038:EnumeratorsShouldBeStronglyTyped")]
 	public class EnumeratorsShouldBeStronglyTypedRule : StronglyTypedRule, ITypeRule {
 
+		private MethodSignature [] Empty = { };
+		private static string [] Current = { "Current" };
+
 		protected override MethodSignature [] GetMethods ()
 		{
-			return new MethodSignature [] { };
+			return Empty;
 		}
 
 		protected override string [] GetProperties ()
 		{
-			return new string [] { "Current" };
+			return Current;
 		}
 
 		protected override string InterfaceName {
-			get { return "System.Collections.IEnumerator"; }
+			get { return "IEnumerator"; }
+		}
+
+		protected override string InterfaceNamespace {
+			get { return "System.Collections"; }
 		}
 
 		override public RuleResult CheckType (TypeDefinition type)
 		{
 			TypeReference baseType = type;
 			while (baseType != null) {
-				string name = baseType.FullName;
-				if (name == "System.Collections.CollectionBase" ||
-					name == "System.Collections.DictionaryBase" ||
-					name == "System.Collections.ReadOnlyCollectionBase")
-					return RuleResult.DoesNotApply;
+				if (baseType.Namespace == "System.Collections") {
+					switch (baseType.Name) {
+					case "CollectionBase":
+					case "DictionaryBase":
+					case "ReadOnlyCollectionBase":
+						return RuleResult.DoesNotApply;
+					}
+				}
+
 				TypeDefinition td = baseType.Resolve ();
 				if (td != null)
 					baseType = td.BaseType;

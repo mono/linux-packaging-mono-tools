@@ -27,6 +27,7 @@
 //
 
 using System;
+using System.Globalization;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -108,23 +109,26 @@ namespace Gendarme.Rules.Concurrency {
 
 			switch (ins.OpCode.Code) {
 			case Code.Ldarg_0:
-				msg = LockThis;
+				if (!method.IsStatic)
+					msg = LockThis;
 				break;
 			case Code.Ldarg:
 			case Code.Ldarg_S:
-				ParameterDefinition pd = (ins.Operand as ParameterDefinition);
-				if ((pd == null) || (pd.GetSequence () != 0))
-					msg = LockThis;
+				if (!method.IsStatic) {
+					ParameterDefinition pd = (ins.Operand as ParameterDefinition);
+					if ((pd == null) || (pd.Index == 0))
+						msg = LockThis;
+				}
 				break;
 			case Code.Call:
 			case Code.Callvirt:
 				MethodReference mr = (ins.Operand as MethodReference);
-				if (mr.ReturnType.FullName != "System.Type")
+				if (!mr.ReturnType.IsNamed ("System", "Type"))
 					return String.Empty;
 
 				if ((mr.Name == "GetTypeFromHandle") && (mr.DeclaringType.Name == "Type")) {
 					// ldtoken
-					msg = String.Format (LockType, (ins.Previous.Operand as TypeReference).Name);
+					msg = String.Format (CultureInfo.InvariantCulture, LockType, (ins.Previous.Operand as TypeReference).Name);
 				} else {
 					msg = mr.ToString ();
 				}

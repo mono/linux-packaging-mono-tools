@@ -5,7 +5,7 @@ test_SCRIPTS =
 test_DATA = 
 
 framework=../../bin/Gendarme.Framework.dll
-common_tests=../Test.Rules/Test.Rules.dll
+common_tests=Test.Rules.dll
 
 EXTRA_DIST = $(test_sources) Test.Rules.csproj
 CLEANFILES = Test.Rules.dll Test.Rules.dll.mdb $(common_tests)
@@ -24,8 +24,8 @@ test_sources =  \
 
 test_build_sources = $(addprefix $(srcdir)/, $(test_sources))
 
-$(common_tests): $(test_build_sources)
-	$(GMCS) -target:library $(TESTS_OPTIONS) -pkg:mono-nunit -r:$(CECIL_ASM) -r:$(framework) -out:$@ $(test_build_sources)
+$(common_tests): $(test_build_sources) $(framework)
+	$(MCS) -target:library $(TESTS_OPTIONS) -pkg:mono-nunit -r:$(CECIL_ASM) -r:$(framework) -out:$@ $(test_build_sources)
 
 all: $(common_tests)
 

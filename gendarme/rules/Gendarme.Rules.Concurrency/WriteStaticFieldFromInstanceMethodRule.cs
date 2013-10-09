@@ -27,6 +27,7 @@
 //
 
 using System;
+using System.Globalization;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -76,8 +77,6 @@ namespace Gendarme.Rules.Concurrency {
 	[EngineDependency (typeof (OpCodeEngine))]
 	public class WriteStaticFieldFromInstanceMethodRule : Rule, IMethodRule {
 
-		private const string ThreadStaticAttribute = "System.ThreadStaticAttribute";
-
 		static bool CheckField (FieldReference field)
 		{
 			// skip instance fields and generated static field (likely by the compiler)
@@ -92,7 +91,7 @@ namespace Gendarme.Rules.Concurrency {
 			// skip fields decorated with [ThreadStatic] (the runtime will use
 			// thread local storage for these so they are thread safe)
 			if (fd.HasCustomAttributes) {
-				if (fd.CustomAttributes.ContainsType (ThreadStaticAttribute))
+				if (fd.HasAttribute ("System", "ThreadStaticAttribute"))
 					return false;
 			}
 			return true;
@@ -118,7 +117,9 @@ namespace Gendarme.Rules.Concurrency {
 				if (ins.OpCode.Code == Code.Stsfld) {
 					FieldReference fr = (ins.Operand as FieldReference);
 					if (CheckField (fr)) {
-						string text = String.Format ("The static field '{0}', of type '{1}'. is being set in an instance method.", fr.Name, fr.FieldType);
+						string text = String.Format (CultureInfo.InvariantCulture,
+							"The static field '{0}', of type '{1}'. is being set in an instance method.", 
+							fr.Name, fr.FieldType);
 						Runner.Report (method, ins, Severity.Medium, Confidence.High, text);
 					}
 				}

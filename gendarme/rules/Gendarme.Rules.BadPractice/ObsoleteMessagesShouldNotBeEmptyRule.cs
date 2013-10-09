@@ -70,8 +70,6 @@ namespace Gendarme.Rules.BadPractice {
 	[FxCopCompatibility ("Microsoft.Design", "CA1041:ProvideObsoleteAttributeMessage")]
 	public class ObsoleteMessagesShouldNotBeEmptyRule : Rule, ITypeRule {
 
-		private const string ObsoleteAttribute = "System.ObsoleteAttribute";
-
 		public override void Initialize (IRunner runner)
 		{
 			base.Initialize (runner);
@@ -79,8 +77,10 @@ namespace Gendarme.Rules.BadPractice {
 			// if the module does not have a reference to System.ObsoleteAttribute 
 			// then nothing will be marked as obsolete inside it
 			Runner.AnalyzeModule += delegate (object o, RunnerEventArgs e) {
-				Active = (e.CurrentAssembly.Name.Name == "mscorlib") ||
-					e.CurrentModule.HasTypeReference (ObsoleteAttribute);
+				Active = (e.CurrentAssembly.Name.Name == "mscorlib" ||
+					e.CurrentModule.AnyTypeReference ((TypeReference tr) => {
+						return tr.IsNamed ("System", "ObsoleteAttribute");
+					}));
 			};
 		}
 
@@ -92,7 +92,7 @@ namespace Gendarme.Rules.BadPractice {
 			foreach (CustomAttribute ca in cap.CustomAttributes) {
 				// ObsoleteAttribute has a three (3) ctors, including a default (parameter-less) ctor
 				// http://msdn.microsoft.com/en-us/library/68k270ch.aspx
-				if (ca.AttributeType.FullName != ObsoleteAttribute)
+				if (!ca.AttributeType.IsNamed ("System", "ObsoleteAttribute"))
 					continue;
 
 				// note: we don't have to check fields since they cannot be used

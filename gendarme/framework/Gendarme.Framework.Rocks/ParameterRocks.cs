@@ -39,22 +39,7 @@ namespace Gendarme.Framework.Rocks {
 		/// <returns>True if the parameter represents a list of parameters, false otherwise.</returns>
 		public static bool IsParams (this ParameterDefinition self)
 		{
-			if (self == null || !self.HasCustomAttributes)
-				return false;
-			return self.CustomAttributes.ContainsType ("System.ParamArrayAttribute");
-		}
-
-		/// <summary>
-		/// Returns the sequence number as found in the metadata
-		/// </summary>
-		/// <param name="self">The ParameterDefinition on which the extension method can be called.</param>
-		/// <returns>The integer value of the sequence number of the parameter.</returns>
-		public static int GetSequence (this ParameterReference self)
-		{
-			if (self == null)
-				return -1;
-
-			return self.Index + 1;
+			return self.HasAttribute ("System", "ParamArrayAttribute");
 		}
 	}
 }

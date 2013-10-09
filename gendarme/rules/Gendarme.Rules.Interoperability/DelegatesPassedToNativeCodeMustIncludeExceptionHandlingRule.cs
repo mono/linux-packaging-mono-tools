@@ -32,6 +32,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -259,7 +260,7 @@ namespace Gendarme.Rules.Interoperability {
 				// Pending implementation of "analysis warnings", as mentioned here (post #21):
 				// http://groups.google.com/group/gendarme/browse_frm/thread/c37d157ae0c9682/57f89f3abf14f2fd?tvc=1&q=Gendarme+2.6+Preview+1+is+ready+for+download#57f89f3abf14f2fd
 				Runner.Report (method, Severity.Low, Confidence.Low,
-					string.Format ("An exception occurred while verifying this method. " +
+					String.Format (CultureInfo.CurrentCulture, "An exception occurred while verifying this method. " +
 					"This failure can probably be ignored, it's most likely due to an " + 
 					"uncommon code sequence in the method the rule didn't understand. {0}", ex.Message));
 				return RuleResult.Failure;
@@ -271,14 +272,14 @@ namespace Gendarme.Rules.Interoperability {
 			locals.Clear ();
 			stack.Clear ();
 			
-			Log.WriteLine (this, "\n\nChecking method: {0} on type: {1}", method.Name, method.DeclaringType.FullName);
+			Log.WriteLine (this, "\n\nChecking method: {0} on type: {1}", method.Name, method.DeclaringType.GetFullName ());
 			Log.WriteLine (this, method);
 
 			MethodBody body = method.Body;
 #if DEBUG
 			foreach (ExceptionHandler e in body.ExceptionHandlers)
-				Log.WriteLine (this, " HandlerType: {7}, TryStart: {4:X}, TryEnd: {5:X}, HandlerStart: {0:X}, HandlerEnd: {1:X}, FilterStart: {2:X}, FilterEnd: {3:X}, CatchType: {6}", 
-				                   e.HandlerStart.GetOffset (), e.HandlerEnd.GetOffset (), e.FilterStart.GetOffset (), e.FilterEnd.GetOffset (), 
+				Log.WriteLine (this, " HandlerType: {6}, TryStart: {3:X}, TryEnd: {4:X}, HandlerStart: {0:X}, HandlerEnd: {1:X}, FilterStart: {2:X}, CatchType: {5}", 
+				                   e.HandlerStart.GetOffset (), e.HandlerEnd.GetOffset (), e.FilterStart.GetOffset (),  
 				                   e.TryStart.GetOffset (), e.TryEnd.GetOffset (), e.CatchType, e.HandlerType);
 #endif
 			
@@ -493,12 +494,12 @@ namespace Gendarme.Rules.Interoperability {
 						continue;
 					
 					// no 'Catch ... When <condition>' clause. C# doesn't support it, VB does
-					if (eh.FilterStart != null || eh.FilterEnd != null)
+					if (eh.FilterStart != null)
 						continue;
 					
 					// check for catch all clauses
-					string exception_typename = eh.CatchType == null ? null : eh.CatchType.FullName;
-					if (!(exception_typename == null || exception_typename == "System.Object" || exception_typename == "System.Exception"))
+					TypeReference ctype = eh.CatchType;
+					if (!(ctype == null || ctype.IsNamed ("System", "Object") || ctype.IsNamed ("System", "Exception")))
 						continue;
 					
 					// Mark the code this exception handler handles as safe.
@@ -521,8 +522,8 @@ namespace Gendarme.Rules.Interoperability {
 				// Console.ResetColor ();
 			}
 			foreach (ExceptionHandler e in body.ExceptionHandlers)
-				Log.WriteLine (this, " HandlerType: {7}, TryStart: {4}, TryEnd: {5}, HandlerStart: {0}, HandlerEnd: {1}, FilterStart: {2}, FilterEnd: {3}, CatchType: {6}", 
-				                   e.HandlerStart.GetOffset (), e.HandlerEnd.GetOffset (), e.FilterStart.GetOffset (), e.FilterEnd.GetOffset (), 
+				Log.WriteLine (this, " HandlerType: {6}, TryStart: {3}, TryEnd: {4}, HandlerStart: {0}, HandlerEnd: {1}, FilterStart: {2}, CatchType: {5}", 
+				                   e.HandlerStart.GetOffset (), e.HandlerEnd.GetOffset (), e.FilterStart.GetOffset (),
 				                   e.TryStart.GetOffset (), e.TryEnd.GetOffset (), e.CatchType, e.HandlerType);
 #endif
 			
@@ -665,7 +666,8 @@ namespace Gendarme.Rules.Interoperability {
 			case Code.Ldloca_S:
 			case Code.Ldloc_S: return ((VariableDefinition) ins.Operand).Index;
 			default:
-				throw new ArgumentException (string.Format ("Invalid opcode: {0}", ins.OpCode.Name));
+				string msg = String.Format (CultureInfo.InvariantCulture, "Invalid opcode: {0}", ins.OpCode.Name);
+				throw new ArgumentException (msg);
 			}
 		}
 		
@@ -681,7 +683,8 @@ namespace Gendarme.Rules.Interoperability {
 			case Code.Stloc: // Untested for stloc
 			case Code.Stloc_S: return ((VariableDefinition) ins.Operand).Index;
 			default:
-				throw new ArgumentException (string.Format ("Invalid opcode: {0}", ins.OpCode.Name));
+				string msg = String.Format (CultureInfo.InvariantCulture, "Invalid opcode: {0}", ins.OpCode.Name);
+				throw new ArgumentException (msg);
 			}
 		}
 	}

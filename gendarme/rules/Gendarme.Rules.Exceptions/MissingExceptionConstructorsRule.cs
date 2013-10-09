@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 using Mono.Cecil;
 
@@ -86,9 +87,6 @@ namespace Gendarme.Rules.Exceptions {
 	[FxCopCompatibility ("Microsoft.Design", "CA1032:ImplementStandardExceptionConstructors")]
 	public class MissingExceptionConstructorsRule : Rule, ITypeRule {
 
-		// non-localizable
-		private const string Exception = "System.Exception";
-
 		// localizable
 		private const string MissingConstructor = "Exception is missing '{0} {1}{2}' constructor.";
 
@@ -97,15 +95,15 @@ namespace Gendarme.Rules.Exceptions {
 			if (!ctor.IsPublic)
 				return false;
 
-			return (ctor.Parameters [0].ParameterType.FullName == "System.String");
+			return (ctor.Parameters [0].ParameterType.IsNamed ("System", "String"));
 		}
 
 		private static bool CheckForInnerExceptionConstructor (IMethodSignature ctor)
 		{
 			IList<ParameterDefinition> pdc = ctor.Parameters;
-			string first = pdc [0].ParameterType.FullName;
-			string last = pdc [pdc.Count - 1].ParameterType.FullName;
-			return ((first == "System.String") && (last == Exception));
+			if (!pdc [0].ParameterType.IsNamed ("System", "String"))
+				return false;
+			return pdc [pdc.Count - 1].ParameterType.IsNamed ("System", "Exception");
 		}
 
 		private static bool CheckForSerializationConstructor (MethodDefinition ctor)
@@ -119,7 +117,7 @@ namespace Gendarme.Rules.Exceptions {
 		public RuleResult CheckType (TypeDefinition type)
 		{
 			// rule apply only to type that inherits from System.Exception
-			if (!type.Inherits (Exception))
+			if (!type.Inherits ("System", "Exception"))
 				return RuleResult.DoesNotApply;
 
 			// rule applies, only Success or Failure from the point on
@@ -166,21 +164,24 @@ namespace Gendarme.Rules.Exceptions {
 			}
 
 			if (!empty_ctor) {
-				string s = String.Format (MissingConstructor, "public", type.Name, "()");
+				string s = String.Format (CultureInfo.InvariantCulture, MissingConstructor, "public", 
+					type.Name, "()");
 				Runner.Report (type, Severity.High, Confidence.Total, s);
 			}
 			if (!string_ctor) {
-				string s = String.Format (MissingConstructor, "public", type.Name, "(string message)");
+				string s = String.Format (CultureInfo.InvariantCulture, MissingConstructor, "public", 
+					type.Name, "(string message)");
 				Runner.Report (type, Severity.High, Confidence.Total, s);
 			}
 			if (!inner_exception_ctor) {
-				string s = String.Format (MissingConstructor, "public", type.Name,
-					"(string message, Exception innerException)");
+				string s = String.Format (CultureInfo.InvariantCulture, MissingConstructor, "public", 
+					type.Name, "(string message, Exception innerException)");
 				Runner.Report (type, Severity.High, Confidence.Total, s);
 			}
 			if (!serialization_ctor) {
-				string s = String.Format (MissingConstructor, (type.IsSealed) ? "private" : "protected",
-					type.Name, "(SerializationInfo info, StreamingContext context)");
+				string s = String.Format (CultureInfo.InvariantCulture, MissingConstructor, 
+					(type.IsSealed) ? "private" : "protected", type.Name, 
+					"(SerializationInfo info, StreamingContext context)");
 				Runner.Report (type, Severity.High, Confidence.Total, s);
 			}
 

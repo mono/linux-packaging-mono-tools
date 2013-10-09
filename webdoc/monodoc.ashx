@@ -22,6 +22,7 @@ using System.Web;
 using System.Web.UI;
 using System.Xml;
 using System.Xml.Xsl;
+using System.Linq;
 using Monodoc;
 using System.Text.RegularExpressions;
 
@@ -66,28 +67,43 @@ namespace Mono.Website.Handlers
 		}
 
 		void IHttpHandler.ProcessRequest (HttpContext context)
-		{
-			string s;
+                {
+                        string s;
+			string callback;
 
-			s = (string) context.Request.Params["link"];
-			if (s != null){
-				HandleMonodocUrl (context, s);
-				return;
-			}
+                        s = (string) context.Request.Params["link"];
+                        if (s != null){
+                                HandleMonodocUrl (context, s);
+                                return;
+                        }
 
-			s = (string) context.Request.Params["tree"];
-			if (s != null){
-				if (s == "boot")
-					HandleBoot (context);
-				else {
-					HandleTree (context, s);
-				}
-				return;
-			}
-			context.Response.Write ("<html><body>Unknown request</body></html>");
-			context.Response.ContentType = "text/html";
-		}
-		
+                        s = (string) context.Request.Params["tree"];
+                        Console.WriteLine ("tree request:  '{0}'", s);
+                        if (s != null){
+                                HandleTree (context, s);
+                                return;
+                        }
+
+                        s = (string) context.Request.Params["fsearch"];
+						callback = (string) context.Request.Params["callback"];
+						Console.WriteLine ("Fast search requested for query {0}", s);
+                        if (s != null) {
+                                HandleFastSearchRequest (context, s, callback);
+                                return;
+                        }
+
+                        s = (string) context.Request.Params["search"];
+                        	callback = (string) context.Request.Params["callback"];
+				Console.WriteLine ("Full search requested for query {0}", s);
+                        if (s != null) {
+                                HandleFullSearchRequest (context, s, callback);
+                                return;
+                        }
+
+                        context.Response.Write ("<html><body>Unknown request</body></html>");
+                        context.Response.ContentType = "text/html";
+                }
+  
 		void HandleTree (HttpContext context, string tree)
 		{
 		    context.Response.ContentType = "text/xml";
@@ -102,7 +118,7 @@ namespace Mono.Website.Handlers
 				try {
 				current_node = (Node)current_node.Nodes [int.Parse (nodes [i])];
 				} catch (Exception e){
-					Console.WriteLine ("Failure with: {0} {i}", tree, i);
+					Console.WriteLine ("Failure with: {0} {1}", tree, i);
 				}
 			}
 
@@ -194,7 +210,10 @@ namespace Mono.Website.Handlers
 				if (context.Response.StatusCode == 304)
 					return;
 
-				Copy (s, context.Response.OutputStream);
+				s.CopyTo (context.Response.OutputStream);
+				return;
+			} else if (link.Equals ("root:", StringComparison.Ordinal) && File.Exists ("home.html")) {
+				context.Response.WriteFile ("home.html");
 				return;
 			}
 
@@ -213,57 +232,134 @@ namespace Mono.Website.Handlers
 			PrintDocs (content, n, context, GetHelpSource (n));
 		}
 
+		void HandleFastSearchRequest (HttpContext context, string request, string callback)
+                {
+                        if (string.IsNullOrWhiteSpace (request) || request.Length < 3) {
+                                // Unprocessable entity
+                                context.Response.StatusCode = 422;
+                                return;
+                        }
+
+
+                        var searchIndex = Global.GetSearchIndex ();
+                        var result = searchIndex.FastSearch (request, 15);
+                        // return Json corresponding to the results
+                        var answer = result == null || result.Count == 0 ? "[]" : "[" + 
+                                Enumerable.Range (0, result.Count)
+                      .Select (i => string.Format ("{{ \"name\" : \"{0}\", \"url\" : \"{1}\", \"fulltitle\" : \"{2}\" }}",
+                                                   result.GetTitle (i), result.GetUrl (i), result.GetFullTitle (i)))
+                      .Aggregate ((e1, e2) => e1 + ", " + e2) + "]";
+
+						if (!string.IsNullOrWhiteSpace (callback))
+							answer = callback + "(" + answer + ")";
+
+                        Console.WriteLine ("answer is {0}", answer);
+
+                        context.Response.ContentType = "application/json";
+                        context.Response.Write (answer);
+                }
+
+                void HandleFullSearchRequest (HttpContext context, string request, string callback)
+                {
+                        if (string.IsNullOrWhiteSpace (request)) {
+                                // Unprocessable entity
+                                context.Response.StatusCode = 422;
+                                return;
+                        }
+                        int start = 0, count = 0;
+                        var searchIndex = Global.GetSearchIndex ();
+                        Result result = null;
+                        if (int.TryParse (context.Request.Params["count"], out count)) {
+                                if (int.TryParse (context.Request.Params["start"], out start))
+                                        result = searchIndex.Search (request, count, start);
+                                else
+                                        result = searchIndex.Search (request, count);
+                        } else {
+                                count = 20;
+                                result = searchIndex.Search (request, count);
+                        }
+                        // return Json corresponding to the results
+                        var answer = result == null || result.Count == 0 ? "[]" : "[" +
+                                Enumerable.Range (0, result.Count)
+                      .Select (i => string.Format ("{{ \"name\" : \"{0}\", \"url\" : \"{1}\", \"fulltitle\" : \"{2}\" }}",
+                                                   result.GetTitle (i), result.GetUrl (i), result.GetFullTitle (i)))
+                      .Aggregate ((e1, e2) => e1 + ", " + e2) + "]";
+
+			if(!string.IsNullOrWhiteSpace (callback)) {
+                        	answer = string.Format ("{0}({{ \"count\": {1}, \"start\": {2}, \"result\": {3} }})", callback, count, start, answer);
+			}
+                        
+			Console.WriteLine ("answer is {0}", answer);
+
+                        context.Response.ContentType = "application/json";
+                        context.Response.Write (answer);
+                }
+		
 		HelpSource GetHelpSource (Node n)
 		{
 			if (n != null)
 				return n.tree.HelpSource;
 			return null;
 		}
-		
-		void HandleTreeLink (HttpContext context, string link)
-		{
-			string [] lnk = link.Split (new char [] {'@'});
-			
-			if (lnk.Length == 1) {
-				HandleMonodocUrl (context, link);
-				return;
-			}
-				
-			int hsId = int.Parse (lnk [0]);
-			
-			Node n;
-			HelpSource hs = Global.help_tree.GetHelpSourceFromId (hsId);
-			string content = hs.GetText (lnk [1], out n);
-			if (content == null) {
-				content = Global.help_tree.RenderUrl (lnk [1], out n);
-				hs = GetHelpSource (n);
-			}
-			PrintDocs (content, n, context, hs);
-		}
-
-		void Copy (Stream input, Stream output)
-		{
-			const int BUFFER_SIZE=8192; // 8k buf
-			byte [] buffer = new byte [BUFFER_SIZE];
-
-			int len;
-			while ( (len = input.Read (buffer, 0, BUFFER_SIZE)) > 0)
-				output.Write (buffer, 0, len);
-
-			output.Flush();
-		}
 
 		string requestPath;
 		void PrintDocs (string content, Node node, HttpContext ctx, HelpSource hs)
 		{
+			string tree_path = string.Empty;
+			Node current = node;
+			while (current != null && current.Parent != null) {
+				int index = current.Parent.Nodes.IndexOf (current);
+				tree_path = '@' + (index + tree_path);
+				current = current.Parent;
+			}
+			tree_path = tree_path.Length > 0 ? tree_path.Substring (1) : tree_path;
+			Console.WriteLine ("Tree path is:" + tree_path);
+
 			string title = (node == null || node.Caption == null) ? "Mono XDocumentation" : node.Caption;
 
 			ctx.Response.Write (@"
 <html>
 <head>
-		<link type='text/css' rel='stylesheet' href='common.css' media='all' title='Default style' />
-<script>
-<!--
+	<link type='text/css' rel='stylesheet' href='views/monodoc.css' media='all' title='Default style' />
+	<meta name='TreePath' value='");
+		ctx.Response.Write (tree_path);
+		ctx.Response.Write (@"' />
+	<style type='text/css'>
+  		body, h1, h2, h3, h4, h5, h6, .named-header {
+    			word-wrap: break-word !important;
+			font-family: 'Myriad Pro', 'myriad pro', Helvetica, Verdana, Arial !important; 
+  		}
+  		p, li, span, table, pre, .Content {
+   			font-family: Helvetica, Verdana, Arial !important;
+  		}
+  		.named-header { height: auto !important; padding: 8px 0 20px 10px !important; font-weight: 600 !important; font-size: 2.3em !important; margin: 0.3em 0 0.6em 0 !important; margin-top: 0 !important; font-size: 2.3em !important; }
+  		h2 { padding-top: 1em !important; margin-top: 0 !important;  font-weight: 600 !important; font-size: 1.8em !important; color: #333 !important; }
+  		p { margin: 0 0 1.3em !important; color: #555753 !important; line-height: 1.8 !important; }
+  		body, table, pre { line-height: 1.8 !important; color: #55753 !important; } 
+ 		.breadcrumb { font-size: 12px !important; }
+	</style>
+	
+	<script src='//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js'></script>
+
+	<script type='text/javascript'>
+
+	function printFrame() {
+		window.print();
+		return false;
+	}
+	
+	//pass the function object to parent
+	parent.printFrame = printFrame;
+
+	function try_change_page (link, e)
+	{
+		if (!e)
+			e = window.event;
+		if (e.ctrlKey || e.shiftKey || e.altKey || e.metaKey || e.modifiers > 0)
+			return;
+		window.parent.change_page (link)
+	}
+
 function login (rurl)
 {
 	document.location.href = 'login.aspx?ReturnUrl=' + rurl;
@@ -276,8 +372,6 @@ function load ()
 	{
 		top.location.href = 'index.aspx'+document.location.search;
 	}
-
-	parent.Header.document.getElementById ('pageLink').href = parent.content.window.location;
 	objs = document.getElementsByTagName('img');
 	for (i = 0; i < objs.length; i++)
 	{
@@ -301,21 +395,32 @@ function makeLink (link)
 		case 'ftp':
 		case 'mailto':
 		case 'javascript':
+		case 'https':
 			return link;
 			
 		default:
 			if(document.all) {
-				return '");
-			ctx.Response.Write (ctx.Request.Path);
-			ctx.Response.Write (@"?link=' + link.replace(/\+/g, '%2B').replace(/file:\/\/\//, '');
+				return 'monodoc.ashx?link=' + link.replace(/\+/g, '%2B').replace(/file:\/\/\//, '');
 			}
-			return '");
-
-			ctx.Response.Write (ctx.Request.Path);
-			ctx.Response.Write (@"?link=' + link.replace(/\+/g, '%2B');
+			return 'monodoc.ashx?link=' + link.replace(/\+/g, '%2B');
 		}
-}
--->");
+}");
+			if (!string.IsNullOrEmpty (Global.ua)) {
+				ctx.Response.Write (@"var _gaq = _gaq || [];
+ _gaq.push(['_setAccount', '");
+				ctx.Response.Write (Global.ua);
+				ctx.Response.Write (@"']);
+ _gaq.push(['_trackPageview']);
+
+ (function() {
+   var ga = document.createElement('script'); ga.type =
+'text/javascript'; ga.async = true;
+   ga.src = ('https:' == document.location.protocol ? 'https://ssl' :
+'http://www') + '.google-analytics.com/ga.js';
+   var s = document.getElementsByTagName('script')[0];
+s.parentNode.insertBefore(ga, s);
+ })();");
+			}
 			ctx.Response.Write ("</script><title>");
 			ctx.Response.Write (title);
 			ctx.Response.Write ("</title>\n");
@@ -330,7 +435,8 @@ function makeLink (link)
 				ctx.Response.Write (hs.InlineJavaScript);
 				ctx.Response.Write ("</script>\n");
 			}
-			ctx.Response.Write (@"</head><body onLoad='load()'>");
+			ctx.Response.Write (@"</head><body onload='load()'>");
+			ctx.Response.Write (@"<iframe id='helpframe' src='' height='0' width='0' frameborder='0'></iframe>");
 
 			// Set up object variable, as it's required by the MakeLink delegate
 			requestPath=ctx.Request.Path;
@@ -382,7 +488,7 @@ function makeLink (link)
  						theMatch.Groups[4].ToString());
 			
 			} else {
-				updated_link = String.Format ("{0}{1}?link={2}{3} target=\"content\"{4}",
+				updated_link = String.Format ("{0}{1}?link={2}{3} onclick=\"try_change_page('{2}')\" {4}",
 					theMatch.Groups[1].ToString(),
                                         requestPath,
                                         HttpUtility.UrlEncode (link.Replace ("file://","")),
@@ -398,73 +504,6 @@ function makeLink (link)
 			get {
 				return true;
 			}
-		}
-
-		void HandleBoot (HttpContext context)
-		{
-			context.Response.Write (@"
-<html>
-	<head>
-		<link type='text/css' rel='stylesheet' href='ptree/tree.css'/>
-		<link type='text/css' rel='stylesheet' href='sidebar.css'/>
-		<script src='xtree/xmlextras.js'></script>
-		<script src='ptree/tree.js'></script>
-		<script src='sidebar.js'></script>
-		<script>
-		var tree = new PTree ();
-		function onBodyLoad ()
-		{
-			tree.strTargetDefault = 'content';
-			tree.strSrcBase = 'monodoc.ashx?tree=';
-			tree.strActionBase = 'monodoc.ashx?link=';
-			tree.strImagesBase = 'xtree/images/msdn2/';
-			tree.strImageExt = '.gif';
-			var content = document.getElementById ('contentList');
-			var root = tree.CreateItem (null, 'Mono Documentation', 'intro.html', '', true);
-			content.appendChild (root);
-		");
-
-		for (int i = 0; i < Global.help_tree.Nodes.Count; i++){
-			Node n = (Node)Global.help_tree.Nodes [i];
-			context.Response.Write (
-				"tree.CreateItem (root, '" + n.Caption + "', '" +
-				n.PublicUrl + "', ");
-	
-			if (n.Nodes.Count != 0)
-				context.Response.Write ("'" + i + "'");
-			else	
-				context.Response.Write ("null");
-	
-			if (i == Global.help_tree.Nodes.Count-1)
-				context.Response.Write (", true");
-
-			context.Response.Write (@");
-			");
-		}
-		context.Response.Write (@"
-		}</script>
-	</head>
-	<body onLoad='javascript:onBodyLoad();' onkeydown='javascript:return tree.onKeyDown (event);'>
-	  <div id='tabs'>
-	    <ul>
-	      <li id='contentsTab' class='selected'><a href='javascript:ShowContents();'>Contents</a></li>
-	      <li id='indexTab' style='display:none;'><a href='javascript:ShowIndex();'>Index</a></li>
-	    </ul>
-	  </div>
-	  <div id='contents' class='activeTab'>
-	    <div id='contentList'>
-	    </div>
-	  </div>
-	  <div id='index' class='tab'>
-	    <p>
-	    <label for='indexInput'>Lookup:</label> <input type='text' id='indexInput'/>
-	    <img alt='Spinner-blue' id='search_spinner' src='images/searching.gif' style='display:none;' align='middle' />
-	    <p id='errorText'></p>
-	    <ul id='indexList'></ul>
-	  </div>
-	</body>
-</html>
-");
 		}
 	}
 }

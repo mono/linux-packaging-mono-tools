@@ -25,6 +25,7 @@
 // THE SOFTWARE.
 
 using System;
+using System.Globalization;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -61,26 +62,6 @@ namespace Gendarme.Rules.BadPractice {
 	[Solution ("This situation can be confusing once deployed. Make sure both version are identical.")]
 	public class AvoidAssemblyVersionMismatchRule : Rule, IAssemblyRule {
 
-		static bool VersionTryParse (string input, out Version result)
-		{
-			result = null;
-			if (String.IsNullOrEmpty (input))
-				return false;
-
-			try {
-				result = new Version (input);
-				return true;
-			}
-			catch (ArgumentException) {
-				// also cover ArgumentOutOfRangeException
-			}
-			catch (FormatException) {
-			}
-			catch (OverflowException) {
-			}
-			return false;
-		}
-
 		public RuleResult CheckAssembly (AssemblyDefinition assembly)
 		{
 			if (!assembly.HasCustomAttributes)
@@ -100,11 +81,10 @@ namespace Gendarme.Rules.BadPractice {
 				// any attribute without arguments can be skipped
 				if (!ca.HasConstructorArguments)
 					continue;
-				if (ca.AttributeType.FullName != "System.Reflection.AssemblyFileVersionAttribute")
+				if (!ca.AttributeType.IsNamed ("System.Reflection", "AssemblyFileVersionAttribute"))
 					continue;
 
-				// FIXME: replace with Version.TryParse once we upgrade to FX4.0
-				VersionTryParse (ca.ConstructorArguments [0].Value as string, out file_version);
+				Version.TryParse (ca.ConstructorArguments [0].Value as string, out file_version);
 				break;
 			}
 
@@ -127,9 +107,11 @@ namespace Gendarme.Rules.BadPractice {
 			else if (assembly_version.Revision == file_version.Revision)
 				return RuleResult.Success;
 
-			string msg = String.Format ("Assembly version is '{0}' while file version is '{1}'.", assembly_version, file_version);
+			string msg = String.Format (CultureInfo.InvariantCulture,
+				"Assembly version is '{0}' while file version is '{1}'.", assembly_version, file_version);
 			Runner.Report (assembly, s, Confidence.High, msg);
 			return RuleResult.Failure;
 		}
 	}
 }
+

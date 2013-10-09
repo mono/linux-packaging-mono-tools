@@ -102,9 +102,9 @@ namespace Gendarme.Rules.Serialization {
 		private static bool InheritsFromISerializableImplementation (TypeDefinition type)
 		{
 			TypeDefinition current = type.BaseType != null ? type.BaseType.Resolve () : null;
-			if (current == null || current.FullName == "System.Object")
+			if (current == null || current.IsNamed ("System", "Object"))
 				return false;
-			if (current.IsSerializable && current.Implements ("System.Runtime.Serialization.ISerializable"))
+			if (current.IsSerializable && current.Implements ("System.Runtime.Serialization", "ISerializable"))
 				return true;
 
 			return InheritsFromISerializableImplementation (current);
@@ -124,7 +124,8 @@ namespace Gendarme.Rules.Serialization {
 						continue;
 
 					MethodReference operand = (MethodReference) instruction.Operand;
-					if (methodSignature.Matches (operand) && type.Inherits (operand.DeclaringType.FullName))
+					TypeReference tr = operand.DeclaringType;
+					if (methodSignature.Matches (operand) && type.Inherits (tr.Namespace, tr.Name))
 						return;
 				}
 			}

@@ -29,6 +29,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.Text;
 
 using Mono.Cecil;
@@ -107,14 +108,19 @@ namespace Gendarme.Rules.Performance {
 		static string GetKey (MethodDefinition caller, MethodDefinition callee, Instruction ins)
 		{
 			if (callee.IsStatic)
-				return callee.ToString ();
+				return callee.GetFullName ();
 
 			IMetadataTokenProvider chain = callee;
 			Instruction instance = ins.TraceBack (caller);
 
 			StringBuilder sb = new StringBuilder ();
 			while (instance != null) {
-				sb.Append (chain.ToString () ?? "null").Append ('.');
+				MemberReference mr = (chain as MemberReference);
+				if (mr == null)
+					sb.Append (chain.ToString ()); // ?? "null")
+				else
+					sb.Append (mr.GetFullName ());
+				sb.Append ('.');
 				chain = (instance.Operand as IMetadataTokenProvider);
 				if (chain == null) {
 					sb.Append (instance.GetOperand (caller));
@@ -151,16 +157,15 @@ namespace Gendarme.Rules.Performance {
 
 		static bool Filter (MethodDefinition method)
 		{
-			switch (method.DeclaringType.FullName) {
+			TypeReference type = method.DeclaringType;
 			// Elapsed* and IsRunning
-			case "System.Diagnostics.Stopwatch":
+			if (type.IsNamed ("System.Diagnostics", "Stopwatch"))
 				return true;
 			// Now and UtcNow
-			case "System.DateTime":
+			else if (type.IsNamed ("System", "DateTime"))
 				return method.IsStatic;
-			default:
-				return false;
-			}
+
+			return false;
 		}
 
 		public RuleResult CheckMethod (MethodDefinition method)
@@ -218,13 +223,15 @@ namespace Gendarme.Rules.Performance {
 				MethodDefinition md = kvp.Value.Key;
 				if (md.IsVirtual && !md.IsFinal) {
 					// virtual calls are expensive, so the code better cache the value
-					string msg = String.Format ("Multiple ({0}) calls to virtual property '{1}'.", count, md.ToString ());
+					string msg = String.Format (CultureInfo.InvariantCulture, 
+						"Multiple ({0}) calls to virtual property '{1}'.", count, md.ToString ());
 					Runner.Report (method, GetSeverity (count, true), Confidence.Normal, msg);
 				} else if (!IsInliningCandidate (md)) {
 					// non-virtual calls might be inlined
 					// otherwise caching the value is again a good idea
 					int size = md.HasBody ? md.Body.CodeSize : 0;
-					string msg = String.Format ("Multiple ({0}) calls to non-virtual property '{1}', likely non-inlined due to size ({2} >= {3}).",
+					string msg = String.Format (CultureInfo.InvariantCulture,
+						"Multiple ({0}) calls to non-virtual property '{1}', likely non-inlined due to size ({2} >= {3}).",
 						count, md.ToString (), size, InlineLimit);
 					Runner.Report (method, GetSeverity (count, false), Confidence.Normal, msg);
 				}

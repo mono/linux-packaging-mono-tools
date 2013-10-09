@@ -122,8 +122,11 @@ namespace Gendarme.Rules.Security {
 			// if the module does not reference System.Math then 
 			// none of its method is being called with constants
 			Runner.AnalyzeModule += delegate (object o, RunnerEventArgs e) {
-				Active = (e.CurrentAssembly.Name.Name == "mscorlib") ||
-					e.CurrentModule.HasTypeReference ("System.Net.ICertificatePolicy");
+				Active = (e.CurrentAssembly.Name.Name == "mscorlib" ||
+					e.CurrentModule.AnyTypeReference ((TypeReference tr) => {
+						return tr.IsNamed ("System.Net", "ICertificatePolicy");
+					})
+				);
 			};
 		}
 
@@ -138,11 +141,11 @@ namespace Gendarme.Rules.Security {
 						if (pd == null)
 							continue;
 
-						switch (pd.GetSequence ()) {
-						case 2:
-						case 4:
-							return RuleResult.Success;
+						switch (pd.Index) {
+						case 1:
 						case 3:
+							return RuleResult.Success;
+						case 2:
 							if (third)
 								return RuleResult.Success;
 							break;
@@ -160,7 +163,7 @@ namespace Gendarme.Rules.Security {
 			// since ICertificatePolicy is an interface we need to check its name
 			string name = method.Name;
 			if (name == "CheckValidationResult") {
-				if (!method.DeclaringType.Implements ("System.Net.ICertificatePolicy"))
+				if (!method.DeclaringType.Implements ("System.Net", "ICertificatePolicy"))
 					return RuleResult.Success;
 			} else if (name != "System.Net.ICertificatePolicy.CheckValidationResult")
 				return RuleResult.Success;
@@ -187,7 +190,7 @@ namespace Gendarme.Rules.Security {
 
 			IList<ParameterDefinition> pdc = method.Parameters;
 			int count = pdc.Count;
-			if ((count != 4) || (method.ReturnType.FullName != "System.Boolean"))
+			if ((count != 4) || !method.ReturnType.IsNamed ("System", "Boolean"))
 				return RuleResult.DoesNotApply;
 
 			// this method could be a candidate for both policy or callback
@@ -195,10 +198,10 @@ namespace Gendarme.Rules.Security {
 			bool callback = true;
 			// if all the parameters match
 			for (int i = 0; i < count; i++) {
-				string name = pdc [i].ParameterType.FullName;
-				if (policy && (name != CertificatePolicyParameters [i]))
+				TypeReference ptype = pdc [i].ParameterType;
+				if (policy && !ptype.IsNamed (CertificatePolicyParameters [i]))
 					policy = false;
-				if (callback && (name != RemoteCertificateValidationParameters [i]))
+				if (callback && !ptype.IsNamed (RemoteCertificateValidationParameters [i]))
 					callback = false;
 			}
 

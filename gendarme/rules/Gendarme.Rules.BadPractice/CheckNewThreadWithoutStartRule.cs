@@ -110,8 +110,6 @@ namespace Gendarme.Rules.BadPractice {
 			return false;
 		}
 
-		private const string Thread = "System.Threading.Thread";
-
 		public override void Initialize (IRunner runner)
 		{
 			base.Initialize (runner);
@@ -119,8 +117,10 @@ namespace Gendarme.Rules.BadPractice {
 			// if the module does not reference (sealed) System.Threading.Thread 
 			// then no code inside the module will instanciate it
 			Runner.AnalyzeModule += delegate (object o, RunnerEventArgs e) {
-				Active = (e.CurrentAssembly.Name.Name == "mscorlib") ||
-					e.CurrentModule.HasTypeReference (Thread);
+				Active = (e.CurrentAssembly.Name.Name == "mscorlib" ||
+					e.CurrentModule.AnyTypeReference ((TypeReference tr) => {
+						return tr.IsNamed ("System.Threading", "Thread");
+					}));
 			};
 		}
 
@@ -141,11 +141,11 @@ namespace Gendarme.Rules.BadPractice {
 
 				MethodReference constructor = (MethodReference) ins.Operand;
 
-				if (constructor.DeclaringType.FullName != Thread)
+				if (!constructor.DeclaringType.IsNamed ("System.Threading", "Thread"))
 					continue;
 				if (ins.Next != null && (ins.Next.OpCode.Code == Code.Call || ins.Next.OpCode.Code == Code.Callvirt)) { //quick check to safe resources
 					MethodReference calledMethod = (MethodReference) ins.Next.Operand;
-					if ((calledMethod.DeclaringType.FullName == Thread) && (calledMethod.Name == "Start"))
+					if (calledMethod.IsNamed ("System.Threading", "Thread", "Start"))
 						continue;
 				}
 

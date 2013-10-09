@@ -24,6 +24,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+using System.Globalization;
+
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 
@@ -80,11 +82,12 @@ namespace Gendarme.Rules.BadPractice {
 
 				// we let null constant for all reference types (since they can't be changed to anything else)
 				// except for strings (which can be modified later)
-				string type_name = field.FieldType.FullName;
-				if (!field.FieldType.IsValueType && (type_name != "System.String"))
+				TypeReference ftype = field.FieldType;
+				if (!ftype.IsValueType && !ftype.IsNamed ("System", "String"))
 					continue;
 
-				string msg = string.Format ("'{0}' of type {1}.", field.Name, type_name);
+				string msg = string.Format (CultureInfo.InvariantCulture, "'{0}' of type {1}.", 
+					field.Name, ftype.GetFullName ());
 				Runner.Report (field, Severity.High, Confidence.High, msg);
 
 			}

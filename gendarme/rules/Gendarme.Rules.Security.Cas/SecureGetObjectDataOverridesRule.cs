@@ -27,6 +27,7 @@
 //
 
 using System;
+using System.Globalization;
 using System.Security;
 using System.Security.Permissions;
 
@@ -87,7 +88,7 @@ namespace Gendarme.Rules.Security.Cas {
 		public RuleResult CheckType (TypeDefinition type)
 		{
 			// rule applies only to types that implements ISerializable
-			if (!type.Implements ("System.Runtime.Serialization.ISerializable"))
+			if (!type.Implements ("System.Runtime.Serialization", "ISerializable"))
 				return RuleResult.DoesNotApply;
 
 			MethodDefinition method = type.GetMethod (MethodSignatures.GetObjectData);
@@ -112,7 +113,8 @@ namespace Gendarme.Rules.Security.Cas {
 				case Mono.Cecil.SecurityAction.NonCasLinkDemand:
 					demand = true;
 					if (!RuleSet.IsSubsetOf (declsec.ToPermissionSet ())) {
-						string message = String.Format ("{0} is not a subset of {1} permission set",
+						string message = String.Format (CultureInfo.InvariantCulture,
+							"{0} is not a subset of {1} permission set",
 							"SerializationFormatter", declsec.Action);
 						Runner.Report (method, Severity.High, Confidence.Total, message);
 					}
