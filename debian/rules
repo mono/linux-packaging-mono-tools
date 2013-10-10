@@ -17,8 +17,8 @@ override_dh_install:
 	# fix upstream file permissions
 	find debian/monodoc-http/usr/*/monodoc/web -type f -exec chmod 644 {} \;
 	find debian/monodoc-http/usr/*/monodoc/web -type d -exec chmod 755 {} \;
-	rm debian/monodoc-http/usr/share/monodoc/web/xtree/xmlextras.js
-	ln -s /usr/share/javascript/xmlextras/xmlextras.js debian/monodoc-http/usr/share/monodoc/web/xtree/xmlextras.js
+	rm debian/monodoc-http/usr/share/monodoc/web/plugins/sidebar-plugin/dependencies/xtree/xmlextras.js
+	ln -s /usr/share/javascript/xmlextras/xmlextras.js debian/monodoc-http/usr/share/monodoc/web/plugins/sidebar-plugin/dependencies/xtree/xmlextras.js
 
 get-orig-source:
 	uscan \
