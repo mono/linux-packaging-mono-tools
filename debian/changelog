@@ -1,3 +1,21 @@
+mono-tools (2.11+git20131009.5b1ef35-1) unstable; urgency=low
+
+  * [fa21924] Imported Upstream version 2.11+git20131009.5b1ef35 
+    (Closes: #577522, #713095)
+  * [4a5d107] Remove obsolete patch 
+    debian/patches/add_missing_Global.asax.patch
+  * [c39b355] Remove obsolete patch 
+    debian/patches/automake_devs_need_a_new_job
+  * [85fc181] Stop trying to generate documentation indices systemwide. 
+    This is better handled on a per-user basis by the monodoc browser 
+    when run interactively. (Closes: #479491, #611790, #615986)
+  * [c2aa8f0] Add zip to build-depends.
+  * [967c86d] Override GMCS as well as MCS and DMCS
+  * [d5577ab] Remove references in "make install" to files which don't exist.
+  * [82d8593] Deal with replacement path to xmlextras.js
+
+ -- Jo Shields <directhex@apebox.org>  Thu, 10 Oct 2013 10:56:47 +0200
+
 mono-tools (2.10-6) unstable; urgency=high
 
   * [3a59ba0] Remove trailing whitespace in postinst. (Closes: #682248)
