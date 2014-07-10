@@ -1,3 +1,9 @@
+mono-tools (2.11+git20131009.5b1ef35-2) unstable; urgency=medium
+
+  * No-change rebuild for libmono-csharp ABI bump.
+
+ -- Iain Lane <laney@debian.org>  Thu, 10 Jul 2014 18:07:15 +0100
+
 mono-tools (2.11+git20131009.5b1ef35-1) unstable; urgency=low
 
   * [fa21924] Imported Upstream version 2.11+git20131009.5b1ef35 
