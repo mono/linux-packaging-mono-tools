@@ -1,3 +1,10 @@
+mono-tools (3.10-1) unstable; urgency=medium
+
+  * [25b8caf] Imported Upstream version 3.10
+  * [1771e9d] Add missing source for minified Javascript (Closes: #737440)
+
+ -- Jo Shields <directhex@apebox.org>  Wed, 08 Oct 2014 12:45:51 +0100
+
 mono-tools (2.11+git20131009.5b1ef35-2) unstable; urgency=medium
 
   * No-change rebuild for libmono-csharp ABI bump.
