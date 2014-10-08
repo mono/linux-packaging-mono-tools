@@ -1,3 +1,9 @@
+mono-tools (3.10-1~xamarin1) wheezy; urgency=medium
+
+  * Upload to Xamarin repo
+
+ -- Jo Shields <directhex@apebox.org>  Wed, 08 Oct 2014 12:53:53 +0100
+
 mono-tools (3.10-1) unstable; urgency=medium
 
   * [25b8caf] Imported Upstream version 3.10
