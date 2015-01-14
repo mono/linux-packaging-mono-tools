@@ -1,3 +1,9 @@
+mono-tools (3.10-1xamarin1) wheezy; urgency=medium
+
+  * Rebuild against Mono 3.12
+
+ -- Jo Shields <directhex@apebox.org>  Wed, 14 Jan 2015 18:42:05 +0000
+
 mono-tools (3.10-1~xamarin1) wheezy; urgency=medium
 
   * Upload to Xamarin repo
