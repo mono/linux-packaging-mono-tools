@@ -1,3 +1,12 @@
+mono-tools (4.2-0xamarin1) wheezy; urgency=medium
+
+  * [b88ab76] Fix watchfile for new URL
+  * [6584c7b] Imported Upstream version 4.2
+  * [47f7665] Fix build deps
+  * [02348b8] Remove obsolete file from d/p/00-fix_build_system.patch
+
+ -- Jo Shields <jo.shields@xamarin.com>  Wed, 06 Apr 2016 17:41:01 +0100
+
 mono-tools (3.10-1xamarin1) wheezy; urgency=medium
 
   * Rebuild against Mono 3.12
