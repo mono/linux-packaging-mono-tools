@@ -1,1 +1,2 @@
 00-fix_build_system.patch
+use-system-cecil-not-private-cecil.patch

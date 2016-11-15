@@ -1,0 +1,151 @@
+Index: mono-tools/configure.in
+===================================================================
+--- mono-tools.orig/configure.in
++++ mono-tools/configure.in
+@@ -152,7 +152,7 @@ else
+ AC_MSG_ERROR([You are missing Cecil (cecil.pc for packageconfig) required for gui-compare and minvoke])
+ fi
+ 
+-CECIL_ASM=`pkg-config --variable=Libraries cecil`
++CECIL_ASM=`pkg-config --libs mono-cecil`
+ AC_SUBST(CECIL_ASM)
+ 
+ dnl Intl
+Index: mono-tools/gendarme/framework/Makefile.am
+===================================================================
+--- mono-tools.orig/gendarme/framework/Makefile.am
++++ mono-tools/gendarme/framework/Makefile.am
+@@ -85,9 +85,9 @@ framework_sources =  \
+ framework_build_sources = $(addprefix $(srcdir)/, $(framework_sources))
+ framework_build_sources += $(framework_generated_sources)
+ 
+-../bin/Gendarme.Framework.dll: $(framework_build_sources) $(CECIL_ASM)
++../bin/Gendarme.Framework.dll: $(framework_build_sources)
+ 	test -d ../bin || mkdir ../bin
+-	$(MCS) $(GENDARME_OPTIONS) -target:library -doc:$(framework_SCRIPTS).doc -r:$(CECIL_ASM) \
++	$(MCS) $(GENDARME_OPTIONS) -target:library -doc:$(framework_SCRIPTS).doc $(CECIL_ASM) \
+ 		-out:$@ $(framework_build_sources)
+ 
+ framework_test_sources = \
+@@ -108,9 +108,9 @@ framework_test_sources = \
+ 	Gendarme.Framework.Rocks/FieldRocksTest.cs
+ framework_test_build_sources = $(addprefix $(srcdir)/Test/, $(framework_test_sources))
+ 
+-Test.Framework.dll: $(framework_test_build_sources) $(framework_rules_SCRIPTS) ../bin/Gendarme.Framework.dll $(CECIL_ASM)
++Test.Framework.dll: $(framework_test_build_sources) $(framework_rules_SCRIPTS) ../bin/Gendarme.Framework.dll
+ 	$(MCS) $(TESTS_OPTIONS) -target:library -d:CODE_ANALYSIS -pkg:mono-nunit \
+-		-r:$(CECIL_ASM) -r:../bin/Gendarme.Framework.dll -r:../rules/Test.Rules/Test.Rules.dll \
++		$(CECIL_ASM) -r:../bin/Gendarme.Framework.dll -r:../rules/Test.Rules/Test.Rules.dll \
+ 		-out:$@ $(framework_test_build_sources)
+ 
+ test: Test.Framework.dll
+Index: mono-tools/gendarme/console/Makefile.am
+===================================================================
+--- mono-tools.orig/gendarme/console/Makefile.am
++++ mono-tools/gendarme/console/Makefile.am
+@@ -30,7 +30,7 @@ gendarme_prefix_resources = $(addprefix
+ gendarme_build_resources = $(foreach res,$(gendarme_prefix_resources), $(addprefix -resource:,$(res)),$(notdir $(res)))
+ 
+ ../bin/gendarme.exe: $(gendarme_build_sources) $(gendarme_prefix_resources)
+-	$(MCS) $(GENDARME_OPTIONS) -r:$(CECIL_ASM) -r:System.Xml.Linq -r:../bin/Gendarme.Framework.dll \
++	$(MCS) $(GENDARME_OPTIONS) $(CECIL_ASM) -r:System.Xml.Linq -r:../bin/Gendarme.Framework.dll \
+ 		-out:$@ $(gendarme_build_sources) $(gendarme_build_resources)
+ 
+ self-test: ../bin/gendarme.exe
+Index: mono-tools/gendarme/rules/Test.Rules/Makefile.am
+===================================================================
+--- mono-tools.orig/gendarme/rules/Test.Rules/Makefile.am
++++ mono-tools/gendarme/rules/Test.Rules/Makefile.am
+@@ -25,7 +25,7 @@ test_sources =  \
+ test_build_sources = $(addprefix $(srcdir)/, $(test_sources))
+ 
+ $(common_tests): $(test_build_sources) $(framework)
+-	$(MCS) -target:library $(TESTS_OPTIONS) -pkg:mono-nunit -r:$(CECIL_ASM) -r:$(framework) -out:$@ $(test_build_sources)
++	$(MCS) -target:library $(TESTS_OPTIONS) -pkg:mono-nunit $(CECIL_ASM) -r:$(framework) -out:$@ $(test_build_sources)
+ 
+ all: $(common_tests)
+ 
+Index: mono-tools/gendarme/swf-wizard-runner/Makefile.am
+===================================================================
+--- mono-tools.orig/gendarme/swf-wizard-runner/Makefile.am
++++ mono-tools/gendarme/swf-wizard-runner/Makefile.am
+@@ -55,7 +55,7 @@ wizard_icon = Resources/gendarme.ico
+ wizard_build_icon = $(addprefix $(srcdir)/, $(wizard_icon))
+ 
+ ../bin/gendarme-wizard.exe: $(wizard_build_sources) $(wizard_resources) Wizard.resources Properties/Resources.resources $(wizard_build_xsl) $(wizard_build_icon)
+-	$(MCS) -debug -target:winexe -r:$(CECIL_ASM) -r:../bin/Gendarme.Framework.dll \
++	$(MCS) -debug -target:winexe $(CECIL_ASM) -r:../bin/Gendarme.Framework.dll \
+ 		-r:System.Core.dll -r:System.Xml.Linq.dll -r:System.Windows.Forms.dll -r:System.Drawing.dll -r:System.Xml.dll \
+ 		-resource:$(wizard_build_xsl) -resource:Wizard.resources,Gendarme.Wizard.resources \
+ 		-resource:Properties/Resources.resources,Gendarme.Properties.Resources.resources \
+Index: mono-tools/gendarme/tools/unsupported/mapper/Makefile.am
+===================================================================
+--- mono-tools.orig/gendarme/tools/unsupported/mapper/Makefile.am
++++ mono-tools/gendarme/tools/unsupported/mapper/Makefile.am
+@@ -7,7 +7,7 @@ mapper_sources =  \
+ 	FxCopRule.cs
+ 
+ mapper.exe: $(mapper_sources)
+-	$(MCS) -debug $^ -out:$@ -r:System.Xml.Linq.dll -r:$(CECIL_ASM)
++	$(MCS) -debug $^ -out:$@ -r:System.Xml.Linq.dll $(CECIL_ASM)
+ 
+ clean:
+ 	rm -f mapper.exe*
+Index: mono-tools/gendarme/tools/unsupported/typeref/Makefile.am
+===================================================================
+--- mono-tools.orig/gendarme/tools/unsupported/typeref/Makefile.am
++++ mono-tools/gendarme/tools/unsupported/typeref/Makefile.am
+@@ -6,7 +6,7 @@ typeref_sources =  \
+ 	typeref.cs
+ 
+ typeref.exe:  $(typeref_sources)
+-	$(MCS) -debug $^ -out:$@ -r:$(CECIL_ASM)
++	$(MCS) -debug $^ -out:$@ $(CECIL_ASM)
+ 
+ clean:
+ 	rm -f typeref.exe*
+Index: mono-tools/gui-compare/Makefile.am
+===================================================================
+--- mono-tools.orig/gui-compare/Makefile.am
++++ mono-tools/gui-compare/Makefile.am
+@@ -51,7 +51,7 @@ gui_compare_resources = 			\
+ 
+ EXTRA_DIST = $(gui_compare_sources) $(gui_compare_resources) gui-compare.mds gui-compare.mdp  gui-compare.in
+ 
+-packages = -pkg:gtk-sharp-2.0 -pkg:glib-sharp-2.0 -pkg:glade-sharp-2.0 -r:$(CECIL_ASM)
++packages = -pkg:gtk-sharp-2.0 -pkg:glib-sharp-2.0 -pkg:glade-sharp-2.0 $(CECIL_ASM)
+ assemblies = -r:System -r:System.Core -r:Mono.Posix -r:System.Xml
+ ress= $(foreach res,$(gui_compare_resources), $(addprefix -resource:,$(res)),$(notdir $(res)))
+ 
+Index: mono-tools/minvoke/Makefile.am
+===================================================================
+--- mono-tools.orig/minvoke/Makefile.am
++++ mono-tools/minvoke/Makefile.am
+@@ -24,7 +24,7 @@ RetargetAssembly.exe: $(retargetassembly
+ 	$(MCS) -noconfig -codepage:utf8 -warn:4 -optimize+ -target:exe -out:RetargetAssembly.exe $(retargetassembly_exe_sources)
+ 
+ minvoke.exe: $(minvoke_sources);
+-	$(MCS) -noconfig -codepage:utf8 -warn:4 -optimize+ -debug -define:DEBUG -target:exe -out:minvoke.exe $(minvoke_sources) -r:System.Core -r:$(CECIL_ASM)
++	$(MCS) -noconfig -codepage:utf8 -warn:4 -optimize+ -debug -define:DEBUG -target:exe -out:minvoke.exe $(minvoke_sources) -r:System.Core $(CECIL_ASM)
+ 
+ 
+ test: minvoke.exe MapAssembly.dll RetargetAssembly.exe
+Index: mono-tools/gendarme/rules/common.make
+===================================================================
+--- mono-tools.orig/gendarme/rules/common.make
++++ mono-tools/gendarme/rules/common.make
+@@ -40,12 +40,12 @@ generated_doc = doc/generated/index.xml
+ 
+ $(rules_dll): $(rules_build_sources) $(framework)
+ 	$(MCS) -target:library $(EXTRA_RULES_OPTIONS) -nowarn:1591 -doc:$(rules_dll).doc \
+-		-r:$(CECIL_ASM) -r:$(framework) -out:$@ $(rules_build_sources)
++		$(CECIL_ASM) -r:$(framework) -out:$@ $(rules_build_sources)
+ 
+ tests_build_sources = $(addprefix $(srcdir)/Test/, $(tests_sources))
+ 
+ $(tests_dll): $(tests_build_sources) $(rules_dll) $(EXTRA_TESTS_DEPS)
+-	$(MCS) -target:library $(EXTRA_TESTS_OPTIONS) -r:$(CECIL_ASM) -r:$(framework) \
++	$(MCS) -target:library $(EXTRA_TESTS_OPTIONS) $(CECIL_ASM) -r:$(framework) \
+ 		-r:$(rules_dll) -r:$(common_tests) -pkg:mono-nunit -out:$@ $(tests_build_sources)
+ 
+ rule: $(rules_dll)

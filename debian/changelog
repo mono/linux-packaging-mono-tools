@@ -1,23 +1,18 @@
-mono-tools (4.2-0xamarin1) wheezy; urgency=medium
+mono-tools (4.2-2) unstable; urgency=medium
 
-  * [b88ab76] Fix watchfile for new URL
-  * [6584c7b] Imported Upstream version 4.2
-  * [47f7665] Fix build deps
-  * [02348b8] Remove obsolete file from d/p/00-fix_build_system.patch
+  * [9adcc51] Don't depend on gmcs any more
+  * [80b613c] Use Mono.Cecil package, not private Cecil from src:mono
 
- -- Jo Shields <jo.shields@xamarin.com>  Wed, 06 Apr 2016 17:41:01 +0100
+ -- Jo Shields <jo.shields@xamarin.com>  Tue, 15 Nov 2016 16:12:44 +0000
 
-mono-tools (3.10-1xamarin1) wheezy; urgency=medium
+mono-tools (4.2-1) unstable; urgency=medium
 
-  * Rebuild against Mono 3.12
+  * [5c7a2bd] Fix URL in debian/watch
+  * [aea5393] Imported Upstream version 4.2
+  * [4870edf] Refreshed debian/patches/00-fix_build_system.patch
+  * [d8fb42a] Don't try to use gmcs
 
- -- Jo Shields <directhex@apebox.org>  Wed, 14 Jan 2015 18:42:05 +0000
-
-mono-tools (3.10-1~xamarin1) wheezy; urgency=medium
-
-  * Upload to Xamarin repo
-
- -- Jo Shields <directhex@apebox.org>  Wed, 08 Oct 2014 12:53:53 +0100
+ -- Jo Shields <directhex@apebox.org>  Sun, 03 Jan 2016 15:25:03 +0000
 
 mono-tools (3.10-1) unstable; urgency=medium
 
