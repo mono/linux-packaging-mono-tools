@@ -18,7 +18,7 @@
 
 Name:           mono-tools
 Version:	4.2
-Release:	0.xamarin.2
+Release:	0.xamarin.3
 BuildArch:      noarch
 Url:            http://go-mono.org/
 Source0:        %{name}-%{version}.tar.gz
