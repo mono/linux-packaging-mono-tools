@@ -111,7 +111,13 @@ Monodoc documentation.
 
 %build
 autoreconf -vi
-%configure --prefix=%{_prefix} --libdir=%{_prefix}/lib --sysconfdir=%{_sysconfdir} --mandir=%{_mandir}
+# Cannot use the configure macro because noarch-redhat-linux is not recognized by the auto tools in the tarball
+./configure --prefix=%{_prefix} \
+	    --libexecdir=%{_prefix}/lib \
+	    --libdir=%{_prefix}/lib \
+	    --mandir=%{_mandir} \
+	    --infodir=%{_infodir} \
+	    --sysconfdir=%{_sysconfdir}
 
 %install
 make install DESTDIR=%{buildroot}
