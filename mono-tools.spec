@@ -35,9 +35,9 @@ BuildRequires:  glib2-devel
 BuildRequires:  pkgconfig(glib-sharp-2.0) >= 2.12.40
 BuildRequires:  pkgconfig(glade-sharp-2.0) >= 2.12.40
 BuildRequires:  pkgconfig(gnome-sharp-2.0) >= 2.24.3
-BuildRequires:  pkgconfig(mono) >= 3.8
-BuildRequires:  pkgconfig(mono-nunit) >= 3.8
-BuildRequires:  pkgconfig(monodoc) >= 3.8
+BuildRequires:  pkgconfig(mono) >= 5.0
+BuildRequires:  pkgconfig(mono-nunit) >= 5.0
+BuildRequires:  pkgconfig(monodoc) >= 5.0
 BuildRequires:  desktop-file-utils
 BuildRequires:  pkgconfig(webkit-sharp-1.0)
 
