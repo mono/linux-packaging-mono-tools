@@ -21,7 +21,7 @@ Version:	4.2
 Release:	0.xamarin.2
 BuildArch:      noarch
 Url:            http://go-mono.org/
-Source0:        %{name}_%{version}.tar.gz
+Source0:        %{name}-%{version}.tar.gz
 Patch0:         fix_webdoc_makefile.patch
 Summary:        Collection of Tools and Utilities for Mono
 License:        GPL-2.0 and LGPL-2.0 and MIT
