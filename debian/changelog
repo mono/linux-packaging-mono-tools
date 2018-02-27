@@ -1,3 +1,16 @@
+mono-tools (4.2-2xamarin6) alpha; urgency=medium
+
+  [ Xamarin Public Jenkins (auto-signing) ]
+  * Packaging bugfix:
+
+  [ Ubuntu ]
+  * [f357bbc] Explicitly require cli-common with "ignores" fix [957c22f]
+    Remove warnaserror, which blocks gendarme build [fb121ee] Explicitly
+    skip dependencies on libmono-cecil-private-cil [fb9dd69] More
+    private copies of Cecil, to avoid GAC dependency
+
+ -- Xamarin Public Jenkins (auto-signing) <releng@xamarin.com>  Tue, 27 Feb 2018 19:37:36 +0000
+
 mono-tools (4.2-2xamarin5) alpha; urgency=medium
 
   * Packaging bugfix:
