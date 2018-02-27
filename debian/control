@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Debian Mono Group <pkg-mono-group@lists.alioth.debian.org>
 Uploaders: Mirco Bauer <meebey@debian.org>, Sebastian Dröge <slomo@debian.org>
 Build-Depends: debhelper (>= 7.0.50~)
-Build-Depends-Indep: cli-common-dev (>= 0.8~exp2~),
+Build-Depends-Indep: cli-common-dev (>= 0.9+xamarin5~),
  pkg-config,
  dh-autoreconf,
  mono-devel (>= 3.0.6),
