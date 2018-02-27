@@ -13,6 +13,8 @@ VERSION = $(shell echo $(DEB_VERSION) | cut -d"-" -f1 | sed 's/+dfsg.*//')
 
 override_dh_install:
 	cp `pkg-config --variable=assemblies_dir mono-cecil`/Mono.Cecil.dll* debian/tmp/usr/lib/gendarme
+	cp `pkg-config --variable=assemblies_dir mono-cecil`/Mono.Cecil.dll* debian/tmp/usr/lib/minvoke
+	cp `pkg-config --variable=assemblies_dir mono-cecil`/Mono.Cecil.dll* debian/tmp/usr/lib/gui-compare
 	dh_install
 	cp $(CURDIR)/debian/monodoc-http-script $(CURDIR)/debian/monodoc-http/usr/bin/monodoc-http
 	# fix upstream file permissions
