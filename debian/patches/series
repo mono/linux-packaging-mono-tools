@@ -1,2 +1,3 @@
 00-fix_build_system.patch
 use-system-cecil-not-private-cecil.patch
+no-warnaserror-on-Gendarme.Rules.Portability
