@@ -43,7 +43,6 @@ Replaces: gnunit (<< 1.2.1)
 Description: Various GUI tools for mono
  This package contains various GUI tools for use with Mono:
   - gasnview
-  - ilcontrast
   - gui-compare
   - mperfmon
   - gsharp
