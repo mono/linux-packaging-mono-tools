@@ -1,11 +1,11 @@
-Index: xamarin-pkg-mono-tools/gendarme/options.make
+Index: mono-tools/gendarme/options.make
 ===================================================================
---- xamarin-pkg-mono-tools.orig/gendarme/options.make
-+++ xamarin-pkg-mono-tools/gendarme/options.make
+--- mono-tools.orig/gendarme/options.make
++++ mono-tools/gendarme/options.make
 @@ -2,5 +2,5 @@
  COMMON_OPTIONS := -debug+ -d:TRACE $(if $(DEBUG),-d:DEBUG -checked+,-optimize+)
  COMMON_OPTIONS += -nowarn:1591	# Missing XML comment
  
 -GENDARME_OPTIONS := $(COMMON_OPTIONS) -warn:4 -warnaserror+
-+GENDARME_OPTIONS := $(COMMON_OPTIONS) -warn:4
++GENDARME_OPTIONS := $(COMMON_OPTIONS) -warn:4 -warnaserror+ -warnaserror-:CS0618 
  TESTS_OPTIONS := $(COMMON_OPTIONS) -warn:0

@@ -1,87 +1,26 @@
-mono-tools (4.2-2xamarin13) preview; urgency=medium
+mono-tools (4.2-3) unstable; urgency=medium
 
-  * Packaging bugfix:
+  * [2e576f3] We know what we're doing - don't fail due to obsolete
+    SharpZipLib warning (Closes: #921793)
 
- -- Xamarin Public Jenkins (auto-signing) <releng@xamarin.com>  Mon, 15 Jul 2019 15:03:17 +0000
+ -- Jo Shields <joshield@microsoft.com>  Fri, 15 Feb 2019 15:16:04 -0500
 
-mono-tools (4.2-2xamarin12) preview; urgency=medium
+mono-tools (4.2-2.2) unstable; urgency=medium
 
-  * Packaging bugfix:
+  * Non-maintainer upload.
+  * Drop unnecessary Build-Depends on libgconf2.0-cil-dev and
+    libgnome2.0-cil-dev (Closes: #888632)
 
- -- Xamarin Public Jenkins (auto-signing) <releng@xamarin.com>  Fri, 06 Apr 2018 18:32:48 +0000
+ -- Jeremy Bicha <jbicha@debian.org>  Sun, 18 Feb 2018 20:36:54 -0500
 
-mono-tools (4.2-2xamarin11) preview; urgency=medium
+mono-tools (4.2-2.1) unstable; urgency=medium
 
-  * Packaging bugfix:
+  * Non-maintainer upload.
+  * [a4960e8] Don't Build-Depend on libwebkit-cil-dev (Closes: #871831)
+  * [fbcd672] Drop ilcontrast and monodoc-browser since they won't work
+    without webkit1
 
- -- Xamarin Public Jenkins (auto-signing) <releng@xamarin.com>  Fri, 06 Apr 2018 17:53:01 +0000
-
-mono-tools (4.2-2xamarin10) preview; urgency=medium
-
-  * Packaging bugfix:
-
- -- Xamarin Public Jenkins (auto-signing) <releng@xamarin.com>  Fri, 06 Apr 2018 17:21:38 +0000
-
-mono-tools (4.2-2xamarin9) preview; urgency=medium
-
-  * Packaging bugfix:
-
- -- Xamarin Public Jenkins (auto-signing) <releng@xamarin.com>  Fri, 06 Apr 2018 15:29:41 +0000
-
-mono-tools (4.2-2xamarin8) preview; urgency=medium
-
-  * Packaging bugfix:
-
- -- Xamarin Public Jenkins (auto-signing) <releng@xamarin.com>  Fri, 06 Apr 2018 13:26:13 +0000
-
-mono-tools (4.2-2xamarin7) preview; urgency=medium
-
-  * Packaging bugfix:
-
- -- Xamarin Public Jenkins (auto-signing) <releng@xamarin.com>  Tue, 27 Feb 2018 19:57:38 +0000
-
-mono-tools (4.2-2xamarin6) alpha; urgency=medium
-
-  [ Xamarin Public Jenkins (auto-signing) ]
-  * Packaging bugfix:
-
-  [ Ubuntu ]
-  * [f357bbc] Explicitly require cli-common with "ignores" fix [957c22f]
-    Remove warnaserror, which blocks gendarme build [fb121ee] Explicitly
-    skip dependencies on libmono-cecil-private-cil [fb9dd69] More
-    private copies of Cecil, to avoid GAC dependency
-
- -- Xamarin Public Jenkins (auto-signing) <releng@xamarin.com>  Tue, 27 Feb 2018 19:37:36 +0000
-
-mono-tools (4.2-2xamarin5) alpha; urgency=medium
-
-  * Packaging bugfix:
-
- -- Xamarin Public Jenkins (auto-signing) <releng@xamarin.com>  Wed, 05 Jul 2017 17:28:02 +0000
-
-mono-tools (4.2-2xamarin4) alpha; urgency=medium
-
-  * Packaging bugfix:
-
- -- Xamarin Public Jenkins (auto-signing) <releng@xamarin.com>  Wed, 05 Apr 2017 16:12:57 +0000
-
-mono-tools (4.2-2xamarin3) alpha; urgency=medium
-
-  * Packaging bugfix:
-
- -- Xamarin Public Jenkins (auto-signing) <releng@xamarin.com>  Wed, 05 Apr 2017 13:54:25 +0000
-
-mono-tools (4.2-2xamarin2) alpha; urgency=medium
-
-  * Packaging bugfix:
-
- -- Xamarin Public Jenkins (auto-signing) <releng@xamarin.com>  Wed, 05 Apr 2017 13:28:57 +0000
-
-mono-tools (4.2-2xamarin1) alpha; urgency=medium
-
-  * Packaging bugfix:
-
- -- Xamarin Public Jenkins (auto-signing) <releng@xamarin.com>  Wed, 05 Apr 2017 13:12:41 +0000
+ -- Jeremy Bicha <jbicha@debian.org>  Thu, 21 Sep 2017 13:32:38 -0400
 
 mono-tools (4.2-2) unstable; urgency=medium
 
