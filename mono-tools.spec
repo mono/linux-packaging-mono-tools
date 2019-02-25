@@ -62,6 +62,12 @@ utilities for use with Mono.
 %_bindir/gasnview
 %_prefix/lib/mono/1.0/gasnview.exe
 %endif
+%if 0%{?rhel} <= 7
+%_bindir/ilcontrast
+%_datadir/applications/ilcontrast.desktop
+%_datadir/pixmaps/ilcontrast.png
+%_prefix/lib/ilcontrast
+%endif
 %_bindir/create-native-map
 %_bindir/emveepee
 %_bindir/gendarme
@@ -69,7 +75,6 @@ utilities for use with Mono.
 %_bindir/gd2i
 %_bindir/gsharp
 %_bindir/gui-compare
-%_bindir/ilcontrast
 %_bindir/minvoke
 %_bindir/monodoc
 %_bindir/mperfmon
@@ -77,12 +82,10 @@ utilities for use with Mono.
 %_bindir/mprof-heap-viewer
 %_datadir/applications/gendarme-wizard.desktop
 %_datadir/applications/gsharp.desktop
-%_datadir/applications/ilcontrast.desktop
 %_datadir/applications/monodoc.desktop
 %_datadir/create-native-map
 %_datadir/icons/hicolor/*/apps/monodoc.png
 %_datadir/pixmaps/gendarme.svg
-%_datadir/pixmaps/ilcontrast.png
 %_datadir/pixmaps/monodoc.png
 %_datadir/pkgconfig/create-native-map.pc
 %_datadir/pkgconfig/gendarme-framework.pc
@@ -97,7 +100,6 @@ utilities for use with Mono.
 %_prefix/lib/gendarme
 %_prefix/lib/gsharp
 %_prefix/lib/gui-compare
-%_prefix/lib/ilcontrast
 %_prefix/lib/minvoke
 %_prefix/lib/mono-tools
 %_prefix/lib/monodoc/*.dll*
@@ -140,8 +142,10 @@ mkdir %{buildroot}/%_prefix/share/create-native-map
 mv %{buildroot}/%_prefix/lib/create-native-map/MapAttribute.cs %{buildroot}/%_prefix/share/create-native-map
 mv %{buildroot}/%_prefix/lib/pkgconfig %{buildroot}/%_prefix/share
 
-desktop-file-install --dir=%{buildroot}/%{_datadir}/applications docbrowser/monodoc.desktop
+%if 0%{?rhel} <= 7
 desktop-file-install --dir=%{buildroot}/%{_datadir}/applications ilcontrast/ilcontrast.desktop
+%endif
+desktop-file-install --dir=%{buildroot}/%{_datadir}/applications docbrowser/monodoc.desktop
 desktop-file-install --dir=%{buildroot}/%{_datadir}/applications gendarme/swf-wizard-runner/gendarme-wizard.desktop
 desktop-file-install --dir=%{buildroot}/%{_datadir}/applications gsharp/gsharp.desktop
 
