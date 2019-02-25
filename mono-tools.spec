@@ -33,12 +33,14 @@ BuildRequires:  libtool
 BuildRequires:  glib2-devel
 BuildRequires:  pkgconfig(glib-sharp-2.0) >= 2.12.40
 BuildRequires:  pkgconfig(glade-sharp-2.0) >= 2.12.40
-BuildRequires:  pkgconfig(gnome-sharp-2.0) >= 2.24.3
 BuildRequires:  pkgconfig(mono) >= 5.0
 BuildRequires:  pkgconfig(mono-nunit) >= 5.0
 BuildRequires:  pkgconfig(monodoc) >= 5.0
 BuildRequires:  desktop-file-utils
+%if 0%{?rhel} <= 7
+BuildRequires:  pkgconfig(gnome-sharp-2.0) >= 2.24.3
 BuildRequires:  pkgconfig(webkit-sharp-1.0)
+%endif
 
 %description
 Mono Tools is a collection of development and testing programs and
