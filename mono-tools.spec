@@ -38,10 +38,6 @@ BuildRequires:  pkgconfig(mono) >= 5.0
 BuildRequires:  pkgconfig(mono-nunit) >= 5.0
 BuildRequires:  pkgconfig(monodoc) >= 5.0
 BuildRequires:  desktop-file-utils
-%if 0%{?rhel} <= 7
-BuildRequires:  pkgconfig(gnome-sharp-2.0) >= 2.24.3
-BuildRequires:  pkgconfig(webkit-sharp-1.0)
-%endif
 
 %description
 Mono Tools is a collection of development and testing programs and
@@ -61,12 +57,6 @@ utilities for use with Mono.
 %if 0%{?fedora}
 %_bindir/gasnview
 %_prefix/lib/mono/1.0/gasnview.exe
-%endif
-%if 0%{?rhel} <= 7
-%_bindir/ilcontrast
-%_datadir/applications/ilcontrast.desktop
-%_datadir/pixmaps/ilcontrast.png
-%_prefix/lib/ilcontrast
 %endif
 %_bindir/create-native-map
 %_bindir/emveepee
@@ -142,9 +132,6 @@ mkdir %{buildroot}/%_prefix/share/create-native-map
 mv %{buildroot}/%_prefix/lib/create-native-map/MapAttribute.cs %{buildroot}/%_prefix/share/create-native-map
 mv %{buildroot}/%_prefix/lib/pkgconfig %{buildroot}/%_prefix/share
 
-%if 0%{?rhel} <= 7
-desktop-file-install --dir=%{buildroot}/%{_datadir}/applications ilcontrast/ilcontrast.desktop
-%endif
 desktop-file-install --dir=%{buildroot}/%{_datadir}/applications docbrowser/monodoc.desktop
 desktop-file-install --dir=%{buildroot}/%{_datadir}/applications gendarme/swf-wizard-runner/gendarme-wizard.desktop
 desktop-file-install --dir=%{buildroot}/%{_datadir}/applications gsharp/gsharp.desktop
