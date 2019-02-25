@@ -22,6 +22,7 @@ Release:	0.xamarin.7
 BuildArch:      noarch
 Url:            http://go-mono.org/
 Source0:        %{name}-%{version}.tar.gz
+Patch0:		dont_warnaserror_on_ziplib.patch
 Summary:        Collection of Tools and Utilities for Mono
 License:        GPL-2.0 and LGPL-2.0 and MIT
 Group:          Development/Tools/Other
@@ -119,6 +120,7 @@ Monodoc documentation.
 
 %prep
 %setup -q
+%patch0 -p1
 
 %build
 autoreconf -vi
