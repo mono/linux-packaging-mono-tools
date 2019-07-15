@@ -1,3 +1,9 @@
+mono-tools (4.2-3xamarin1) preview; urgency=medium
+
+  * Packaging bugfix:
+
+ -- Xamarin Public Jenkins (auto-signing) <releng@xamarin.com>  Mon, 15 Jul 2019 15:09:05 +0000
+
 mono-tools (4.2-3) unstable; urgency=medium
 
   * [2e576f3] We know what we're doing - don't fail due to obsolete
