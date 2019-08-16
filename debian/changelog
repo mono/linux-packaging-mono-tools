@@ -1,3 +1,15 @@
+mono-tools (4.2-3xamarin2) preview; urgency=medium
+
+  [ Xamarin Public Jenkins (auto-signing) ]
+  * Packaging bugfix:
+
+  [ Ubuntu ]
+  * [900336b] xsp doesn't work if started from the non-root directory?!
+    [c2d41ea] Hacky patch to make webdoc run, at least. Not great shape,
+    but better than nothing
+
+ -- Xamarin Public Jenkins (auto-signing) <releng@xamarin.com>  Fri, 16 Aug 2019 15:49:37 +0000
+
 mono-tools (4.2-3xamarin1) preview; urgency=medium
 
   * Packaging bugfix:
