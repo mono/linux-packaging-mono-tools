@@ -1,0 +1,47 @@
+Index: xamarin-pkg-mono-tools/webdoc/monodoc.ashx
+===================================================================
+--- xamarin-pkg-mono-tools.orig/webdoc/monodoc.ashx
++++ xamarin-pkg-mono-tools/webdoc/monodoc.ashx
+@@ -31,9 +31,11 @@ namespace Mono.Website.Handlers
+ 	public class MonodocHandler : IHttpHandler
+ 	{
+ 		static DateTime monodoc_timestamp, handler_timestamp;
++		static string temp_image_dir;
+ 
+ 		static MonodocHandler ()
+ 		{
++			temp_image_dir = Path.Combine (Path.GetTempPath (), Path.GetRandomFileName ());
+ 			monodoc_timestamp = File.GetCreationTimeUtc (typeof (Node).Assembly.Location);
+ 			handler_timestamp = File.GetCreationTimeUtc (typeof (MonodocHandler).Assembly.Location);
+ 
+@@ -44,7 +46,7 @@ namespace Mono.Website.Handlers
+ 		static void DumpEmbeddedImages ()
+ 		{
+ 			try {
+-				Directory.CreateDirectory ("mdocimages");
++				Directory.CreateDirectory (Path.Combine (temp_image_dir, "mdocimages"));
+ 			} catch {}
+ 
+ 			var mass = typeof (Node).Assembly;
+@@ -52,7 +54,7 @@ namespace Mono.Website.Handlers
+ 			foreach (string image in mass.GetManifestResourceNames ()){
+ 				if (!(image.EndsWith ("png") || image.EndsWith ("jpg")))
+ 					continue;
+-				var target = Path.Combine ("mdocimages", image);
++				var target = Path.Combine (temp_image_dir, "mdocimages", image);
+ 				if (File.Exists (target))
+ 					continue;
+ 
+Index: xamarin-pkg-mono-tools/webdoc/web.config
+===================================================================
+--- xamarin-pkg-mono-tools.orig/webdoc/web.config
++++ xamarin-pkg-mono-tools/webdoc/web.config
+@@ -26,7 +26,7 @@
+     <appSettings>
+ 	<add key="Title" value="Xamarin API Documentation" />
+ 	<add key="MonoServerDefaultIndexFiles" value="index.aspx, Default.aspx, default.aspx, index.html, index.htm" />
+-	<add key="MonodocRootDir" value="/mono/lib/monodoc-ios/" />
++	<add key="MonodocRootDir" value="/usr/lib/monodoc/" />
+         <add key="Plugins" value="plugins.def" />
+     </appSettings>
+     
