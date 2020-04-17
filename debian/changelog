@@ -1,3 +1,9 @@
+mono-tools (4.2-3xamarin5) preview; urgency=medium
+
+  * Packaging bugfix:
+
+ -- Xamarin Public Jenkins (auto-signing) <releng@xamarin.com>  Fri, 17 Apr 2020 15:44:46 +0000
+
 mono-tools (4.2-3xamarin4) preview; urgency=medium
 
   * Packaging bugfix:
